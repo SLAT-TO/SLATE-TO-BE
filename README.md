@@ -7,6 +7,58 @@
 
 ## 🛠️ 기술 스택 (Tech Stack)
 
+- Java 21
+- Spring Boot 3.5.15
+- Gradle - Groovy
+- MySQL
+- Spring Data JPA
+- Spring Web
+- Validation
+- Lombok
+- Swagger / Springdoc OpenAPI
+
+## 🚀 로컬 실행 방법
+
+### 1. IntelliJ에서 실행
+
+1. IntelliJ IDEA에서 프로젝트를 엽니다.
+2. Project SDK를 Java 21로 설정합니다.
+3. Gradle Sync를 실행합니다.
+4. Run Configuration의 Environment variables에 DB 환경변수를 설정합니다.
+5. `SlattoApplication` main class를 실행합니다.
+
+### 2. 필수 환경변수
+
+DB 접속 대상은 아직 로컬 MySQL 또는 RDS 중 확정되지 않았습니다.
+현재는 MySQL 사용을 전제로 환경변수만 열어둡니다.
+
+```bash
+DB_URL=jdbc:mysql://<host>:3306/<database>?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+DB_USER=<username>
+DB_PASSWORD=<password>
+JPA_DDL_AUTO=validate
+```
+
+환경변수 예시는 `.env.example`을 참고합니다. Spring Boot는 `.env` 파일을 자동으로 읽지 않으므로 IntelliJ Run Configuration 또는 shell 환경변수로 값을 주입합니다.
+
+### 3. Swagger
+
+애플리케이션 실행 후 아래 주소에서 Swagger UI를 확인할 수 있습니다.
+
+```txt
+http://localhost:8080/swagger-ui
+```
+
+## 🧩 초기 패키지 방향
+
+```txt
+com.slatto
+├── global
+│   └── config
+└── domain
+```
+
+공통 응답 형식, 예외 처리 방식, Security/Auth 구조는 팀 합의 후 추가합니다.
 
 ### 🌐 Git-flow 전략 (Git-flow Strategy)
 
