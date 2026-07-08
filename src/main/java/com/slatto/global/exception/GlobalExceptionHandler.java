@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -76,7 +78,8 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiResponse<Void>> handleUnexpectedException(Exception exception) {
-		CommonErrorCode errorCode = CommonErrorCode.INTERNAL_SERVER_ERROR;
+        log.error("[Unhandled Exception] ", exception);
+        CommonErrorCode errorCode = CommonErrorCode.INTERNAL_SERVER_ERROR;
 
 		return ResponseEntity
 			.status(errorCode.getHttpStatus())
