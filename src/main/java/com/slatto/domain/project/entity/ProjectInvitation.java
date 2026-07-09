@@ -1,5 +1,6 @@
 package com.slatto.domain.project.entity;
 
+import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.enums.ExpirationPeriod;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @Table(name = "project_invitation")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ProjectInvitation {
+public class ProjectInvitation extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,7 +42,4 @@ public class ProjectInvitation {
 
     @Column(name = "accepted_at", nullable = true)
     private LocalDateTime acceptedAt;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
 }

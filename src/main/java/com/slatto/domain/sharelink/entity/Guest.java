@@ -1,17 +1,16 @@
 package com.slatto.domain.sharelink.entity;
 
+import com.slatto.domain.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "guest")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Guest {
+public class Guest extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +23,4 @@ public class Guest {
 
     @Column(name = "name", nullable = true, length = 100)
     private String name;
-
-    @Column(name = "created_at", nullable = true)
-    private LocalDateTime createdAt;
 }
