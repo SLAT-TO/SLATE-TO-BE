@@ -9,7 +9,13 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "recruitment_bookmark")
+@Table(
+        name = "recruitment_bookmark",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_recruitment_bookmark_user_recruitment",
+                columnNames = {"user_id", "recruitment_id"}
+        )
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RecruitmentBookmark {

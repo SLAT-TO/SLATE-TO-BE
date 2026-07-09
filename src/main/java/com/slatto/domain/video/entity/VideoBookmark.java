@@ -9,7 +9,13 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "video_bookmark")
+@Table(
+        name = "video_bookmark",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_video_bookmark_video_user",
+                columnNames = {"video_id", "user_id"}
+        )
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class VideoBookmark {

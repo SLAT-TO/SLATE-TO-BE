@@ -23,7 +23,7 @@ public class ShareLink {
     @JoinColumn(name = "video_id", nullable = false)
     private Video video;
 
-    @Column(name = "token", nullable = false, length = 255)
+    @Column(name = "token", nullable = false, length = 255, unique = true)
     private String token;
 
     @Column(name = "is_active", nullable = false)

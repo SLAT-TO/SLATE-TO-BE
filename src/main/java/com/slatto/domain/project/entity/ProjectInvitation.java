@@ -32,7 +32,7 @@ public class ProjectInvitation {
     @JoinColumn(name = "accepter_id", nullable = true)
     private Users accepter;
 
-    @Column(name = "token_hash", nullable = false, length = 255)
+    @Column(name = "token_hash", nullable = false, length = 255, unique = true)
     private String tokenHash;
 
     @Enumerated(EnumType.STRING)
