@@ -1,5 +1,6 @@
 package com.slatto.domain.user.entity;
 
+import com.slatto.domain.recruitment.entity.Recruitment;
 import com.slatto.domain.user.enums.RegionName;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -21,7 +22,8 @@ public class Location {
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
-    @Column(name = "recruitment_id", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recruitment_id", nullable = true)
     private Recruitment recruitment;
 
     @Enumerated(EnumType.STRING)
