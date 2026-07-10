@@ -1,5 +1,6 @@
 package com.slatto.domain.recruitment.entity;
 
+import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -7,13 +8,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "recruitment")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Recruitment {
+public class Recruitment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,7 +50,4 @@ public class Recruitment {
 
     @Column(name = "deadline", nullable = true)
     private LocalDate deadline;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
 }

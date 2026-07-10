@@ -1,5 +1,6 @@
 package com.slatto.domain.notification.entity;
 
+import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.notification.enums.ActorType;
 import jakarta.persistence.*;
@@ -7,13 +8,11 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "activity_log")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ActivityLog {
+public class ActivityLog extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,7 +47,4 @@ public class ActivityLog {
 
     @Column(name = "group_key", nullable = true, length = 255)
     private String groupKey;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
 }

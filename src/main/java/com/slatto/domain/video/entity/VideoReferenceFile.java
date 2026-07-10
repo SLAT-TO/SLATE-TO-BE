@@ -1,5 +1,6 @@
 package com.slatto.domain.video.entity;
 
+import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.entity.ProjectFile;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @Table(name = "video_reference_file")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class VideoReferenceFile {
+public class VideoReferenceFile extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,9 +32,6 @@ public class VideoReferenceFile {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "added_by", nullable = false)
     private Users addedBy;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;

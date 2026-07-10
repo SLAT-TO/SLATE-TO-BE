@@ -1,5 +1,6 @@
 package com.slatto.domain.notification.entity;
 
+import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @Table(name = "notification")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Notification {
+public class Notification extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,9 +43,6 @@ public class Notification {
 
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;

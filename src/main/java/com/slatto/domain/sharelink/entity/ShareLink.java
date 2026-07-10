@@ -1,5 +1,6 @@
 package com.slatto.domain.sharelink.entity;
 
+import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.video.entity.Video;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 @Table(name = "share_link")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ShareLink {
+public class ShareLink extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,7 +24,7 @@ public class ShareLink {
     @JoinColumn(name = "video_id", nullable = false)
     private Video video;
 
-    @Column(name = "token", nullable = false, length = 255)
+    @Column(name = "token", nullable = false, length = 255, unique = true)
     private String token;
 
     @Column(name = "is_active", nullable = false)
@@ -31,7 +32,4 @@ public class ShareLink {
 
     @Column(name = "expired_at", nullable = true)
     private LocalDateTime expiredAt;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
 }

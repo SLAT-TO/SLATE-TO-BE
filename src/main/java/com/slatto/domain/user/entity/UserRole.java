@@ -7,7 +7,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "user_role")
+@Table(
+        name = "user_role",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_user_role_user_role_name",
+                columnNames = {"user_id", "role_name"}
+        )
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserRole {
