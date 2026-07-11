@@ -1,0 +1,26 @@
+package com.slatto.domain.project.exception;
+
+import com.slatto.global.response.code.BaseCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@RequiredArgsConstructor
+public enum ProjectErrorCode implements BaseCode {
+
+    PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "PROJECT404", "프로젝트를 찾을 수 없습니다."),
+    PROJECT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "PROJECT_MEMBER404", "프로젝트 멤버를 찾을 수 없습니다."),
+    PROJECT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "PROJECT403", "프로젝트 접근 권한이 없습니다."),
+    PROJECT_ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "PROJECT_ADMIN403", "프로젝트 관리자 권한이 필요합니다."),
+    PROJECT_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "PROJECT409", "무료 계정은 최대 5개의 프로젝트를 생성할 수 있습니다.");
+
+    private final HttpStatus httpStatus;
+    private final String code;
+    private final String message;
+
+    @Override
+    public boolean isSuccess() {
+        return false;
+    }
+}
