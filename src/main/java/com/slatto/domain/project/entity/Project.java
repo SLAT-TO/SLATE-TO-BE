@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Project extends BaseEntity {
 
+    private static final ProjectStatus DEFAULT_STATUS = ProjectStatus.PLANNING;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -65,4 +67,80 @@ public class Project extends BaseEntity {
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    private Project(
+        Users ownerUser,
+        String title,
+        CategoryName type,
+        String customTypeName,
+        LengthType lengthType,
+        String description,
+        LocalDate endDate,
+        String clientName,
+        Kind kind
+    ) {
+        this.ownerUser = ownerUser;
+        this.title = title;
+        this.type = type;
+        this.customTypeName = customTypeName;
+        this.lengthType = lengthType;
+        this.description = description;
+        this.startDate = LocalDate.now();
+        this.endDate = endDate;
+        this.clientName = clientName;
+        this.status = DEFAULT_STATUS;
+        this.kind = kind;
+    }
+
+    public static Project create(
+        Users ownerUser,
+        String title,
+        CategoryName type,
+        String customTypeName,
+        LengthType lengthType,
+        String description,
+        LocalDate endDate,
+        String clientName,
+        Kind kind
+    ) {
+        return new Project(
+            ownerUser,
+            title,
+            type,
+            customTypeName,
+            lengthType,
+            description,
+            endDate,
+            clientName,
+            kind
+        );
+    }
+
+    public void updateInfo(
+        String title,
+        CategoryName type,
+        String customTypeName,
+        LengthType lengthType,
+        String description,
+        LocalDate endDate,
+        String clientName,
+        Kind kind
+    ) {
+        this.title = title;
+        this.type = type;
+        this.customTypeName = customTypeName;
+        this.lengthType = lengthType;
+        this.description = description;
+        this.endDate = endDate;
+        this.clientName = clientName;
+        this.kind = kind;
+    }
+
+    public void changeStatus(ProjectStatus status) {
+        this.status = status;
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
 }

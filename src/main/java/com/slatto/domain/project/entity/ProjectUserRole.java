@@ -24,4 +24,13 @@ public class ProjectUserRole {
     @Enumerated(EnumType.STRING)
     @Column(name = "role_name", nullable = false)
     private RoleName roleName;
+
+    private ProjectUserRole(ProjectMember projectMember, RoleName roleName) {
+        this.projectMember = projectMember;
+        this.roleName = roleName;
+    }
+
+    public static ProjectUserRole create(ProjectMember projectMember, RoleName roleName) {
+        return new ProjectUserRole(projectMember, roleName);
+    }
 }
