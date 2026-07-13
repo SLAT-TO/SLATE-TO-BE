@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Project extends BaseEntity {
 
-    private static final ProjectStatus DEFAULT_STATUS = ProjectStatus.PLANNING;
+    private static final ProjectStatus DEFAULT_STATUS = ProjectStatus.PREPARING;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
