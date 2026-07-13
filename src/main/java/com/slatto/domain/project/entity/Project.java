@@ -3,9 +3,11 @@ package com.slatto.domain.project.entity;
 import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.enums.LengthType;
 import com.slatto.domain.project.enums.ProjectStatus;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.Kind;
+import com.slatto.global.exception.BaseException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -79,13 +81,16 @@ public class Project extends BaseEntity {
         String clientName,
         Kind kind
     ) {
+        LocalDate startDate = LocalDate.now();
+        validateProjectPeriod(startDate, endDate);
+
         this.ownerUser = ownerUser;
         this.title = title;
         this.type = type;
         this.customTypeName = customTypeName;
         this.lengthType = lengthType;
         this.description = description;
-        this.startDate = LocalDate.now();
+        this.startDate = startDate;
         this.endDate = endDate;
         this.clientName = clientName;
         this.status = DEFAULT_STATUS;
@@ -126,6 +131,8 @@ public class Project extends BaseEntity {
         String clientName,
         Kind kind
     ) {
+        validateProjectPeriod(this.startDate, endDate);
+
         this.title = title;
         this.type = type;
         this.customTypeName = customTypeName;
@@ -142,5 +149,11 @@ public class Project extends BaseEntity {
 
     public void delete() {
         this.deletedAt = LocalDateTime.now();
+    }
+
+    private void validateProjectPeriod(LocalDate startDate, LocalDate endDate) {
+        if (endDate == null || endDate.isBefore(startDate)) {
+            throw new BaseException(ProjectErrorCode.INVALID_PROJECT_PERIOD);
+        }
     }
 }

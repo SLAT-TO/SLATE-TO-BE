@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum ProjectErrorCode implements BaseCode {
 
+    INVALID_PROJECT_PERIOD(HttpStatus.BAD_REQUEST, "PROJECT400", "프로젝트 마감일은 시작일보다 이전일 수 없습니다."),
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "PROJECT404", "프로젝트를 찾을 수 없습니다."),
     PROJECT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "PROJECT_MEMBER404", "프로젝트 멤버를 찾을 수 없습니다."),
     PROJECT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "PROJECT403", "프로젝트 접근 권한이 없습니다."),
