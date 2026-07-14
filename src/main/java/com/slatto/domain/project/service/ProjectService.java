@@ -43,6 +43,7 @@ public class ProjectService {
     private final ProjectUserRoleRepository projectUserRoleRepository;
     private final UserRepository userRepository;
     private final ProjectConverter projectConverter;
+    private final ProjectAccessValidator projectAccessValidator;
 
     @Transactional
     public ProjectResponse createProject(Long ownerUserId, ProjectCreateRequest request) {
@@ -99,8 +100,8 @@ public class ProjectService {
     }
 
     public ProjectDetailResponse getProject(Long projectId, Long currentUserId) {
-        Project project = getProjectOrThrow(projectId);
-        ProjectMember currentMember = getCurrentMemberOrThrow(projectId, currentUserId);
+        Project project = projectAccessValidator.getProjectOrThrow(projectId);
+        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
 
         List<RoleName> myRoles = projectUserRoleRepository.findAllByProjectMemberId(currentMember.getId())
             .stream()
@@ -121,9 +122,8 @@ public class ProjectService {
         Long currentUserId,
         ProjectUpdateRequest request
     ) {
-        Project project = getProjectOrThrow(projectId);
-        ProjectMember currentMember = getCurrentMemberOrThrow(projectId, currentUserId);
-        validateAdmin(currentMember);
+        Project project = projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.getCurrentAdminOrThrow(projectId, currentUserId);
 
         project.updateInfo(
             request.getTitle(),
@@ -145,9 +145,8 @@ public class ProjectService {
 
     @Transactional
     public void deleteProject(Long projectId, Long currentUserId) {
-        Project project = getProjectOrThrow(projectId);
-        ProjectMember currentMember = getCurrentMemberOrThrow(projectId, currentUserId);
-        validateAdmin(currentMember);
+        Project project = projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.getCurrentAdminOrThrow(projectId, currentUserId);
 
         project.delete();
     }
@@ -167,22 +166,6 @@ public class ProjectService {
         long projectCount = projectRepository.countByOwnerUserIdAndDeletedAtIsNull(ownerUserId);
         if (projectCount >= FREE_PROJECT_LIMIT) {
             throw new BaseException(ProjectErrorCode.PROJECT_LIMIT_EXCEEDED);
-        }
-    }
-
-    private Project getProjectOrThrow(Long projectId) {
-        return projectRepository.findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_NOT_FOUND));
-    }
-
-    private ProjectMember getCurrentMemberOrThrow(Long projectId, Long currentUserId) {
-        return projectMemberRepository.findByProjectIdAndUserIdAndLeftAtIsNull(projectId, currentUserId)
-            .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED));
-    }
-
-    private void validateAdmin(ProjectMember projectMember) {
-        if (!projectMember.isAdmin()) {
-            throw new BaseException(ProjectErrorCode.PROJECT_ADMIN_REQUIRED);
         }
     }
 

@@ -6,7 +6,6 @@ import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.entity.ProjectUserRole;
 import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
-import com.slatto.domain.project.repository.ProjectRepository;
 import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
@@ -24,13 +23,13 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ProjectMemberService {
 
-    private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectUserRoleRepository projectUserRoleRepository;
+    private final ProjectAccessValidator projectAccessValidator;
 
     public ProjectMemberListResponse getProjectMembers(Long projectId, Long currentUserId) {
-        validateProjectExists(projectId);
-        validateProjectAccess(projectId, currentUserId);
+        projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.validateProjectAccess(projectId, currentUserId);
 
         List<ProjectMember> projectMembers = projectMemberRepository.findAllActiveMembersByProjectId(projectId);
         Map<Long, List<RoleName>> roleNamesByMemberId = getRoleNamesByMemberId(projectMembers);
@@ -53,8 +52,8 @@ public class ProjectMemberService {
         Long memberId,
         Long currentUserId
     ) {
-        validateProjectExists(projectId);
-        validateProjectAccess(projectId, currentUserId);
+        projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.validateProjectAccess(projectId, currentUserId);
 
         ProjectMember projectMember = projectMemberRepository.findActiveMemberByProjectIdAndMemberId(
                 projectId,
@@ -68,17 +67,6 @@ public class ProjectMemberService {
             .toList();
 
         return toMemberDetailResponse(projectMember, roleNames);
-    }
-
-    private void validateProjectExists(Long projectId) {
-        projectRepository.findByIdAndDeletedAtIsNull(projectId)
-            .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_NOT_FOUND));
-    }
-
-    private void validateProjectAccess(Long projectId, Long currentUserId) {
-        if (!projectMemberRepository.existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, currentUserId)) {
-            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
-        }
     }
 
     private Map<Long, List<RoleName>> getRoleNamesByMemberId(List<ProjectMember> projectMembers) {
