@@ -2,6 +2,7 @@ package com.slatto.domain.video.entity;
 
 import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.video.enums.VideoProgressStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -12,6 +13,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Video extends BaseEntity {
+
+    private static final VideoProgressStatus DEFAULT_PROGRESS_STATUS = VideoProgressStatus.IN_PROGRESS;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,6 +37,38 @@ public class Video extends BaseEntity {
     @Column(name = "thumbnail_url", nullable = true, length = 500)
     private String thumbnailUrl;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "progress_status", nullable = false, length = 50)
-    private String progressStatus;
+    private VideoProgressStatus progressStatus;
+
+    @Column(name = "memo", columnDefinition = "TEXT")
+    private String memo;
+
+    private Video(
+            Project project,
+            String youtubeUrl,
+            String youtubeVideoId,
+            String title,
+            String thumbnailUrl,
+            String memo
+    ) {
+        this.project = project;
+        this.youtubeUrl = youtubeUrl;
+        this.youtubeVideoId = youtubeVideoId;
+        this.title = title;
+        this.thumbnailUrl = thumbnailUrl;
+        this.progressStatus = DEFAULT_PROGRESS_STATUS;
+        this.memo = memo;
+    }
+
+    public static Video create(
+            Project project,
+            String youtubeUrl,
+            String youtubeVideoId,
+            String title,
+            String thumbnailUrl,
+            String memo
+    ) {
+        return new Video(project, youtubeUrl, youtubeVideoId, title, thumbnailUrl, memo);
+    }
 }

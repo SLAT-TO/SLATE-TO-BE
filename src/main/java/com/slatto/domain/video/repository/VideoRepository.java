@@ -14,6 +14,11 @@ public class VideoRepository {
 
     private final ObjectProvider<EntityManager> entityManagerProvider;
 
+    public Video save(Video video) {
+        entityManagerProvider.getObject().persist(video);
+        return video;
+    }
+
     public List<Video> findByProjectIdAndIdLessThanOrderByIdDesc(Long projectId, Long cursor, int limit) {
         return entityManagerProvider.getObject().createQuery("""
                         select video from Video video

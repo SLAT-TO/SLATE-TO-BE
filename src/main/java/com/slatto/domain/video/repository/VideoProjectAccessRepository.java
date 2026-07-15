@@ -1,15 +1,28 @@
 package com.slatto.domain.video.repository;
 
+import com.slatto.domain.project.entity.Project;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
 public class VideoProjectAccessRepository {
 
     private final ObjectProvider<EntityManager> entityManagerProvider;
+
+    public Optional<Project> findProjectById(Long projectId) {
+        return entityManagerProvider.getObject().createQuery("""
+                        select project from Project project
+                        where project.id = :projectId and project.deletedAt is null
+                        """, Project.class)
+                .setParameter("projectId", projectId)
+                .getResultStream()
+                .findFirst();
+    }
 
     public boolean existsByMemberIdAndProjectId(Long memberId, Long projectId) {
         return entityManagerProvider.getObject().createQuery("""

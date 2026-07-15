@@ -8,6 +8,23 @@ import java.util.List;
 
 public class VideoResponse {
 
+    @Schema(description = "영상 등록 응답")
+    public record VideoCreateResDTO(
+            @Schema(example = "1") Long videoId,
+            @Schema(example = "프로젝트 명") String title,
+            @Schema(example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg") String thumbnailUrl,
+            @Schema(example = "false") boolean bookmarked,
+            @Schema(example = "IN_PROGRESS") String progressStatus,
+            LocalDateTime createdAt
+    ) {
+        public static VideoCreateResDTO from(Video video) {
+            return new VideoCreateResDTO(
+                    video.getId(), video.getTitle(), video.getThumbnailUrl(), false,
+                    video.getProgressStatus().name(), video.getCreatedAt()
+            );
+        }
+    }
+
     @Schema(description = "영상 목록 조회 응답")
     public record VideoListResDTO(
             List<VideoItemResDTO> items,
@@ -31,7 +48,7 @@ public class VideoResponse {
         public static VideoItemResDTO from(Video video, boolean bookmarked) {
             return new VideoItemResDTO(
                     video.getId(), video.getTitle(), video.getThumbnailUrl(), bookmarked,
-                    video.getProgressStatus(), 0, video.getCreatedAt(), video.getUpdatedAt()
+                    video.getProgressStatus().name(), 0, video.getCreatedAt(), video.getUpdatedAt()
             );
         }
     }

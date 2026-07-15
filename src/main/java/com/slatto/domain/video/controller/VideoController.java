@@ -1,10 +1,13 @@
 package com.slatto.domain.video.controller;
 
+import com.slatto.domain.video.dto.request.VideoRequest.VideoCreateReqDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
 import com.slatto.domain.video.service.VideoService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
@@ -12,9 +15,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Validated
 @RestController
@@ -23,6 +30,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class VideoController {
 
     private final VideoService videoService;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "영상 등록", description = "프로젝트에 새로운 YouTube 영상을 등록합니다.")
+    public ApiResponse<VideoCreateResDTO> createVideo(
+            @PathVariable @Positive Long projectId,
+            @Valid @RequestBody VideoCreateReqDTO request
+    ) {
+        // TODO: 인증/인가 구현 후 JWT에서 memberId 추출하도록 변경
+        Long memberId = 1L;
+        return ApiResponse.success(
+                CommonSuccessCode.CREATED,
+                videoService.createVideo(memberId, projectId, request)
+        );
+    }
 
     @GetMapping
     @Operation(summary = "영상 목록 조회", description = "프로젝트 멤버가 프로젝트에 등록된 영상을 커서 방식으로 조회합니다.")
