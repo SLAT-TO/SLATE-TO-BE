@@ -6,13 +6,11 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
 public class YoutubeUrlParser {
 
-    private static final Pattern YOUTUBE_PATH_PATTERN = Pattern.compile("^/(?:shorts|embed)/([^/?#]+)");
     private static final Pattern VIDEO_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]{6,100}");
 
     public String extractVideoId(String youtubeUrl) {
@@ -27,15 +25,15 @@ public class YoutubeUrlParser {
 
             String normalizedHost = host.toLowerCase();
             if (normalizedHost.equals("youtu.be")) {
-                return requireVideoId(firstPathSegment(uri));
+                return requireVideoId(pathSegment(uri, 0));
             }
             if (!isYoutubeHost(normalizedHost)) {
                 throwBadRequest();
             }
 
-            Matcher pathMatcher = YOUTUBE_PATH_PATTERN.matcher(uri.getPath());
-            if (pathMatcher.find()) {
-                return requireVideoId(pathMatcher.group(1));
+            String contentType = pathSegment(uri, 0);
+            if ("shorts".equals(contentType) || "embed".equals(contentType)) {
+                return requireVideoId(pathSegment(uri, 1));
             }
 
             if ("/watch".equals(uri.getPath()) && uri.getRawQuery() != null) {
@@ -65,8 +63,17 @@ public class YoutubeUrlParser {
                 || host.equals("m.youtube.com");
     }
 
-    private String firstPathSegment(URI uri) {
-        return uri.getPath().substring(1).split("/", 2)[0];
+    private String pathSegment(URI uri, int index) {
+        String path = uri.getRawPath();
+        if (path == null || path.isBlank()) {
+            throwBadRequest();
+        }
+
+        String[] segments = path.substring(1).split("/");
+        if (index >= segments.length) {
+            throwBadRequest();
+        }
+        return segments[index];
     }
 
     private String requireVideoId(String videoId) {

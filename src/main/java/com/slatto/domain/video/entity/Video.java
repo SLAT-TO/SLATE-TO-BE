@@ -37,6 +37,9 @@ public class Video extends BaseEntity {
     @Column(name = "thumbnail_url", nullable = true, length = 500)
     private String thumbnailUrl;
 
+    @Column(name = "duration_seconds", nullable = true)
+    private Integer durationSeconds;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "progress_status", nullable = false, length = 50)
     private VideoProgressStatus progressStatus;
@@ -50,6 +53,7 @@ public class Video extends BaseEntity {
             String youtubeVideoId,
             String title,
             String thumbnailUrl,
+            Integer durationSeconds,
             String memo
     ) {
         this.project = project;
@@ -57,6 +61,7 @@ public class Video extends BaseEntity {
         this.youtubeVideoId = youtubeVideoId;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;
+        this.durationSeconds = durationSeconds;
         this.progressStatus = DEFAULT_PROGRESS_STATUS;
         this.memo = memo;
     }
@@ -67,8 +72,9 @@ public class Video extends BaseEntity {
             String youtubeVideoId,
             String title,
             String thumbnailUrl,
+            Integer durationSeconds,
             String memo
     ) {
-        return new Video(project, youtubeUrl, youtubeVideoId, title, thumbnailUrl, memo);
+        return new Video(project, youtubeUrl, youtubeVideoId, title, thumbnailUrl, durationSeconds, memo);
     }
 }

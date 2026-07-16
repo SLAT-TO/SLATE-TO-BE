@@ -78,13 +78,26 @@ public class VideoService {
         }
 
         String youtubeVideoId = youtubeUrlParser.extractVideoId(request.youtubeUrl());
-        String thumbnailUrl = THUMBNAIL_URL_FORMAT.formatted(youtubeVideoId);
+        if (videoRepository.existsByProjectIdAndYoutubeVideoId(projectId, youtubeVideoId)) {
+            throw new BaseException(CommonErrorCode.CONFLICT);
+        }
+
+        YoutubeVideoInfo videoInfo = youtubeApiClient.getVideo(youtubeVideoId)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+        if (isPrivate(videoInfo.privacyStatus()) || !videoInfo.embeddable()) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+
+        String thumbnailUrl = videoInfo.thumbnailUrl() != null
+                ? videoInfo.thumbnailUrl()
+                : THUMBNAIL_URL_FORMAT.formatted(youtubeVideoId);
         Video video = Video.create(
                 project,
                 request.youtubeUrl(),
                 youtubeVideoId,
                 request.title(),
                 thumbnailUrl,
+                videoInfo.durationSeconds(),
                 request.memo()
         );
 

@@ -25,13 +25,14 @@ public class VideoResponse {
             @Schema(example = "1") Long videoId,
             @Schema(example = "프로젝트 명") String title,
             @Schema(example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg") String thumbnailUrl,
+            @Schema(example = "1018") Integer durationSeconds,
             @Schema(example = "false") boolean bookmarked,
             @Schema(example = "IN_PROGRESS") String progressStatus,
             LocalDateTime createdAt
     ) {
         public static VideoCreateResDTO from(Video video) {
             return new VideoCreateResDTO(
-                    video.getId(), video.getTitle(), video.getThumbnailUrl(), false,
+                    video.getId(), video.getTitle(), video.getThumbnailUrl(), video.getDurationSeconds(), false,
                     video.getProgressStatus().name(), video.getCreatedAt()
             );
         }
