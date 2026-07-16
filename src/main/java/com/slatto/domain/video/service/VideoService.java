@@ -4,11 +4,13 @@ import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.video.client.YoutubeApiClient;
 import com.slatto.domain.video.client.YoutubeApiClient.YoutubeVideoInfo;
 import com.slatto.domain.video.dto.request.VideoRequest.VideoCreateReqDTO;
+import com.slatto.domain.video.dto.request.VideoRequest.VideoUpdateReqDTO;
 import com.slatto.domain.video.dto.request.VideoRequest.YoutubeValidateReqDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoDeleteResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoItemResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.VideoUpdateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.YoutubeValidateResDTO;
 import com.slatto.domain.video.entity.Video;
 import com.slatto.domain.video.repository.VideoBookmarkRepository;
@@ -146,6 +148,38 @@ public class VideoService {
         videoRepository.delete(video);
 
         return new VideoDeleteResDTO(videoId, VIDEO_DELETED_MESSAGE);
+    }
+
+    @Transactional
+    public VideoUpdateResDTO updateVideo(
+            Long memberId,
+            Long projectId,
+            Long videoId,
+            VideoUpdateReqDTO request
+    ) {
+        validateUpdateRequest(request);
+        if (!projectAccessRepository.projectExistsById(projectId)) {
+            throw new BaseException(CommonErrorCode.NOT_FOUND);
+        }
+        if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+        video.updateInfo(request.title(), request.memo());
+        videoRepository.flush();
+
+        return VideoUpdateResDTO.from(video);
+    }
+
+    private void validateUpdateRequest(VideoUpdateReqDTO request) {
+        if (request.title() == null && request.memo() == null) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+        if (request.title() != null && request.title().isBlank()) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
     }
 
     private boolean isPrivate(String privacyStatus) {

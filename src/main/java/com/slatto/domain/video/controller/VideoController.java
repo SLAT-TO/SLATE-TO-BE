@@ -1,9 +1,11 @@
 package com.slatto.domain.video.controller;
 
 import com.slatto.domain.video.dto.request.VideoRequest.VideoCreateReqDTO;
+import com.slatto.domain.video.dto.request.VideoRequest.VideoUpdateReqDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoDeleteResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.VideoUpdateResDTO;
 import com.slatto.domain.video.service.VideoService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -17,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +35,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class VideoController {
 
     private final VideoService videoService;
+
+    @PatchMapping("/{videoId}")
+    @Operation(summary = "영상 수정",
+            description = "프로젝트에 등록된 영상의 제목과 메모를 수정합니다.<br>" +
+                    "수정하지 않을 부분은 null로 넣으면 됩니다.")
+    public ApiResponse<VideoUpdateResDTO> updateVideo(
+            @PathVariable @Positive Long projectId,
+            @PathVariable @Positive Long videoId,
+            @Valid @RequestBody VideoUpdateReqDTO request
+    ) {
+        // TODO: 인증/인가 구현 후 JWT에서 memberId 추출하도록 변경
+        Long memberId = 1L;
+        return ApiResponse.success(
+                CommonSuccessCode.OK,
+                videoService.updateVideo(memberId, projectId, videoId, request)
+        );
+    }
 
     @DeleteMapping("/{videoId}")
     @Operation(summary = "영상 삭제", description = "프로젝트에 등록된 영상을 삭제합니다.")

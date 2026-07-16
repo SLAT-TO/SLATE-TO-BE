@@ -8,6 +8,17 @@ import jakarta.validation.constraints.Size;
 
 public class VideoRequest {
 
+    @Schema(description = "영상 수정 요청")
+    public record VideoUpdateReqDTO(
+            @Size(max = 255, message = "영상 제목은 최대 255자까지 입력할 수 있습니다.")
+            @Schema(example = "수정된 영상 제목", nullable = true)
+            String title,
+
+            @Schema(example = "수정된 영상 메모", nullable = true)
+            String memo
+    ) {
+    }
+
     @Schema(description = "YouTube URL 검증 요청")
     public record YoutubeValidateReqDTO(
             @NotBlank(message = "YouTube URL은 필수입니다.")

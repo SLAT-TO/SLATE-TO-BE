@@ -8,6 +8,20 @@ import java.util.List;
 
 public class VideoResponse {
 
+    @Schema(description = "영상 수정 응답")
+    public record VideoUpdateResDTO(
+            @Schema(example = "1") Long videoId,
+            @Schema(example = "수정된 영상 제목") String title,
+            @Schema(example = "수정된 영상 메모", nullable = true) String memo,
+            LocalDateTime updatedAt
+    ) {
+        public static VideoUpdateResDTO from(Video video) {
+            return new VideoUpdateResDTO(
+                    video.getId(), video.getTitle(), video.getMemo(), video.getUpdatedAt()
+            );
+        }
+    }
+
     @Schema(description = "영상 삭제 응답")
     public record VideoDeleteResDTO(
             @Schema(example = "1") Long videoId,

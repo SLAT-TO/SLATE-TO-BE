@@ -46,6 +46,10 @@ public class VideoRepository {
         entityManagerProvider.getObject().remove(video);
     }
 
+    public void flush() {
+        entityManagerProvider.getObject().flush();
+    }
+
     public List<Video> findByProjectIdAndIdLessThanOrderByIdDesc(Long projectId, Long cursor, int limit) {
         return entityManagerProvider.getObject().createQuery("""
                         select video from Video video

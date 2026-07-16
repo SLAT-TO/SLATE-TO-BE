@@ -77,4 +77,13 @@ public class Video extends BaseEntity {
     ) {
         return new Video(project, youtubeUrl, youtubeVideoId, title, thumbnailUrl, durationSeconds, memo);
     }
+
+    public void updateInfo(String title, String memo) {
+        if (title != null) {
+            this.title = title;
+        }
+        if (memo != null) {
+            this.memo = memo;
+        }
+    }
 }
