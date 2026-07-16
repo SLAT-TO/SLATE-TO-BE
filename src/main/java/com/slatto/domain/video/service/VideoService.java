@@ -1,25 +1,26 @@
 package com.slatto.domain.video.service;
 
 import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.video.client.YoutubeApiClient;
+import com.slatto.domain.video.client.YoutubeApiClient.YoutubeVideoInfo;
 import com.slatto.domain.video.dto.request.VideoRequest.VideoCreateReqDTO;
+import com.slatto.domain.video.dto.request.VideoRequest.YoutubeValidateReqDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoItemResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.YoutubeValidateResDTO;
 import com.slatto.domain.video.entity.Video;
 import com.slatto.domain.video.repository.VideoBookmarkRepository;
 import com.slatto.domain.video.repository.VideoProjectAccessRepository;
 import com.slatto.domain.video.repository.VideoRepository;
+import com.slatto.domain.video.util.YoutubeUrlParser;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -30,11 +31,43 @@ public class VideoService {
     private static final int MAX_SIZE = 100;
     private static final long INITIAL_CURSOR = Long.MAX_VALUE;
     private static final String THUMBNAIL_URL_FORMAT = "https://img.youtube.com/vi/%s/maxresdefault.jpg";
-    private static final Pattern YOUTUBE_PATH_PATTERN = Pattern.compile("^/(?:shorts|embed)/([^/?#]+)");
+    private static final String VALIDATION_SUCCESS_MESSAGE = "등록 가능한 영상입니다.";
+    private static final String PRIVATE_VIDEO_MESSAGE = "비공개 영상은 등록할 수 없습니다.";
+    private static final String NOT_EMBEDDABLE_MESSAGE = "재생할 수 없는 영상은 등록할 수 없습니다.";
 
     private final VideoProjectAccessRepository projectAccessRepository;
     private final VideoRepository videoRepository;
     private final VideoBookmarkRepository videoBookmarkRepository;
+    private final YoutubeUrlParser youtubeUrlParser;
+    private final YoutubeApiClient youtubeApiClient;
+
+    public YoutubeValidateResDTO validateYoutubeUrl(Long memberId, YoutubeValidateReqDTO request) {
+        if (projectAccessRepository.findProjectById(request.projectId()).isEmpty()) {
+            throw new BaseException(CommonErrorCode.NOT_FOUND);
+        }
+        if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, request.projectId())) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        String youtubeVideoId = youtubeUrlParser.extractVideoId(request.youtubeUrl());
+        if (videoRepository.existsByProjectIdAndYoutubeVideoId(request.projectId(), youtubeVideoId)) {
+            throw new BaseException(CommonErrorCode.CONFLICT);
+        }
+
+        YoutubeVideoInfo videoInfo = youtubeApiClient.getVideo(youtubeVideoId)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+        boolean valid = !isPrivate(videoInfo.privacyStatus()) && videoInfo.embeddable();
+
+        return new YoutubeValidateResDTO(
+                valid,
+                youtubeVideoId,
+                videoInfo.title(),
+                videoInfo.thumbnailUrl(),
+                videoInfo.durationSeconds(),
+                valid,
+                resolveValidationMessage(videoInfo)
+        );
+    }
 
     @Transactional
     public VideoCreateResDTO createVideo(Long memberId, Long projectId, VideoCreateReqDTO request) {
@@ -44,7 +77,7 @@ public class VideoService {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        String youtubeVideoId = extractYoutubeVideoId(request.youtubeUrl());
+        String youtubeVideoId = youtubeUrlParser.extractVideoId(request.youtubeUrl());
         String thumbnailUrl = THUMBNAIL_URL_FORMAT.formatted(youtubeVideoId);
         Video video = Video.create(
                 project,
@@ -84,47 +117,17 @@ public class VideoService {
         return new VideoListResDTO(items, nextCursor, hasNext);
     }
 
-    private String extractYoutubeVideoId(String youtubeUrl) {
-        try {
-            URI uri = new URI(youtubeUrl.trim());
-            String host = uri.getHost();
-            if (host == null) {
-                throw new BaseException(CommonErrorCode.BAD_REQUEST);
-            }
-
-            String normalizedHost = host.toLowerCase();
-            if (normalizedHost.equals("youtu.be")) {
-                return requireVideoId(uri.getPath().substring(1).split("/", 2)[0]);
-            }
-            if (!normalizedHost.equals("youtube.com") && !normalizedHost.equals("www.youtube.com")
-                    && !normalizedHost.equals("m.youtube.com")) {
-                throw new BaseException(CommonErrorCode.BAD_REQUEST);
-            }
-
-            Matcher pathMatcher = YOUTUBE_PATH_PATTERN.matcher(uri.getPath());
-            if (pathMatcher.find()) {
-                return requireVideoId(pathMatcher.group(1));
-            }
-
-            if ("/watch".equals(uri.getPath()) && uri.getRawQuery() != null) {
-                for (String parameter : uri.getRawQuery().split("&")) {
-                    String[] keyValue = parameter.split("=", 2);
-                    if (keyValue.length == 2 && "v".equals(keyValue[0])) {
-                        return requireVideoId(keyValue[1]);
-                    }
-                }
-            }
-        } catch (URISyntaxException | IndexOutOfBoundsException exception) {
-            throw new BaseException(CommonErrorCode.BAD_REQUEST);
-        }
-
-        throw new BaseException(CommonErrorCode.BAD_REQUEST);
+    private boolean isPrivate(String privacyStatus) {
+        return "private".equals(privacyStatus);
     }
 
-    private String requireVideoId(String videoId) {
-        if (videoId == null || !videoId.matches("[A-Za-z0-9_-]{6,100}")) {
-            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+    private String resolveValidationMessage(YoutubeVideoInfo videoInfo) {
+        if (isPrivate(videoInfo.privacyStatus())) {
+            return PRIVATE_VIDEO_MESSAGE;
         }
-        return videoId;
+        if (!videoInfo.embeddable()) {
+            return NOT_EMBEDDABLE_MESSAGE;
+        }
+        return VALIDATION_SUCCESS_MESSAGE;
     }
 }

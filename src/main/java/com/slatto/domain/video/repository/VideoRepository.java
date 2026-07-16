@@ -19,6 +19,17 @@ public class VideoRepository {
         return video;
     }
 
+    public boolean existsByProjectIdAndYoutubeVideoId(Long projectId, String youtubeVideoId) {
+        return entityManagerProvider.getObject().createQuery("""
+                        select count(video) from Video video
+                        where video.project.id = :projectId
+                          and video.youtubeVideoId = :youtubeVideoId
+                        """, Long.class)
+                .setParameter("projectId", projectId)
+                .setParameter("youtubeVideoId", youtubeVideoId)
+                .getSingleResult() > 0;
+    }
+
     public List<Video> findByProjectIdAndIdLessThanOrderByIdDesc(Long projectId, Long cursor, int limit) {
         return entityManagerProvider.getObject().createQuery("""
                         select video from Video video

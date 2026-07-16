@@ -8,6 +8,18 @@ import java.util.List;
 
 public class VideoResponse {
 
+    @Schema(description = "YouTube URL 검증 응답")
+    public record YoutubeValidateResDTO(
+            @Schema(example = "true") boolean valid,
+            @Schema(example = "abc123") String youtubeVideoId,
+            @Schema(example = "영상 제목") String title,
+            @Schema(example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg") String thumbnailUrl,
+            @Schema(example = "1018") int durationSeconds,
+            @Schema(example = "true") boolean playable,
+            @Schema(example = "등록 가능한 영상입니다.") String message
+    ) {
+    }
+
     @Schema(description = "영상 등록 응답")
     public record VideoCreateResDTO(
             @Schema(example = "1") Long videoId,

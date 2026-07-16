@@ -2,9 +2,25 @@ package com.slatto.domain.video.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public class VideoRequest {
+
+    @Schema(description = "YouTube URL 검증 요청")
+    public record YoutubeValidateReqDTO(
+            @NotBlank(message = "YouTube URL은 필수입니다.")
+            @Size(max = 500, message = "YouTube URL은 최대 500자까지 입력할 수 있습니다.")
+            @Schema(example = "https://www.youtube.com/watch?v=abc123")
+            String youtubeUrl,
+
+            @NotNull(message = "프로젝트 ID는 필수입니다.")
+            @Positive(message = "프로젝트 ID는 양수여야 합니다.")
+            @Schema(example = "10")
+            Long projectId
+    ) {
+    }
 
     @Schema(description = "영상 등록 요청")
     public record VideoCreateReqDTO(
