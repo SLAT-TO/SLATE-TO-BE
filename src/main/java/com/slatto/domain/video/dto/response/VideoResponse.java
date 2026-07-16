@@ -8,6 +8,13 @@ import java.util.List;
 
 public class VideoResponse {
 
+    @Schema(description = "영상 삭제 응답")
+    public record VideoDeleteResDTO(
+            @Schema(example = "1") Long videoId,
+            @Schema(example = "영상이 삭제되었습니다.") String message
+    ) {
+    }
+
     @Schema(description = "YouTube URL 검증 응답")
     public record YoutubeValidateResDTO(
             @Schema(example = "true") boolean valid,

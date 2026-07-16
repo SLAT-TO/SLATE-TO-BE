@@ -7,6 +7,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -28,6 +29,21 @@ public class VideoRepository {
                 .setParameter("projectId", projectId)
                 .setParameter("youtubeVideoId", youtubeVideoId)
                 .getSingleResult() > 0;
+    }
+
+    public Optional<Video> findByIdAndProjectId(Long videoId, Long projectId) {
+        return entityManagerProvider.getObject().createQuery("""
+                        select video from Video video
+                        where video.id = :videoId and video.project.id = :projectId
+                        """, Video.class)
+                .setParameter("videoId", videoId)
+                .setParameter("projectId", projectId)
+                .getResultStream()
+                .findFirst();
+    }
+
+    public void delete(Video video) {
+        entityManagerProvider.getObject().remove(video);
     }
 
     public List<Video> findByProjectIdAndIdLessThanOrderByIdDesc(Long projectId, Long cursor, int limit) {

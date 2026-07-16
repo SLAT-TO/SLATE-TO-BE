@@ -6,6 +6,7 @@ import com.slatto.domain.video.client.YoutubeApiClient.YoutubeVideoInfo;
 import com.slatto.domain.video.dto.request.VideoRequest.VideoCreateReqDTO;
 import com.slatto.domain.video.dto.request.VideoRequest.YoutubeValidateReqDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.VideoDeleteResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoItemResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.YoutubeValidateResDTO;
@@ -34,6 +35,7 @@ public class VideoService {
     private static final String VALIDATION_SUCCESS_MESSAGE = "등록 가능한 영상입니다.";
     private static final String PRIVATE_VIDEO_MESSAGE = "비공개 영상은 등록할 수 없습니다.";
     private static final String NOT_EMBEDDABLE_MESSAGE = "재생할 수 없는 영상은 등록할 수 없습니다.";
+    private static final String VIDEO_DELETED_MESSAGE = "영상이 삭제되었습니다.";
 
     private final VideoProjectAccessRepository projectAccessRepository;
     private final VideoRepository videoRepository;
@@ -128,6 +130,22 @@ public class VideoService {
         Long nextCursor = hasNext && !items.isEmpty() ? items.getLast().videoId() : null;
 
         return new VideoListResDTO(items, nextCursor, hasNext);
+    }
+
+    @Transactional
+    public VideoDeleteResDTO deleteVideo(Long memberId, Long projectId, Long videoId) {
+        if (!projectAccessRepository.projectExistsById(projectId)) {
+            throw new BaseException(CommonErrorCode.NOT_FOUND);
+        }
+        if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+        videoRepository.delete(video);
+
+        return new VideoDeleteResDTO(videoId, VIDEO_DELETED_MESSAGE);
     }
 
     private boolean isPrivate(String privacyStatus) {
