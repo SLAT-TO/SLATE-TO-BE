@@ -29,6 +29,7 @@ public class VideoProjectAccessRepository {
                         select count(member) from ProjectMember member
                         where member.user.id = :memberId
                           and member.project.id = :projectId
+                          and member.project.deletedAt is null
                           and member.leftAt is null
                         """, Long.class)
                 .setParameter("memberId", memberId)
@@ -37,8 +38,10 @@ public class VideoProjectAccessRepository {
     }
 
     public boolean projectExistsById(Long projectId) {
-        return entityManagerProvider.getObject().createQuery(
-                        "select count(project) from Project project where project.id = :projectId", Long.class)
+        return entityManagerProvider.getObject().createQuery("""
+                        select count(project) from Project project
+                        where project.id = :projectId and project.deletedAt is null
+                        """, Long.class)
                 .setParameter("projectId", projectId)
                 .getSingleResult() > 0;
     }

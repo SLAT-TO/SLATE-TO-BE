@@ -27,3 +27,5 @@ springdoc:
 youtube:
   api:
     key: ${YOUTUBE_API_KEY}
+    connect-timeout: ${YOUTUBE_API_CONNECT_TIMEOUT:3s}
+    read-timeout: ${YOUTUBE_API_READ_TIMEOUT:5s}

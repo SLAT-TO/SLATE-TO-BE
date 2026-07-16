@@ -5,19 +5,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 @RequiredArgsConstructor
 public class VideoBookmarkRepository {
 
     private final ObjectProvider<EntityManager> entityManagerProvider;
 
-    public boolean existsByVideoIdAndUserId(Long videoId, Long userId) {
+    public List<Long> findBookmarkedVideoIdsByUserIdAndVideoIds(Long userId, List<Long> videoIds) {
         return entityManagerProvider.getObject().createQuery("""
-                        select count(bookmark) from VideoBookmark bookmark
-                        where bookmark.video.id = :videoId and bookmark.user.id = :userId
+                        select bookmark.video.id from VideoBookmark bookmark
+                        where bookmark.user.id = :userId and bookmark.video.id in :videoIds
                         """, Long.class)
-                .setParameter("videoId", videoId)
                 .setParameter("userId", userId)
-                .getSingleResult() > 0;
+                .setParameter("videoIds", videoIds)
+                .getResultList();
     }
 }

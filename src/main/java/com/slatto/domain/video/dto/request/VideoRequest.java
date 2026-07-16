@@ -4,12 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class VideoRequest {
 
     @Schema(description = "영상 수정 요청")
     public record VideoUpdateReqDTO(
+            @Pattern(regexp = "(?s).*\\S.*", message = "영상 제목은 공백일 수 없습니다.")
             @Size(max = 255, message = "영상 제목은 최대 255자까지 입력할 수 있습니다.")
             @Schema(example = "수정된 영상 제목", nullable = true)
             String title,

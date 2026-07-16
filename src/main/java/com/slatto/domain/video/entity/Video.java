@@ -9,7 +9,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "video")
+@Table(
+        name = "video",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_video_project_youtube_video_id",
+                columnNames = {"project_id", "youtube_video_id"}
+        )
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Video extends BaseEntity {

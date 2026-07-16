@@ -1,9 +1,14 @@
 package com.slatto.domain.video.client;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.slatto.global.exception.BaseException;
+import com.slatto.global.response.code.CommonErrorCode;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.time.Duration;
 import java.util.List;
@@ -20,21 +25,44 @@ public class YoutubeApiClient {
     private final RestClient restClient;
     private final String apiKey;
 
-    public YoutubeApiClient(RestClient.Builder restClientBuilder, @Value("${youtube.api.key}") String apiKey) {
-        this.restClient = restClientBuilder.baseUrl(YOUTUBE_API_BASE_URL).build();
+    @Autowired
+    public YoutubeApiClient(
+            RestClient.Builder restClientBuilder,
+            @Value("${youtube.api.key}") String apiKey,
+            @Value("${youtube.api.connect-timeout}") Duration connectTimeout,
+            @Value("${youtube.api.read-timeout}") Duration readTimeout
+    ) {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(connectTimeout);
+        requestFactory.setReadTimeout(readTimeout);
+
+        this.restClient = restClientBuilder
+                .baseUrl(YOUTUBE_API_BASE_URL)
+                .requestFactory(requestFactory)
+                .build();
+        this.apiKey = apiKey;
+    }
+
+    YoutubeApiClient(RestClient restClient, String apiKey) {
+        this.restClient = restClient;
         this.apiKey = apiKey;
     }
 
     public Optional<YoutubeVideoInfo> getVideo(String youtubeVideoId) {
-        YoutubeVideosResponse response = restClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/youtube/v3/videos")
-                        .queryParam("part", "snippet,contentDetails,status")
-                        .queryParam("id", youtubeVideoId)
-                        .queryParam("key", apiKey)
-                        .build())
-                .retrieve()
-                .body(YoutubeVideosResponse.class);
+        YoutubeVideosResponse response;
+        try {
+            response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/youtube/v3/videos")
+                            .queryParam("part", "snippet,contentDetails,status")
+                            .queryParam("id", youtubeVideoId)
+                            .queryParam("key", apiKey)
+                            .build())
+                    .retrieve()
+                    .body(YoutubeVideosResponse.class);
+        } catch (RestClientException exception) {
+            throw new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+        }
 
         if (response == null || response.items() == null || response.items().isEmpty()) {
             return Optional.empty();
@@ -76,11 +104,11 @@ public class YoutubeApiClient {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record YoutubeVideosResponse(List<YoutubeVideoItem> items) {
+    record YoutubeVideosResponse(List<YoutubeVideoItem> items) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record YoutubeVideoItem(
+    record YoutubeVideoItem(
             YoutubeSnippet snippet,
             YoutubeContentDetails contentDetails,
             YoutubeStatus status
@@ -88,22 +116,22 @@ public class YoutubeApiClient {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record YoutubeSnippet(
+    record YoutubeSnippet(
             String title,
             Map<String, YoutubeThumbnail> thumbnails
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record YoutubeThumbnail(String url) {
+    record YoutubeThumbnail(String url) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record YoutubeContentDetails(String duration) {
+    record YoutubeContentDetails(String duration) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record YoutubeStatus(
+    record YoutubeStatus(
             boolean embeddable,
             String privacyStatus
     ) {

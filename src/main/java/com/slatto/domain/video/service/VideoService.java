@@ -20,10 +20,12 @@ import com.slatto.domain.video.util.YoutubeUrlParser;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -105,7 +107,13 @@ public class VideoService {
                 request.memo()
         );
 
-        return VideoCreateResDTO.from(videoRepository.save(video));
+        try {
+            Video savedVideo = videoRepository.save(video);
+            videoRepository.flush();
+            return VideoCreateResDTO.from(savedVideo);
+        } catch (DataIntegrityViolationException exception) {
+            throw new BaseException(CommonErrorCode.CONFLICT);
+        }
     }
 
     public VideoListResDTO getVideos(Long memberId, Long projectId, Long cursor, Integer requestedSize) {
@@ -122,11 +130,19 @@ public class VideoService {
                 projectId, cursorId, size + 1
         );
         boolean hasNext = videos.size() > size;
-        List<VideoItemResDTO> items = videos.stream()
+        List<Video> currentPageVideos = videos.stream()
                 .limit(size)
+                .toList();
+        List<Long> videoIds = currentPageVideos.stream()
+                .map(Video::getId)
+                .toList();
+        Set<Long> bookmarkedVideoIds = videoIds.isEmpty()
+                ? Set.of()
+                : Set.copyOf(videoBookmarkRepository.findBookmarkedVideoIdsByUserIdAndVideoIds(memberId, videoIds));
+        List<VideoItemResDTO> items = currentPageVideos.stream()
                 .map(video -> VideoItemResDTO.from(
                         video,
-                        videoBookmarkRepository.existsByVideoIdAndUserId(video.getId(), memberId)
+                        bookmarkedVideoIds.contains(video.getId())
                 ))
                 .toList();
         Long nextCursor = hasNext && !items.isEmpty() ? items.getLast().videoId() : null;
