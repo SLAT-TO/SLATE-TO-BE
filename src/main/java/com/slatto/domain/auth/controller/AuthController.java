@@ -5,7 +5,9 @@ import com.slatto.domain.auth.service.AuthService;
 import com.slatto.domain.auth.support.AuthCookieFactory;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -28,7 +30,18 @@ public class AuthController {
 	private final AuthService authService;
 	private final AuthCookieFactory authCookieFactory;
 
-	@Operation(summary = "구글 로그인 진입", description = "구글 인증 페이지로 302 리다이렉트한다.")
+	@Operation(
+		summary = "구글 로그인 진입",
+		description = """
+			구글 인증 페이지로 302 리다이렉트한다. 인증이 필요 없다.
+
+			`<a href>` 또는 `window.location.href`로 **브라우저를 이동시켜** 호출한다.
+			fetch/ajax로 호출하는 API가 아니며, Swagger의 Try it out으로는 동작하지 않는다.
+
+			성공 시 302로 응답하며, 공통 응답 wrapper를 사용하지 않는다.
+			"""
+	)
+	@SecurityRequirements
 	@GetMapping("/login/google")
 	public ResponseEntity<Void> loginWithGoogle(
 		@RequestParam(name = "redirectTo", required = false) String redirectTo
@@ -42,7 +55,7 @@ public class AuthController {
 			.build();
 	}
 
-	@Operation(summary = "구글 콜백 처리", description = "구글이 호출하는 엔드포인트로, 프론트엔드는 호출하지 않는다.")
+	@Hidden
 	@GetMapping("/callback/google")
 	public ResponseEntity<Void> handleGoogleCallback(
 		@RequestParam(name = "code", required = false) String code,
@@ -68,7 +81,11 @@ public class AuthController {
 			.build();
 	}
 
-	@Operation(summary = "액세스 토큰 재발급", description = "쿠키의 리프레시 토큰으로 새 액세스 토큰을 발급한다.")
+	@Operation(
+		summary = "액세스 토큰 재발급",
+		description = "쿠키의 리프레시 토큰으로 새 액세스 토큰을 발급한다. 요청 본문과 Authorization 헤더가 모두 필요 없다."
+	)
+	@SecurityRequirements
 	@PostMapping("/refresh")
 	public ApiResponse<AccessTokenResponse> reissueAccessToken(
 		@CookieValue(name = "${app.cookie.refresh-token-name}", required = false) String refreshToken
