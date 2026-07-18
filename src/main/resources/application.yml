@@ -28,7 +28,7 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     issuer: slatto
-    access-token-validity: PT30M
+    access-token-validity: PT1H
     refresh-token-validity: P14D
 
   oauth:
