@@ -48,5 +48,27 @@ public class Users extends BaseEntity{
     @Column(name = "term", nullable = false)
     private Boolean term;
 
+    @Column(name = "onboarding_completed", nullable = false)
+    private Boolean onboardingCompleted;
+
+    private Users(String email, String nickname, String profileImageUrl, SocialType socialType, String socialId) {
+        this.email = email;
+        this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
+        this.socialType = socialType;
+        this.socialId = socialId;
+        this.term = false;
+        this.onboardingCompleted = false;
+    }
+
+    public static Users createSocialUser(
+        String email,
+        String nickname,
+        String profileImageUrl,
+        SocialType socialType,
+        String socialId
+    ) {
+        return new Users(email, nickname, profileImageUrl, socialType, socialId);
+    }
 
 }
