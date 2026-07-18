@@ -114,6 +114,18 @@ public class ProjectMemberService {
         projectMember.leave();
     }
 
+    @Transactional
+    public void leaveProject(Long projectId, Long currentUserId) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+
+        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+        if (currentMember.isAdmin()) {
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
+        }
+
+        currentMember.leave();
+    }
+
     private Map<Long, List<RoleName>> getRoleNamesByMemberId(List<ProjectMember> projectMembers) {
         List<Long> projectMemberIds = projectMembers.stream()
             .map(ProjectMember::getId)
