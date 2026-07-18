@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -34,6 +35,32 @@ public class AuthController {
 			.status(302)
 			.header(HttpHeaders.SET_COOKIE, authCookieFactory.oauthState(entry.state().toCookieValue()).toString())
 			.location(URI.create(entry.authorizationUri()))
+			.build();
+	}
+
+	@Operation(summary = "구글 콜백 처리", description = "구글이 호출하는 엔드포인트로, 프론트엔드는 호출하지 않는다.")
+	@GetMapping("/callback/google")
+	public ResponseEntity<Void> handleGoogleCallback(
+		@RequestParam(name = "code", required = false) String code,
+		@RequestParam(name = "state", required = false) String state,
+		@RequestParam(name = "error", required = false) String error,
+		@CookieValue(name = "${app.cookie.oauth-state-name}", required = false) String stateCookie
+	) {
+		AuthService.GoogleCallbackResult result = authService.handleGoogleCallback(code, state, error, stateCookie);
+
+		ResponseEntity.BodyBuilder builder = ResponseEntity
+			.status(302)
+			.header(HttpHeaders.SET_COOKIE, authCookieFactory.expiredOauthState().toString());
+
+		if (result.isSuccess()) {
+			builder.header(
+				HttpHeaders.SET_COOKIE,
+				authCookieFactory.refreshToken(result.refreshToken(), result.refreshTokenMaxAgeSeconds()).toString()
+			);
+		}
+
+		return builder
+			.location(URI.create(result.redirectUri()))
 			.build();
 	}
 

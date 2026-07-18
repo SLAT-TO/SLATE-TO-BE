@@ -71,4 +71,9 @@ public class Users extends BaseEntity{
         return new Users(email, nickname, profileImageUrl, socialType, socialId);
     }
 
+    public void linkSocialAccount(SocialType socialType, String socialId) {
+        this.socialType = socialType;
+        this.socialId = socialId;
+    }
+
 }
