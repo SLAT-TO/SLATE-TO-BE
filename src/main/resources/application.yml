@@ -54,7 +54,8 @@ app:
     refresh-token-name: refreshToken
     oauth-state-name: oauthState
     path: /api/v1/auth
-    secure: true
+    # 로컬 http 환경에서만 false로 내린다. 배포 환경은 반드시 true 유지.
+    secure: ${COOKIE_SECURE:true}
     # TODO: 배포 도메인 확정 후 SameSite=Lax 완화 여부 결정 (docs/auth-api.md 미결정 사항)
     same-site: Strict
     oauth-state-max-age: PT5M
