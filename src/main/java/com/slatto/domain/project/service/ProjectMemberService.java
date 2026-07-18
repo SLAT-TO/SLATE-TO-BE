@@ -96,6 +96,24 @@ public class ProjectMemberService {
         return toMemberDetailResponse(projectMember, roleNames);
     }
 
+    @Transactional
+    public void removeProjectMember(Long projectId, Long memberId, Long currentUserId) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.getCurrentAdminOrThrow(projectId, currentUserId);
+
+        ProjectMember projectMember = projectMemberRepository.findActiveMemberByProjectIdAndMemberId(
+                projectId,
+                memberId
+            )
+            .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_MEMBER_NOT_FOUND));
+
+        if (projectMember.isMemberOf(currentUserId)) {
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
+        }
+
+        projectMember.leave();
+    }
+
     private Map<Long, List<RoleName>> getRoleNamesByMemberId(List<ProjectMember> projectMembers) {
         List<Long> projectMemberIds = projectMembers.stream()
             .map(ProjectMember::getId)
