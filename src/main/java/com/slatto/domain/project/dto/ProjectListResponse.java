@@ -31,8 +31,6 @@ public class ProjectListResponse {
 
         private CategoryName type;
 
-        private String customTypeName;
-
         private LengthType lengthType;
 
         private ProjectStatus status;

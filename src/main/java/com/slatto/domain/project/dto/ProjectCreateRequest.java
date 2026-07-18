@@ -26,9 +26,6 @@ public class ProjectCreateRequest {
     @NotNull(message = "프로젝트 유형은 필수입니다.")
     private CategoryName type;
 
-    @Size(max = 100, message = "직접 입력한 프로젝트 유형은 최대 100자까지 입력할 수 있습니다.")
-    private String customTypeName;
-
     @NotNull(message = "영상 길이는 필수입니다.")
     private LengthType lengthType;
 
