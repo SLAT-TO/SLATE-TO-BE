@@ -1,0 +1,33 @@
+app:
+  jwt:
+    secret: test-secret-key-for-context-load-only-32bytes
+    issuer: slatto
+    access-token-validity: PT30M
+    refresh-token-validity: P14D
+
+  oauth:
+    google:
+      client-id: test-client-id
+      client-secret: test-client-secret
+      redirect-uri: http://localhost:8080/api/v1/auth/callback/google
+      authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+      token-uri: https://oauth2.googleapis.com/token
+      user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+      scope: openid email profile
+
+  frontend:
+    base-url: http://localhost:3000
+    callback-path: /auth/callback
+    error-path: /auth/error
+    allowed-redirect-paths:
+      - /
+      - /auth/callback
+      - /onboarding
+
+  cookie:
+    refresh-token-name: refreshToken
+    oauth-state-name: oauthState
+    path: /api/v1/auth
+    secure: true
+    same-site: Strict
+    oauth-state-max-age: PT5M
