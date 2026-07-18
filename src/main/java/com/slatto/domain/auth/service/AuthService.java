@@ -3,7 +3,9 @@ package com.slatto.domain.auth.service;
 import com.slatto.domain.auth.client.GoogleOAuthClient;
 import com.slatto.domain.auth.client.dto.GoogleTokenResponse;
 import com.slatto.domain.auth.client.dto.GoogleUserInfo;
+import com.slatto.domain.auth.dto.AccessTokenResponse;
 import com.slatto.domain.auth.entity.RefreshToken;
+import com.slatto.domain.auth.exception.AuthErrorCode;
 import com.slatto.domain.auth.repository.RefreshTokenRepository;
 import com.slatto.domain.auth.support.GoogleAuthFailureReason;
 import com.slatto.domain.auth.support.OAuthState;
@@ -11,11 +13,14 @@ import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.config.properties.FrontendProperties;
+import com.slatto.global.exception.BaseException;
 import com.slatto.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -74,6 +79,26 @@ public class AuthService {
 			refreshToken,
 			jwtTokenProvider.refreshTokenMaxAgeSeconds()
 		);
+	}
+
+	// TODO: 리프레시 토큰 회전(rotation) 도입 시 여기서 기존 토큰을 폐기하고 새 토큰을 발급해
+	//       AccessTokenResponse와 함께 Set-Cookie로 다시 내려줘야 한다.
+	@Transactional(readOnly = true)
+	public AccessTokenResponse reissueAccessToken(String refreshTokenValue) {
+		if (refreshTokenValue == null) {
+			throw new BaseException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+		}
+
+		RefreshToken storedToken = refreshTokenRepository.findByToken(refreshTokenValue)
+			.orElseThrow(() -> new BaseException(AuthErrorCode.INVALID_REFRESH_TOKEN));
+
+		Long userId = jwtTokenProvider.parseUserId(refreshTokenValue, true);
+
+		if (userId == null || storedToken.isExpired(LocalDateTime.now())) {
+			throw new BaseException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+		}
+
+		return new AccessTokenResponse(jwtTokenProvider.createAccessToken(userId));
 	}
 
 	private Users findOrCreateUser(GoogleUserInfo userInfo) {

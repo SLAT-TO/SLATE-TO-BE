@@ -1,7 +1,10 @@
 package com.slatto.domain.auth.controller;
 
+import com.slatto.domain.auth.dto.AccessTokenResponse;
 import com.slatto.domain.auth.service.AuthService;
 import com.slatto.domain.auth.support.AuthCookieFactory;
+import com.slatto.global.response.ApiResponse;
+import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -62,6 +66,14 @@ public class AuthController {
 		return builder
 			.location(URI.create(result.redirectUri()))
 			.build();
+	}
+
+	@Operation(summary = "액세스 토큰 재발급", description = "쿠키의 리프레시 토큰으로 새 액세스 토큰을 발급한다.")
+	@PostMapping("/refresh")
+	public ApiResponse<AccessTokenResponse> reissueAccessToken(
+		@CookieValue(name = "${app.cookie.refresh-token-name}", required = false) String refreshToken
+	) {
+		return ApiResponse.success(CommonSuccessCode.OK, authService.reissueAccessToken(refreshToken));
 	}
 
 }
