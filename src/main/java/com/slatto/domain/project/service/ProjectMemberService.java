@@ -2,6 +2,7 @@ package com.slatto.domain.project.service;
 
 import com.slatto.domain.project.dto.ProjectMemberDetailResponse;
 import com.slatto.domain.project.dto.ProjectMemberListResponse;
+import com.slatto.domain.project.dto.ProjectMemberUpdateRequest;
 import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.entity.ProjectUserRole;
 import com.slatto.domain.project.exception.ProjectErrorCode;
@@ -69,6 +70,32 @@ public class ProjectMemberService {
         return toMemberDetailResponse(projectMember, roleNames);
     }
 
+    @Transactional
+    public ProjectMemberDetailResponse updateProjectMemberRoles(
+        Long projectId,
+        Long memberId,
+        Long currentUserId,
+        ProjectMemberUpdateRequest request
+    ) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.getCurrentAdminOrThrow(projectId, currentUserId);
+
+        ProjectMember projectMember = projectMemberRepository.findActiveMemberByProjectIdAndMemberId(
+                projectId,
+                memberId
+            )
+            .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_MEMBER_NOT_FOUND));
+
+        List<RoleName> roleNames = request.getRoleNames()
+            .stream()
+            .distinct()
+            .toList();
+
+        replaceProjectMemberRoles(projectMember, roleNames);
+
+        return toMemberDetailResponse(projectMember, roleNames);
+    }
+
     private Map<Long, List<RoleName>> getRoleNamesByMemberId(List<ProjectMember> projectMembers) {
         List<Long> projectMemberIds = projectMembers.stream()
             .map(ProjectMember::getId)
@@ -85,6 +112,17 @@ public class ProjectMemberService {
                 projectUserRole -> projectUserRole.getProjectMember().getId(),
                 Collectors.mapping(ProjectUserRole::getRoleName, Collectors.toList())
             ));
+    }
+
+    private void replaceProjectMemberRoles(ProjectMember projectMember, List<RoleName> roleNames) {
+        List<ProjectUserRole> currentRoles = projectUserRoleRepository.findAllByProjectMemberId(projectMember.getId());
+        projectUserRoleRepository.deleteAll(currentRoles);
+
+        List<ProjectUserRole> newRoles = roleNames.stream()
+            .map(roleName -> ProjectUserRole.create(projectMember, roleName))
+            .toList();
+
+        projectUserRoleRepository.saveAll(newRoles);
     }
 
     private ProjectMemberListResponse.MemberSummary toMemberSummary(
