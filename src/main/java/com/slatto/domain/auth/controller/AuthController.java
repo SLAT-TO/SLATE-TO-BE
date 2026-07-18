@@ -76,4 +76,17 @@ public class AuthController {
 		return ApiResponse.success(CommonSuccessCode.OK, authService.reissueAccessToken(refreshToken));
 	}
 
+	@Operation(summary = "로그아웃", description = "서버에 저장된 리프레시 토큰을 무효화하고 쿠키를 삭제한다.")
+	@PostMapping("/logout")
+	public ResponseEntity<ApiResponse<Void>> logout(
+		@CookieValue(name = "${app.cookie.refresh-token-name}", required = false) String refreshToken
+	) {
+		authService.logout(refreshToken);
+
+		return ResponseEntity
+			.ok()
+			.header(HttpHeaders.SET_COOKIE, authCookieFactory.expiredRefreshToken().toString())
+			.body(ApiResponse.<Void>success(CommonSuccessCode.OK, null));
+	}
+
 }

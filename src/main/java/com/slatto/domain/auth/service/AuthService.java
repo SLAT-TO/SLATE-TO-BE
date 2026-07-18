@@ -101,6 +101,13 @@ public class AuthService {
 		return new AccessTokenResponse(jwtTokenProvider.createAccessToken(userId));
 	}
 
+	@Transactional
+	public void logout(String refreshTokenValue) {
+		if (refreshTokenValue != null) {
+			refreshTokenRepository.deleteByToken(refreshTokenValue);
+		}
+	}
+
 	private Users findOrCreateUser(GoogleUserInfo userInfo) {
 		return userRepository.findBySocialTypeAndSocialId(SocialType.GOOGLE, userInfo.sub())
 			.or(() -> userRepository.findByEmail(userInfo.email())
