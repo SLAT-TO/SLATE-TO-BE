@@ -58,4 +58,5 @@ app:
     secure: ${COOKIE_SECURE:true}
     # TODO: 배포 도메인 확정 후 SameSite=Lax 완화 여부 결정 (docs/auth-api.md 미결정 사항)
     same-site: Strict
+    oauth-state-same-site: Lax
     oauth-state-max-age: PT5M

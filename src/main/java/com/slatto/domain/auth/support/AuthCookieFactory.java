@@ -26,13 +26,13 @@ public class AuthCookieFactory {
 	}
 
 	public ResponseCookie oauthState(String state) {
-		return base(cookieProperties.oauthStateName(), state)
+		return oauthStateBase(state)
 			.maxAge(cookieProperties.oauthStateMaxAge())
 			.build();
 	}
 
 	public ResponseCookie expiredOauthState() {
-		return base(cookieProperties.oauthStateName(), "")
+		return oauthStateBase("")
 			.maxAge(0)
 			.build();
 	}
@@ -43,6 +43,12 @@ public class AuthCookieFactory {
 			.secure(cookieProperties.secure())
 			.path(cookieProperties.path())
 			.sameSite(cookieProperties.sameSite());
+	}
+
+	// 구글에서 콜백으로 돌아오는 요청은 크로스 사이트라 SameSite=Strict면 쿠키가 실리지 않는다.
+	private ResponseCookie.ResponseCookieBuilder oauthStateBase(String value) {
+		return base(cookieProperties.oauthStateName(), value)
+			.sameSite(cookieProperties.oauthStateSameSite());
 	}
 
 	public String refreshTokenName() {

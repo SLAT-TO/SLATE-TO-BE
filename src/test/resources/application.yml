@@ -43,4 +43,5 @@ app:
     path: /api/v1/auth
     secure: true
     same-site: Strict
+    oauth-state-same-site: Lax
     oauth-state-max-age: PT5M

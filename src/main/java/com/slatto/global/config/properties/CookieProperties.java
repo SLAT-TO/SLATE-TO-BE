@@ -11,6 +11,7 @@ public record CookieProperties(
 	String path,
 	boolean secure,
 	String sameSite,
+	String oauthStateSameSite,
 	Duration oauthStateMaxAge
 ) {
 }
