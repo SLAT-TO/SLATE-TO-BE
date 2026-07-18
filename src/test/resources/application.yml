@@ -11,6 +11,12 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
+youtube:
+  api:
+    key: test-youtube-api-key
+    connect-timeout: 3s
+    read-timeout: 5s
+
 app:
   jwt:
     secret: test-secret-key-for-context-load-only-32bytes

@@ -1,7 +1,6 @@
 package com.slatto.domain.project.entity;
 
 import com.slatto.domain.common.entity.BaseEntity;
-import com.slatto.domain.project.enums.ExpirationPeriod;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -36,9 +35,8 @@ public class ProjectInvitation extends BaseEntity {
     @Column(name = "token_hash", nullable = false, length = 255, unique = true)
     private String tokenHash;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "expired_at", nullable = false)
-    private ExpirationPeriod expiredAt;             // 확인 필요!
+    private LocalDateTime expiresAt;
 
     @Column(name = "accepted_at", nullable = true)
     private LocalDateTime acceptedAt;

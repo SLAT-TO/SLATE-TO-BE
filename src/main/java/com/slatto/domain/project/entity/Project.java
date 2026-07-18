@@ -3,9 +3,11 @@ package com.slatto.domain.project.entity;
 import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.enums.LengthType;
 import com.slatto.domain.project.enums.ProjectStatus;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.Kind;
+import com.slatto.global.exception.BaseException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -19,6 +21,8 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Project extends BaseEntity {
+
+    private static final ProjectStatus DEFAULT_STATUS = ProjectStatus.PREPARING;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,4 +69,91 @@ public class Project extends BaseEntity {
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    private Project(
+        Users ownerUser,
+        String title,
+        CategoryName type,
+        String customTypeName,
+        LengthType lengthType,
+        String description,
+        LocalDate endDate,
+        String clientName,
+        Kind kind
+    ) {
+        LocalDate startDate = LocalDate.now();
+        validateProjectPeriod(startDate, endDate);
+
+        this.ownerUser = ownerUser;
+        this.title = title;
+        this.type = type;
+        this.customTypeName = customTypeName;
+        this.lengthType = lengthType;
+        this.description = description;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.clientName = clientName;
+        this.status = DEFAULT_STATUS;
+        this.kind = kind;
+    }
+
+    public static Project create(
+        Users ownerUser,
+        String title,
+        CategoryName type,
+        String customTypeName,
+        LengthType lengthType,
+        String description,
+        LocalDate endDate,
+        String clientName,
+        Kind kind
+    ) {
+        return new Project(
+            ownerUser,
+            title,
+            type,
+            customTypeName,
+            lengthType,
+            description,
+            endDate,
+            clientName,
+            kind
+        );
+    }
+
+    public void updateInfo(
+        String title,
+        CategoryName type,
+        String customTypeName,
+        LengthType lengthType,
+        String description,
+        LocalDate endDate,
+        String clientName,
+        Kind kind
+    ) {
+        validateProjectPeriod(this.startDate, endDate);
+
+        this.title = title;
+        this.type = type;
+        this.customTypeName = customTypeName;
+        this.lengthType = lengthType;
+        this.description = description;
+        this.endDate = endDate;
+        this.clientName = clientName;
+        this.kind = kind;
+    }
+
+    public void changeStatus(ProjectStatus status) {
+        this.status = status;
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    private void validateProjectPeriod(LocalDate startDate, LocalDate endDate) {
+        if (endDate == null || endDate.isBefore(startDate)) {
+            throw new BaseException(ProjectErrorCode.INVALID_PROJECT_PERIOD);
+        }
+    }
 }
