@@ -2,10 +2,12 @@ package com.slatto.domain.project.service;
 
 import com.slatto.domain.project.dto.ProjectInvitationCreateRequest;
 import com.slatto.domain.project.dto.ProjectInvitationCreateResponse;
+import com.slatto.domain.project.dto.ProjectInvitationDetailResponse;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectInvitation;
 import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.enums.ExpirationPeriod;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectInvitationRepository;
 import com.slatto.global.config.properties.ProjectInvitationProperties;
 import com.slatto.global.exception.BaseException;
@@ -60,6 +62,24 @@ public class ProjectInvitationService {
             .inviteUrl(toInviteUrl(token))
             .expiresAt(expiresAt)
             .build();
+    }
+
+    public ProjectInvitationDetailResponse getInvitation(String token) {
+        ProjectInvitation projectInvitation = getInvitationByToken(token);
+        Project project = projectInvitation.getProject();
+
+        return ProjectInvitationDetailResponse.builder()
+            .projectId(project.getId())
+            .projectTitle(project.getTitle())
+            .inviterName(projectInvitation.getInviter().getNickname())
+            .status(projectInvitation.getStatus())
+            .expiresAt(projectInvitation.getExpiresAt())
+            .build();
+    }
+
+    private ProjectInvitation getInvitationByToken(String token) {
+        return projectInvitationRepository.findByTokenHashWithProjectAndUsers(hashToken(token))
+            .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_INVITATION_NOT_FOUND));
     }
 
     private ExpirationPeriod resolveExpirationPeriod(ProjectInvitationCreateRequest request) {
