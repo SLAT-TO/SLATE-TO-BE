@@ -23,3 +23,46 @@ springdoc:
     path: /swagger-ui
   api-docs:
     path: /v3/api-docs
+
+youtube:
+  api:
+    key: ${YOUTUBE_API_KEY}
+    connect-timeout: ${YOUTUBE_API_CONNECT_TIMEOUT:3s}
+    read-timeout: ${YOUTUBE_API_READ_TIMEOUT:5s}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: slatto
+    access-token-validity: PT1H
+    refresh-token-validity: P14D
+
+  oauth:
+    google:
+      client-id: ${GOOGLE_CLIENT_ID}
+      client-secret: ${GOOGLE_CLIENT_SECRET}
+      redirect-uri: ${GOOGLE_REDIRECT_URI}
+      authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+      token-uri: https://oauth2.googleapis.com/token
+      user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+      scope: openid email profile
+
+  frontend:
+    base-url: ${FRONTEND_BASE_URL}
+    callback-path: /auth/callback
+    error-path: /auth/error
+    allowed-redirect-paths:
+      - /
+      - /auth/callback
+      - /onboarding
+
+  cookie:
+    refresh-token-name: refreshToken
+    oauth-state-name: oauthState
+    path: /api/v1/auth
+    # 로컬 http 환경에서만 false로 내린다. 배포 환경은 반드시 true 유지.
+    secure: ${COOKIE_SECURE:true}
+    # TODO: 배포 도메인 확정 후 SameSite=Lax 완화 여부 결정 (docs/auth-api.md 미결정 사항)
+    same-site: Strict
+    oauth-state-same-site: Lax
+    oauth-state-max-age: PT5M
