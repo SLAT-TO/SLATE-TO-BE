@@ -56,6 +56,9 @@ app:
       - /auth/callback
       - /onboarding
 
+  invitation:
+    base-url: ${PROJECT_INVITATION_BASE_URL:${FRONTEND_BASE_URL}/project-invitations}
+
   cookie:
     refresh-token-name: refreshToken
     oauth-state-name: oauthState
