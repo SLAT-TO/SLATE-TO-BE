@@ -79,7 +79,9 @@ public class Users extends BaseEntity{
     public void completeOnboarding(String nickname, String bio, String profileImageUrl) {
         this.nickname = nickname;
         this.bio = bio;
-        this.profileImageUrl = profileImageUrl;
+        if (profileImageUrl != null) {
+            this.profileImageUrl = profileImageUrl;
+        }
         this.term = true;
         this.onboardingCompleted = true;
     }
