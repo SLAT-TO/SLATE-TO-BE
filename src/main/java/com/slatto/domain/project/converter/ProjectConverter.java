@@ -26,7 +26,6 @@ public class ProjectConverter {
             ownerUser,
             request.getTitle(),
             request.getType(),
-            request.getCustomTypeName(),
             request.getLengthType(),
             request.getDescription(),
             request.getEndDate(),
@@ -67,7 +66,6 @@ public class ProjectConverter {
             .id(project.getId())
             .title(project.getTitle())
             .type(project.getType())
-            .customTypeName(project.getCustomTypeName())
             .lengthType(project.getLengthType())
             .status(project.getStatus())
             .kind(project.getKind())
@@ -94,7 +92,6 @@ public class ProjectConverter {
             .id(project.getId())
             .title(project.getTitle())
             .type(project.getType())
-            .customTypeName(project.getCustomTypeName())
             .lengthType(project.getLengthType())
             .description(project.getDescription())
             .startDate(project.getStartDate())

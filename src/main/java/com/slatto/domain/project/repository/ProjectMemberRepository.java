@@ -26,6 +26,29 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
             and pm.leftAt is null
         order by pm.id asc
         """)
+    List<ProjectMember> findAllActiveMembersByProjectId(@Param("projectId") Long projectId);
+
+    @Query("""
+        select pm
+        from ProjectMember pm
+        join fetch pm.user u
+        where pm.project.id = :projectId
+            and pm.id = :memberId
+            and pm.leftAt is null
+        """)
+    Optional<ProjectMember> findActiveMemberByProjectIdAndMemberId(
+        @Param("projectId") Long projectId,
+        @Param("memberId") Long memberId
+    );
+
+    @Query("""
+        select pm
+        from ProjectMember pm
+        join fetch pm.user u
+        where pm.project.id = :projectId
+            and pm.leftAt is null
+        order by pm.id asc
+        """)
     List<ProjectMember> findActiveMembersByProjectId(
         @Param("projectId") Long projectId,
         Pageable pageable

@@ -23,8 +23,6 @@ public class ProjectDetailResponse {
 
     private CategoryName type;
 
-    private String customTypeName;
-
     private LengthType lengthType;
 
     private String description;
