@@ -1,0 +1,53 @@
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+
+  jpa:
+    database: h2
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+
+youtube:
+  api:
+    key: test-youtube-api-key
+    connect-timeout: 3s
+    read-timeout: 5s
+
+app:
+  jwt:
+    secret: test-secret-key-for-context-load-only-32bytes
+    issuer: slatto
+    access-token-validity: PT30M
+    refresh-token-validity: P14D
+
+  oauth:
+    google:
+      client-id: test-client-id
+      client-secret: test-client-secret
+      redirect-uri: http://localhost:8080/api/v1/auth/callback/google
+      authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+      token-uri: https://oauth2.googleapis.com/token
+      user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+      scope: openid email profile
+
+  frontend:
+    base-url: http://localhost:3000
+    callback-path: /auth/callback
+    error-path: /auth/error
+    allowed-redirect-paths:
+      - /
+      - /auth/callback
+      - /onboarding
+
+  cookie:
+    refresh-token-name: refreshToken
+    oauth-state-name: oauthState
+    path: /api/v1/auth
+    secure: true
+    same-site: Strict
+    oauth-state-same-site: Lax
+    oauth-state-max-age: PT5M
