@@ -43,5 +43,6 @@ public class UserOnboardingRequest {
 
     private String bio;
 
+    @Size(max = 500, message = "프로필 이미지 URL은 500자 이하로 입력해야 합니다.")
     private String profileImageUrl;
 }
