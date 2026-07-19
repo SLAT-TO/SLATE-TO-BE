@@ -29,4 +29,13 @@ public class Location {
     @Enumerated(EnumType.STRING)
     @Column(name = "region_name", nullable = false)
     private RegionName regionName;
+
+    private Location(Users user, RegionName regionName) {
+        this.user = user;
+        this.regionName = regionName;
+    }
+
+    public static Location createUserLocation(Users user, RegionName regionName) {
+        return new Location(user, regionName);
+    }
 }

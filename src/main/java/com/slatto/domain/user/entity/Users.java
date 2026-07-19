@@ -76,4 +76,12 @@ public class Users extends BaseEntity{
         this.socialId = socialId;
     }
 
+    public void completeOnboarding(String nickname, String bio, String profileImageUrl) {
+        this.nickname = nickname;
+        this.bio = bio;
+        this.profileImageUrl = profileImageUrl;
+        this.term = true;
+        this.onboardingCompleted = true;
+    }
+
 }

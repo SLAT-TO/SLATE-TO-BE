@@ -30,4 +30,13 @@ public class UserRole {
     @Enumerated(EnumType.STRING)
     @Column(name = "role_name", nullable = false)
     private RoleName roleName;
+
+    private UserRole(Users user, RoleName roleName) {
+        this.user = user;
+        this.roleName = roleName;
+    }
+
+    public static UserRole create(Users user, RoleName roleName) {
+        return new UserRole(user, roleName);
+    }
 }
