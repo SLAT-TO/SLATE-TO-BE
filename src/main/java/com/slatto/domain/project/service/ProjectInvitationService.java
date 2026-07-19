@@ -1,5 +1,6 @@
 package com.slatto.domain.project.service;
 
+import com.slatto.domain.project.dto.ProjectInvitationAcceptResponse;
 import com.slatto.domain.project.dto.ProjectInvitationCreateRequest;
 import com.slatto.domain.project.dto.ProjectInvitationCreateResponse;
 import com.slatto.domain.project.dto.ProjectInvitationDetailResponse;
@@ -9,6 +10,9 @@ import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.enums.ExpirationPeriod;
 import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectInvitationRepository;
+import com.slatto.domain.project.repository.ProjectMemberRepository;
+import com.slatto.domain.user.entity.Users;
+import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.config.properties.ProjectInvitationProperties;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
@@ -34,6 +38,8 @@ public class ProjectInvitationService {
     private static final int MAX_TOKEN_GENERATION_ATTEMPTS = 5;
 
     private final ProjectInvitationRepository projectInvitationRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final UserRepository userRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final ProjectInvitationProperties projectInvitationProperties;
     private final SecureRandom secureRandom = new SecureRandom();
@@ -75,6 +81,45 @@ public class ProjectInvitationService {
             .status(projectInvitation.getStatus())
             .expiresAt(projectInvitation.getExpiresAt())
             .build();
+    }
+
+    @Transactional
+    public ProjectInvitationAcceptResponse acceptInvitation(String token, Long currentUserId) {
+        ProjectInvitation projectInvitation = getInvitationByToken(token);
+
+        validateAcceptableInvitation(projectInvitation);
+
+        Project project = projectInvitation.getProject();
+        Users accepter = getUserOrThrow(currentUserId);
+
+        if (projectMemberRepository.existsByProjectIdAndUserIdAndLeftAtIsNull(project.getId(), currentUserId)) {
+            throw new BaseException(ProjectErrorCode.PROJECT_MEMBER_ALREADY_EXISTS);
+        }
+
+        ProjectMember projectMember = ProjectMember.createMember(project, accepter);
+        projectMemberRepository.save(projectMember);
+        projectInvitation.accept(accepter);
+
+        return ProjectInvitationAcceptResponse.builder()
+            .projectId(project.getId())
+            .memberId(projectMember.getId())
+            .joinedAt(projectMember.getJoinedAt())
+            .build();
+    }
+
+    private void validateAcceptableInvitation(ProjectInvitation projectInvitation) {
+        if (projectInvitation.isAccepted()) {
+            throw new BaseException(ProjectErrorCode.PROJECT_INVITATION_ALREADY_ACCEPTED);
+        }
+
+        if (projectInvitation.isExpired()) {
+            throw new BaseException(ProjectErrorCode.PROJECT_INVITATION_EXPIRED);
+        }
+    }
+
+    private Users getUserOrThrow(Long userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
     }
 
     private ProjectInvitation getInvitationByToken(String token) {
