@@ -13,8 +13,10 @@ import com.slatto.domain.schedule.dto.ScheduleResponse;
 import com.slatto.domain.schedule.dto.ScheduleUpdateRequest;
 import com.slatto.domain.schedule.entity.Schedule;
 import com.slatto.domain.schedule.entity.ScheduleParticipant;
+import com.slatto.domain.schedule.entity.SchedulePrivateMemo;
 import com.slatto.domain.schedule.enums.ScheduleScope;
 import com.slatto.domain.schedule.repository.ScheduleParticipantRepository;
+import com.slatto.domain.schedule.repository.SchedulePrivateMemoRepository;
 import com.slatto.domain.schedule.repository.ScheduleRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
@@ -40,6 +42,7 @@ public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
     private final ScheduleParticipantRepository scheduleParticipantRepository;
+    private final SchedulePrivateMemoRepository schedulePrivateMemoRepository;
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectUserRoleRepository projectUserRoleRepository;
@@ -113,6 +116,8 @@ public class ScheduleService {
         schedule.delete();
         scheduleParticipantRepository.findActiveParticipantsByScheduleId(scheduleId)
             .forEach(ScheduleParticipant::delete);
+        schedulePrivateMemoRepository.findAllByScheduleIdAndDeletedAtIsNull(scheduleId)
+            .forEach(SchedulePrivateMemo::delete);
 
         // TODO: 프로젝트 일정 삭제 알림과 activity_log 연동은 알림 도메인 구현 후 연결한다.
     }
