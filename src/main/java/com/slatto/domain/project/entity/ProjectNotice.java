@@ -28,7 +28,7 @@ public class ProjectNotice extends BaseEntity {
     @JoinColumn(name = "writer_id", nullable = false)
     private Users writer;
 
-    @Column(name = "title", nullable = false, length = 255)
+    @Column(name = "title", nullable = false, length = 100)
     private String title;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
@@ -37,4 +37,27 @@ public class ProjectNotice extends BaseEntity {
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
 
+    private ProjectNotice(Project project, Users writer, String title, String content) {
+        this.project = project;
+        this.writer = writer;
+        this.title = title;
+        this.content = content;
+    }
+
+    public static ProjectNotice create(Project project, Users writer, String title, String content) {
+        return new ProjectNotice(project, writer, title, content);
+    }
+
+    public boolean isWrittenBy(Long userId) {
+        return writer.getId().equals(userId);
+    }
+
+    public void update(String title, String content) {
+        this.title = title;
+        this.content = content;
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
 }
