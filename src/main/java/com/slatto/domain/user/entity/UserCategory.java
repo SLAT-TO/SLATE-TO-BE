@@ -30,4 +30,13 @@ public class UserCategory {
     @Enumerated(EnumType.STRING)
     @Column(name = "category_name", nullable = false)
     private CategoryName categoryName;
+
+    private UserCategory(Users user, CategoryName categoryName) {
+        this.user = user;
+        this.categoryName = categoryName;
+    }
+
+    public static UserCategory create(Users user, CategoryName categoryName) {
+        return new UserCategory(user, categoryName);
+    }
 }
