@@ -18,13 +18,9 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserOnboardingRequest {
 
-    @NotNull(message = "이용약관 동의 여부는 필수입니다.")
-    @AssertTrue(message = "이용약관에 동의해야 합니다.")
-    private Boolean agreedTermsOfService;
-
-    @NotNull(message = "개인정보 처리방침 동의 여부는 필수입니다.")
-    @AssertTrue(message = "개인정보 처리방침에 동의해야 합니다.")
-    private Boolean agreedPrivacyPolicy;
+    @NotNull(message = "약관 동의 여부는 필수입니다.")
+    @AssertTrue(message = "약관에 동의해야 합니다.")
+    private Boolean agreedTerms;
 
     @NotBlank(message = "닉네임은 필수입니다.")
     @Size(min = 1, max = 20, message = "닉네임은 1자 이상 20자 이하로 입력해야 합니다.")
