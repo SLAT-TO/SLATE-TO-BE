@@ -41,4 +41,15 @@ public class Feedback extends BaseEntity {
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    public static Feedback create(Video video, Long userId, Long guestId,
+                                  String content) {
+        Feedback feedback = new Feedback();
+        feedback.video = video;
+        feedback.userId = userId;
+        feedback.guestId = guestId;
+        feedback.content = content;
+        feedback.status = false;  // 기본값: 미해결
+        return feedback;
+    }
 }
