@@ -26,8 +26,6 @@ public class UserOnboardingRequest {
     @AssertTrue(message = "개인정보 처리방침에 동의해야 합니다.")
     private Boolean agreedPrivacyPolicy;
 
-    private Boolean agreedMarketing;
-
     @NotBlank(message = "닉네임은 필수입니다.")
     @Size(min = 1, max = 20, message = "닉네임은 1자 이상 20자 이하로 입력해야 합니다.")
     private String nickname;

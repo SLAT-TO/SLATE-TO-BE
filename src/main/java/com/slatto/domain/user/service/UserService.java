@@ -70,7 +70,8 @@ public class UserService {
     public UserOnboardingResponse completeOnboarding(Long userId, UserOnboardingRequest request) {
         Users user = getUserOrThrow(userId);
 
-        if (Boolean.TRUE.equals(user.getOnboardingCompleted())) {
+        // onboarding_completed 를 조건부 UPDATE 로 선점해 동시 요청 중 하나만 통과시킨다.
+        if (userRepository.markOnboardingCompleted(userId) == 0) {
             throw new BaseException(UserErrorCode.ONBOARDING_ALREADY_COMPLETED);
         }
 
