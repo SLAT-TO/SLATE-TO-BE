@@ -21,6 +21,6 @@ public class Guest extends BaseEntity {
     @JoinColumn(name = "share_link_id", nullable = false)
     private ShareLink shareLink;
 
-    @Column(name = "name", nullable = true, length = 100)
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 }

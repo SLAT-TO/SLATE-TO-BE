@@ -3,6 +3,7 @@ package com.slatto.domain.notification.entity;
 import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.notification.enums.ActorType;
+import com.slatto.domain.user.enums.RoleName;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -33,8 +34,9 @@ public class ActivityLog extends BaseEntity {
     @Column(name = "actor_type", nullable = false)
     private ActorType actorType;
 
-    @Column(name = "type", nullable = false, length = 500)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private RoleName type;
 
     @Column(name = "content", nullable = false, length = 500)
     private String content;

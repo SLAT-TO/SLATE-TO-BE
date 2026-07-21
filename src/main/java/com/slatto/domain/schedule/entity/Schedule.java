@@ -51,4 +51,82 @@ public class Schedule extends BaseEntity {
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    private Schedule(
+        Project project,
+        Users writer,
+        ScheduleScope scheduleScope,
+        String title,
+        LocalDateTime startAt,
+        LocalDateTime endAt,
+        String location,
+        String publicMemo
+    ) {
+        this.project = project;
+        this.writer = writer;
+        this.scheduleScope = scheduleScope;
+        this.title = title;
+        this.startAt = startAt;
+        this.endAt = endAt;
+        this.location = location;
+        this.publicMemo = publicMemo;
+    }
+
+    public static Schedule create(
+        Project project,
+        Users writer,
+        ScheduleScope scheduleScope,
+        String title,
+        LocalDateTime startAt,
+        LocalDateTime endAt,
+        String location,
+        String publicMemo
+    ) {
+        return new Schedule(
+            project,
+            writer,
+            scheduleScope,
+            title,
+            startAt,
+            endAt,
+            location,
+            publicMemo
+        );
+    }
+
+    public void updateInfo(
+        String title,
+        LocalDateTime startAt,
+        LocalDateTime endAt,
+        String location,
+        String publicMemo
+    ) {
+        if (title != null) {
+            this.title = title;
+        }
+        if (startAt != null) {
+            this.startAt = startAt;
+        }
+        if (endAt != null) {
+            this.endAt = endAt;
+        }
+        if (location != null) {
+            this.location = location;
+        }
+        if (publicMemo != null) {
+            this.publicMemo = publicMemo;
+        }
+    }
+
+    public boolean isWriter(Long userId) {
+        return writer.getId().equals(userId);
+    }
+
+    public boolean isProjectSchedule() {
+        return scheduleScope == ScheduleScope.PROJECT;
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
 }

@@ -2,6 +2,7 @@ package com.slatto.domain.notification.entity;
 
 import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.notification.enums.NotificationType;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -26,11 +27,12 @@ public class Notification extends BaseEntity {
     private Users user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
+    @JoinColumn(name = "project_id", nullable = true)
     private Project project;
 
-    @Column(name = "type", nullable = false, length = 50)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private NotificationType type;
 
     @Column(name = "content", nullable = false, length = 500)
     private String content;
@@ -43,6 +45,9 @@ public class Notification extends BaseEntity {
 
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
+
+    @Column(name = "read_at", nullable = true)
+    private LocalDateTime readAt;
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;

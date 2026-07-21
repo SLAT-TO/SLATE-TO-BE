@@ -15,6 +15,7 @@ public enum ProjectErrorCode implements BaseCode {
     PROJECT_INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "PROJECT_INVITATION404", "초대 링크를 찾을 수 없습니다."),
     PROJECT_INVITATION_EXPIRED(HttpStatus.BAD_REQUEST, "PROJECT_INVITATION_EXPIRED400", "만료된 초대 링크입니다."),
     PROJECT_INVITATION_ALREADY_ACCEPTED(HttpStatus.CONFLICT, "PROJECT_INVITATION409", "이미 수락된 초대 링크입니다."),
+    PROJECT_NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "PROJECT_NOTICE404", "프로젝트 공지를 찾을 수 없습니다."),
     PROJECT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "PROJECT403", "프로젝트 접근 권한이 없습니다."),
     PROJECT_ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "PROJECT_ADMIN403", "프로젝트 관리자 권한이 필요합니다."),
     PROJECT_MEMBER_ALREADY_EXISTS(HttpStatus.CONFLICT, "PROJECT_MEMBER409", "이미 프로젝트에 참여 중인 멤버입니다."),
