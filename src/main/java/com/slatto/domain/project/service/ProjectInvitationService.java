@@ -85,7 +85,7 @@ public class ProjectInvitationService {
 
     @Transactional
     public ProjectInvitationAcceptResponse acceptInvitation(String token, Long currentUserId) {
-        ProjectInvitation projectInvitation = getInvitationByToken(token);
+        ProjectInvitation projectInvitation = getInvitationByTokenForUpdate(token);
 
         validateAcceptableInvitation(projectInvitation);
 
@@ -124,6 +124,11 @@ public class ProjectInvitationService {
 
     private ProjectInvitation getInvitationByToken(String token) {
         return projectInvitationRepository.findByTokenHashWithProjectAndUsers(hashToken(token))
+            .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_INVITATION_NOT_FOUND));
+    }
+
+    private ProjectInvitation getInvitationByTokenForUpdate(String token) {
+        return projectInvitationRepository.findByTokenHashWithProjectAndUsersForUpdate(hashToken(token))
             .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_INVITATION_NOT_FOUND));
     }
 
