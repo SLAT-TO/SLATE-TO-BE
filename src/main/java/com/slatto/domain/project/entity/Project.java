@@ -74,6 +74,7 @@ public class Project extends BaseEntity {
         Users ownerUser,
         String title,
         CategoryName type,
+        String customTypeName,
         LengthType lengthType,
         String description,
         LocalDate endDate,
@@ -86,6 +87,7 @@ public class Project extends BaseEntity {
         this.ownerUser = ownerUser;
         this.title = title;
         this.type = type;
+        this.customTypeName = customTypeName;
         this.lengthType = lengthType;
         this.description = description;
         this.startDate = startDate;
@@ -99,6 +101,7 @@ public class Project extends BaseEntity {
         Users ownerUser,
         String title,
         CategoryName type,
+        String customTypeName,
         LengthType lengthType,
         String description,
         LocalDate endDate,
@@ -109,6 +112,7 @@ public class Project extends BaseEntity {
             ownerUser,
             title,
             type,
+            customTypeName,
             lengthType,
             description,
             endDate,
@@ -120,6 +124,7 @@ public class Project extends BaseEntity {
     public void updateInfo(
         String title,
         CategoryName type,
+        String customTypeName,
         LengthType lengthType,
         String description,
         LocalDate endDate,
@@ -130,6 +135,7 @@ public class Project extends BaseEntity {
 
         this.title = title;
         this.type = type;
+        this.customTypeName = customTypeName;
         this.lengthType = lengthType;
         this.description = description;
         this.endDate = endDate;

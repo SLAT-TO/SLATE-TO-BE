@@ -128,6 +128,7 @@ public class ProjectService {
         project.updateInfo(
             request.getTitle(),
             request.getType(),
+            request.getCustomTypeName(),
             request.getLengthType(),
             request.getDescription(),
             request.getEndDate(),

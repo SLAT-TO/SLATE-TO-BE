@@ -56,4 +56,58 @@ public class UserPortfolio extends BaseEntity {
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    private UserPortfolio(
+        Users user,
+        String title,
+        CategoryName type,
+        String customTypeName,
+        Kind kind,
+        String clientName,
+        String description,
+        String comment,
+        String youtubeUrl,
+        String thumbnailUrl
+    ) {
+        this.user = user;
+        this.title = title;
+        this.type = type;
+        this.customTypeName = customTypeName;
+        this.kind = kind;
+        this.clientName = clientName;
+        this.description = description;
+        this.comment = comment;
+        this.youtubeUrl = youtubeUrl;
+        this.thumbnailUrl = thumbnailUrl;
+    }
+
+    public static UserPortfolio create(
+        Users user,
+        String title,
+        CategoryName type,
+        String customTypeName,
+        Kind kind,
+        String clientName,
+        String description,
+        String comment,
+        String youtubeUrl,
+        String thumbnailUrl
+    ) {
+        return new UserPortfolio(
+            user,
+            title,
+            type,
+            customTypeName,
+            kind,
+            clientName,
+            description,
+            comment,
+            youtubeUrl,
+            thumbnailUrl
+        );
+    }
+
+    public void updateCustomTypeName(String customTypeName) {
+        this.customTypeName = customTypeName;
+    }
 }

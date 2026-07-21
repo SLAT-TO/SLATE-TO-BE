@@ -26,6 +26,7 @@ public class ProjectConverter {
             ownerUser,
             request.getTitle(),
             request.getType(),
+            request.getCustomTypeName(),
             request.getLengthType(),
             request.getDescription(),
             request.getEndDate(),
