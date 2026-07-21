@@ -7,6 +7,7 @@ import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.project.service.ProjectAccessValidator;
 import com.slatto.domain.schedule.converter.ScheduleConverter;
+import com.slatto.domain.schedule.dto.ScheduleCalendarResponse;
 import com.slatto.domain.schedule.dto.ScheduleCreateRequest;
 import com.slatto.domain.schedule.dto.ScheduleParticipantCandidateResponse;
 import com.slatto.domain.schedule.dto.ScheduleResponse;
@@ -14,6 +15,7 @@ import com.slatto.domain.schedule.dto.ScheduleUpdateRequest;
 import com.slatto.domain.schedule.entity.Schedule;
 import com.slatto.domain.schedule.entity.ScheduleParticipant;
 import com.slatto.domain.schedule.entity.SchedulePrivateMemo;
+import com.slatto.domain.schedule.enums.ScheduleQueryScope;
 import com.slatto.domain.schedule.enums.ScheduleScope;
 import com.slatto.domain.schedule.repository.ScheduleParticipantRepository;
 import com.slatto.domain.schedule.repository.SchedulePrivateMemoRepository;
@@ -48,6 +50,46 @@ public class ScheduleService {
     private final ProjectUserRoleRepository projectUserRoleRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final ScheduleConverter scheduleConverter;
+
+    public ScheduleCalendarResponse getCalendarSchedules(
+        Long currentUserId,
+        LocalDateTime startAt,
+        LocalDateTime endAt,
+        ScheduleQueryScope scope,
+        Long projectId
+    ) {
+        validatePeriod(startAt, endAt);
+        getActiveUser(currentUserId);
+
+        ScheduleQueryScope queryScope = scope != null ? scope : ScheduleQueryScope.ALL;
+        validateProjectFilter(currentUserId, queryScope, projectId);
+        List<Schedule> schedules = scheduleRepository.findVisibleSchedulesBetween(
+            currentUserId,
+            queryScope.toScheduleScope(),
+            projectId,
+            startAt,
+            endAt
+        );
+
+        return scheduleConverter.toCalendarResponse(schedules);
+    }
+
+    private void validateProjectFilter(
+        Long currentUserId,
+        ScheduleQueryScope queryScope,
+        Long projectId
+    ) {
+        if (projectId == null) {
+            return;
+        }
+
+        if (queryScope == ScheduleQueryScope.PERSONAL) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+
+        projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.validateProjectAccess(projectId, currentUserId);
+    }
 
     @Transactional
     public ScheduleResponse createSchedule(Long currentUserId, ScheduleCreateRequest request) {
