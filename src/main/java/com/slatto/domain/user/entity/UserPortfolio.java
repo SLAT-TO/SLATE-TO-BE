@@ -32,6 +32,9 @@ public class UserPortfolio extends BaseEntity {
     @Column(name = "type", nullable = false)
     private CategoryName type;
 
+    @Column(name = "custom_type_name", nullable = true, length = 100)
+    private String customTypeName;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "kind", nullable = true)
     private Kind kind;

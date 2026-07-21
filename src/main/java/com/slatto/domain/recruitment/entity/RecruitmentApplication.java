@@ -7,6 +7,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "recruitment_application")
 @Getter
@@ -31,4 +33,7 @@ public class RecruitmentApplication extends BaseEntity {
 
     @Column(name = "status", nullable = true, length = 50)
     private String status;
+
+    @Column(name = "deleted_at", nullable = true)
+    private LocalDateTime deletedAt;
 }

@@ -40,6 +40,9 @@ public class Project extends BaseEntity {
     @Column(name = "type", nullable = true)
     private CategoryName type;
 
+    @Column(name = "custom_type_name", nullable = true, length = 100)
+    private String customTypeName;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "length_type", nullable = true)
     private LengthType lengthType;

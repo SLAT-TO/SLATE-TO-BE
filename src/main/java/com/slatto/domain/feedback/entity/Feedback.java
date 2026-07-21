@@ -39,6 +39,12 @@ public class Feedback extends BaseEntity {
     @Column(name = "status", nullable = true)
     private Boolean status;
 
+    @Column(name = "start_time", nullable = true)
+    private Long startTime;
+
+    @Column(name = "end_time", nullable = true)
+    private Long endTime;
+
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
 }

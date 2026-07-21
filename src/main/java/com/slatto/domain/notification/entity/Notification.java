@@ -44,6 +44,9 @@ public class Notification extends BaseEntity {
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
 
+    @Column(name = "read_at", nullable = true)
+    private LocalDateTime readAt;
+
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
 }

@@ -1,12 +1,11 @@
 package com.slatto.domain.recruitment.entity;
 
+import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(
@@ -18,7 +17,7 @@ import java.time.LocalDateTime;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class RecruitmentBookmark {
+public class RecruitmentBookmark extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,7 +31,4 @@ public class RecruitmentBookmark {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recruitment_id", nullable = false)
     private Recruitment recruitment;
-
-    @Column(name = "created_at", nullable = true)
-    private LocalDateTime createdAt;
 }
