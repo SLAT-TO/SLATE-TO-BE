@@ -12,11 +12,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,15 +27,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1")
 public class ProjectInvitationController {
 
-    private static final String CURRENT_USER_ID_HEADER = "X-USER-ID";
-
     private final ProjectInvitationService projectInvitationService;
 
     @Operation(summary = "프로젝트 초대 링크 생성")
     @PostMapping("/projects/{projectId}/invitations")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ProjectInvitationCreateResponse> createInvitation(
-        @RequestHeader(CURRENT_USER_ID_HEADER) Long currentUserId,
+        @AuthenticationPrincipal Long currentUserId,
         @PathVariable Long projectId,
         @Valid @RequestBody(required = false) ProjectInvitationCreateRequest request
     ) {
@@ -61,7 +59,7 @@ public class ProjectInvitationController {
     @Operation(summary = "프로젝트 초대 수락")
     @PostMapping("/project-invitations/{token}/accept")
     public ApiResponse<ProjectInvitationAcceptResponse> acceptInvitation(
-        @RequestHeader(CURRENT_USER_ID_HEADER) Long currentUserId,
+        @AuthenticationPrincipal Long currentUserId,
         @PathVariable String token
     ) {
         ProjectInvitationAcceptResponse response = projectInvitationService.acceptInvitation(
