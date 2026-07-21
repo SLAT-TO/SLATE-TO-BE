@@ -1,6 +1,7 @@
 package com.slatto.domain.recruitment.entity;
 
 import com.slatto.domain.common.entity.BaseEntity;
+import com.slatto.domain.recruitment.enums.RecruitmentStatus;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -45,8 +46,9 @@ public class Recruitment extends BaseEntity {
     @Column(name = "location", nullable = true, length = 255)
     private String location;
 
-    @Column(name = "status", nullable = true, length = 50)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = true)
+    private RecruitmentStatus status;
 
     @Column(name = "deadline", nullable = true)
     private LocalDate deadline;

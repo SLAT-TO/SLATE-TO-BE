@@ -2,6 +2,7 @@ package com.slatto.domain.notification.entity;
 
 import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.notification.enums.NotificationType;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -29,8 +30,9 @@ public class Notification extends BaseEntity {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @Column(name = "type", nullable = false, length = 50)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private NotificationType type;
 
     @Column(name = "content", nullable = false, length = 500)
     private String content;

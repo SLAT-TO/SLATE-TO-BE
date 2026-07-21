@@ -1,6 +1,7 @@
 package com.slatto.domain.recruitment.entity;
 
 import com.slatto.domain.common.entity.BaseEntity;
+import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
 import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -31,8 +32,9 @@ public class RecruitmentApplication extends BaseEntity {
     @Column(name = "message", nullable = true, columnDefinition = "TEXT")
     private String message;
 
-    @Column(name = "status", nullable = true, length = 50)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = true)
+    private RecruitmentApplicationStatus status;
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
