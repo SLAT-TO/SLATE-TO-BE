@@ -7,13 +7,18 @@ import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.project.service.ProjectAccessValidator;
 import com.slatto.domain.schedule.converter.ScheduleConverter;
+import com.slatto.domain.schedule.dto.ScheduleCalendarResponse;
 import com.slatto.domain.schedule.dto.ScheduleCreateRequest;
+import com.slatto.domain.schedule.dto.ScheduleDailyResponse;
 import com.slatto.domain.schedule.dto.ScheduleParticipantCandidateResponse;
+import com.slatto.domain.schedule.dto.SchedulePrivateMemoRequest;
+import com.slatto.domain.schedule.dto.SchedulePrivateMemoResponse;
 import com.slatto.domain.schedule.dto.ScheduleResponse;
 import com.slatto.domain.schedule.dto.ScheduleUpdateRequest;
 import com.slatto.domain.schedule.entity.Schedule;
 import com.slatto.domain.schedule.entity.ScheduleParticipant;
 import com.slatto.domain.schedule.entity.SchedulePrivateMemo;
+import com.slatto.domain.schedule.enums.ScheduleQueryScope;
 import com.slatto.domain.schedule.enums.ScheduleScope;
 import com.slatto.domain.schedule.repository.ScheduleParticipantRepository;
 import com.slatto.domain.schedule.repository.SchedulePrivateMemoRepository;
@@ -27,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +54,136 @@ public class ScheduleService {
     private final ProjectUserRoleRepository projectUserRoleRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final ScheduleConverter scheduleConverter;
+
+    @Transactional
+    public SchedulePrivateMemoResponse upsertPrivateMemo(
+        Long currentUserId,
+        Long scheduleId,
+        SchedulePrivateMemoRequest request
+    ) {
+        Users user = getActiveUser(currentUserId);
+        Schedule schedule = getScheduleOrThrow(scheduleId);
+        validateScheduleAccess(schedule, currentUserId);
+
+        SchedulePrivateMemo privateMemo = schedulePrivateMemoRepository
+            .findByScheduleIdAndUserIdAndDeletedAtIsNull(scheduleId, currentUserId)
+            .map(existingMemo -> {
+                existingMemo.updateContent(request.getContent());
+                return existingMemo;
+            })
+            .orElseGet(() -> schedulePrivateMemoRepository.save(
+                SchedulePrivateMemo.create(schedule, user, request.getContent())
+            ));
+
+        return scheduleConverter.toPrivateMemoResponse(privateMemo);
+    }
+
+    public ScheduleDailyResponse getDailySchedules(
+        Long currentUserId,
+        LocalDate date,
+        ScheduleQueryScope scope,
+        Long projectId
+    ) {
+        if (date == null) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+
+        getActiveUser(currentUserId);
+
+        ScheduleQueryScope queryScope = scope != null ? scope : ScheduleQueryScope.ALL;
+        validateProjectFilter(currentUserId, queryScope, projectId);
+
+        LocalDateTime startAt = date.atStartOfDay();
+        LocalDateTime endAt = date.plusDays(1).atStartOfDay();
+        List<Schedule> schedules = scheduleRepository.findVisibleSchedulesBetween(
+            currentUserId,
+            queryScope.toScheduleScope(),
+            projectId,
+            startAt,
+            endAt
+        );
+
+        List<Long> scheduleIds = schedules.stream()
+            .map(Schedule::getId)
+            .toList();
+        Map<Long, List<ScheduleParticipant>> participantsByScheduleId =
+            getParticipantsByScheduleId(scheduleIds);
+        Map<Long, String> privateMemoByScheduleId =
+            getPrivateMemoByScheduleId(scheduleIds, currentUserId);
+
+        return scheduleConverter.toDailyResponse(
+            date,
+            currentUserId,
+            schedules,
+            participantsByScheduleId,
+            privateMemoByScheduleId
+        );
+    }
+
+    public ScheduleCalendarResponse getCalendarSchedules(
+        Long currentUserId,
+        LocalDateTime startAt,
+        LocalDateTime endAt,
+        ScheduleQueryScope scope,
+        Long projectId
+    ) {
+        validatePeriod(startAt, endAt);
+        getActiveUser(currentUserId);
+
+        ScheduleQueryScope queryScope = scope != null ? scope : ScheduleQueryScope.ALL;
+        validateProjectFilter(currentUserId, queryScope, projectId);
+        List<Schedule> schedules = scheduleRepository.findVisibleSchedulesBetween(
+            currentUserId,
+            queryScope.toScheduleScope(),
+            projectId,
+            startAt,
+            endAt
+        );
+
+        return scheduleConverter.toCalendarResponse(schedules);
+    }
+
+    private Map<Long, List<ScheduleParticipant>> getParticipantsByScheduleId(List<Long> scheduleIds) {
+        if (scheduleIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return scheduleParticipantRepository.findActiveParticipantsByScheduleIds(scheduleIds)
+            .stream()
+            .collect(Collectors.groupingBy(participant -> participant.getSchedule().getId()));
+    }
+
+    private Map<Long, String> getPrivateMemoByScheduleId(List<Long> scheduleIds, Long currentUserId) {
+        if (scheduleIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return schedulePrivateMemoRepository
+            .findAllByScheduleIdInAndUserIdAndDeletedAtIsNull(scheduleIds, currentUserId)
+            .stream()
+            .collect(Collectors.toMap(
+                privateMemo -> privateMemo.getSchedule().getId(),
+                SchedulePrivateMemo::getContent,
+                (first, second) -> first
+            ));
+    }
+
+    private void validateProjectFilter(
+        Long currentUserId,
+        ScheduleQueryScope queryScope,
+        Long projectId
+    ) {
+        if (projectId == null) {
+            return;
+        }
+
+        if (queryScope == ScheduleQueryScope.PERSONAL) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+
+        projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.validateProjectAccess(projectId, currentUserId);
+    }
 
     @Transactional
     public ScheduleResponse createSchedule(Long currentUserId, ScheduleCreateRequest request) {
@@ -82,7 +218,7 @@ public class ScheduleService {
         validateUpdateRequest(request);
 
         Schedule schedule = getScheduleOrThrow(scheduleId);
-        validateWriter(schedule, currentUserId);
+        validateScheduleEditable(schedule, currentUserId);
 
         LocalDateTime nextStartAt = request.getStartAt() != null
             ? request.getStartAt()
@@ -111,7 +247,7 @@ public class ScheduleService {
     @Transactional
     public void deleteSchedule(Long currentUserId, Long scheduleId) {
         Schedule schedule = getScheduleOrThrow(scheduleId);
-        validateWriter(schedule, currentUserId);
+        validateScheduleEditable(schedule, currentUserId);
 
         schedule.delete();
         scheduleParticipantRepository.findActiveParticipantsByScheduleId(scheduleId)
@@ -248,6 +384,36 @@ public class ScheduleService {
 
     private void validateWriter(Schedule schedule, Long currentUserId) {
         if (!schedule.isWriter(currentUserId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void validateScheduleEditable(Schedule schedule, Long currentUserId) {
+        if (schedule.getScheduleScope() == ScheduleScope.PERSONAL) {
+            validateWriter(schedule, currentUserId);
+            return;
+        }
+
+        if (!scheduleParticipantRepository.existsByScheduleIdAndUserIdAndDeletedAtIsNull(
+            schedule.getId(),
+            currentUserId
+        )) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void validateScheduleAccess(Schedule schedule, Long currentUserId) {
+        if (schedule.getScheduleScope() == ScheduleScope.PERSONAL) {
+            validateWriter(schedule, currentUserId);
+            return;
+        }
+
+        Project project = schedule.getProject();
+        if (project == null
+            || !projectMemberRepository.existsByProjectIdAndUserIdAndLeftAtIsNull(
+                project.getId(),
+                currentUserId
+            )) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
     }
