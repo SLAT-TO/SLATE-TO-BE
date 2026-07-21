@@ -18,4 +18,14 @@ public interface ScheduleParticipantRepository extends JpaRepository<SchedulePar
         order by sp.id asc
         """)
     List<ScheduleParticipant> findActiveParticipantsByScheduleId(@Param("scheduleId") Long scheduleId);
+
+    @Query("""
+        select sp
+        from ScheduleParticipant sp
+        join fetch sp.user u
+        where sp.schedule.id in :scheduleIds
+            and sp.deletedAt is null
+        order by sp.schedule.id asc, sp.id asc
+        """)
+    List<ScheduleParticipant> findActiveParticipantsByScheduleIds(@Param("scheduleIds") List<Long> scheduleIds);
 }

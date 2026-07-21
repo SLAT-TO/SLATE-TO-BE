@@ -11,4 +11,9 @@ public interface SchedulePrivateMemoRepository extends JpaRepository<SchedulePri
     Optional<SchedulePrivateMemo> findByScheduleIdAndUserIdAndDeletedAtIsNull(Long scheduleId, Long userId);
 
     List<SchedulePrivateMemo> findAllByScheduleIdAndDeletedAtIsNull(Long scheduleId);
+
+    List<SchedulePrivateMemo> findAllByScheduleIdInAndUserIdAndDeletedAtIsNull(
+        List<Long> scheduleIds,
+        Long userId
+    );
 }
