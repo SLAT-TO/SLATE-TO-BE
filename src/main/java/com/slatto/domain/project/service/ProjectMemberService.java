@@ -78,13 +78,15 @@ public class ProjectMemberService {
         ProjectMemberUpdateRequest request
     ) {
         projectAccessValidator.getProjectOrThrow(projectId);
-        projectAccessValidator.getCurrentAdminOrThrow(projectId, currentUserId);
+        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
 
         ProjectMember projectMember = projectMemberRepository.findActiveMemberByProjectIdAndMemberId(
                 projectId,
                 memberId
             )
             .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_MEMBER_NOT_FOUND));
+
+        validateRoleUpdatePermission(currentMember, projectMember, currentUserId);
 
         List<RoleName> roleNames = request.getRoleNames()
             .stream()
@@ -124,6 +126,18 @@ public class ProjectMemberService {
         }
 
         currentMember.leave();
+    }
+
+    private void validateRoleUpdatePermission(
+        ProjectMember currentMember,
+        ProjectMember projectMember,
+        Long currentUserId
+    ) {
+        if (currentMember.isAdmin() || projectMember.isMemberOf(currentUserId)) {
+            return;
+        }
+
+        throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
     }
 
     private Map<Long, List<RoleName>> getRoleNamesByMemberId(List<ProjectMember> projectMembers) {
