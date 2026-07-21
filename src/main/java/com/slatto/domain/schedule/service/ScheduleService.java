@@ -218,7 +218,7 @@ public class ScheduleService {
         validateUpdateRequest(request);
 
         Schedule schedule = getScheduleOrThrow(scheduleId);
-        validateWriter(schedule, currentUserId);
+        validateScheduleEditable(schedule, currentUserId);
 
         LocalDateTime nextStartAt = request.getStartAt() != null
             ? request.getStartAt()
@@ -247,7 +247,7 @@ public class ScheduleService {
     @Transactional
     public void deleteSchedule(Long currentUserId, Long scheduleId) {
         Schedule schedule = getScheduleOrThrow(scheduleId);
-        validateWriter(schedule, currentUserId);
+        validateScheduleEditable(schedule, currentUserId);
 
         schedule.delete();
         scheduleParticipantRepository.findActiveParticipantsByScheduleId(scheduleId)
@@ -384,6 +384,20 @@ public class ScheduleService {
 
     private void validateWriter(Schedule schedule, Long currentUserId) {
         if (!schedule.isWriter(currentUserId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void validateScheduleEditable(Schedule schedule, Long currentUserId) {
+        if (schedule.getScheduleScope() == ScheduleScope.PERSONAL) {
+            validateWriter(schedule, currentUserId);
+            return;
+        }
+
+        if (!scheduleParticipantRepository.existsByScheduleIdAndUserIdAndDeletedAtIsNull(
+            schedule.getId(),
+            currentUserId
+        )) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
     }
