@@ -3,9 +3,11 @@ package com.slatto.domain.schedule.converter;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.schedule.dto.ScheduleCalendarResponse;
 import com.slatto.domain.schedule.dto.ScheduleDailyResponse;
+import com.slatto.domain.schedule.dto.SchedulePrivateMemoResponse;
 import com.slatto.domain.schedule.dto.ScheduleResponse;
 import com.slatto.domain.schedule.entity.Schedule;
 import com.slatto.domain.schedule.entity.ScheduleParticipant;
+import com.slatto.domain.schedule.entity.SchedulePrivateMemo;
 import com.slatto.domain.schedule.enums.ScheduleScope;
 import com.slatto.domain.user.entity.Users;
 import org.springframework.stereotype.Component;
@@ -66,6 +68,15 @@ public class ScheduleConverter {
         return ScheduleDailyResponse.builder()
             .date(date)
             .schedules(dailySchedules)
+            .build();
+    }
+
+    public SchedulePrivateMemoResponse toPrivateMemoResponse(SchedulePrivateMemo privateMemo) {
+        return SchedulePrivateMemoResponse.builder()
+            .privateMemoId(privateMemo.getId())
+            .scheduleId(privateMemo.getSchedule().getId())
+            .content(privateMemo.getContent())
+            .updatedAt(privateMemo.getUpdatedAt())
             .build();
     }
 

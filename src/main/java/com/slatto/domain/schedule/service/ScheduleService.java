@@ -11,6 +11,8 @@ import com.slatto.domain.schedule.dto.ScheduleCalendarResponse;
 import com.slatto.domain.schedule.dto.ScheduleCreateRequest;
 import com.slatto.domain.schedule.dto.ScheduleDailyResponse;
 import com.slatto.domain.schedule.dto.ScheduleParticipantCandidateResponse;
+import com.slatto.domain.schedule.dto.SchedulePrivateMemoRequest;
+import com.slatto.domain.schedule.dto.SchedulePrivateMemoResponse;
 import com.slatto.domain.schedule.dto.ScheduleResponse;
 import com.slatto.domain.schedule.dto.ScheduleUpdateRequest;
 import com.slatto.domain.schedule.entity.Schedule;
@@ -52,6 +54,29 @@ public class ScheduleService {
     private final ProjectUserRoleRepository projectUserRoleRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final ScheduleConverter scheduleConverter;
+
+    @Transactional
+    public SchedulePrivateMemoResponse upsertPrivateMemo(
+        Long currentUserId,
+        Long scheduleId,
+        SchedulePrivateMemoRequest request
+    ) {
+        Users user = getActiveUser(currentUserId);
+        Schedule schedule = getScheduleOrThrow(scheduleId);
+        validateScheduleAccess(schedule, currentUserId);
+
+        SchedulePrivateMemo privateMemo = schedulePrivateMemoRepository
+            .findByScheduleIdAndUserIdAndDeletedAtIsNull(scheduleId, currentUserId)
+            .map(existingMemo -> {
+                existingMemo.updateContent(request.getContent());
+                return existingMemo;
+            })
+            .orElseGet(() -> schedulePrivateMemoRepository.save(
+                SchedulePrivateMemo.create(schedule, user, request.getContent())
+            ));
+
+        return scheduleConverter.toPrivateMemoResponse(privateMemo);
+    }
 
     public ScheduleDailyResponse getDailySchedules(
         Long currentUserId,
@@ -359,6 +384,22 @@ public class ScheduleService {
 
     private void validateWriter(Schedule schedule, Long currentUserId) {
         if (!schedule.isWriter(currentUserId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void validateScheduleAccess(Schedule schedule, Long currentUserId) {
+        if (schedule.getScheduleScope() == ScheduleScope.PERSONAL) {
+            validateWriter(schedule, currentUserId);
+            return;
+        }
+
+        Project project = schedule.getProject();
+        if (project == null
+            || !projectMemberRepository.existsByProjectIdAndUserIdAndLeftAtIsNull(
+                project.getId(),
+                currentUserId
+            )) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
     }

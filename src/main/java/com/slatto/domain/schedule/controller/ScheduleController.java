@@ -3,6 +3,8 @@ package com.slatto.domain.schedule.controller;
 import com.slatto.domain.schedule.dto.ScheduleCalendarResponse;
 import com.slatto.domain.schedule.dto.ScheduleCreateRequest;
 import com.slatto.domain.schedule.dto.ScheduleDailyResponse;
+import com.slatto.domain.schedule.dto.SchedulePrivateMemoRequest;
+import com.slatto.domain.schedule.dto.SchedulePrivateMemoResponse;
 import com.slatto.domain.schedule.dto.ScheduleResponse;
 import com.slatto.domain.schedule.dto.ScheduleUpdateRequest;
 import com.slatto.domain.schedule.enums.ScheduleQueryScope;
@@ -98,6 +100,22 @@ public class ScheduleController {
         @Valid @RequestBody ScheduleUpdateRequest request
     ) {
         ScheduleResponse response = scheduleService.updateSchedule(currentUserId, scheduleId, request);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(summary = "일정 개인 메모 저장/수정")
+    @PatchMapping("/{scheduleId}/private-memo")
+    public ApiResponse<SchedulePrivateMemoResponse> upsertPrivateMemo(
+        @RequestHeader(CURRENT_USER_ID_HEADER) Long currentUserId,
+        @PathVariable Long scheduleId,
+        @Valid @RequestBody SchedulePrivateMemoRequest request
+    ) {
+        SchedulePrivateMemoResponse response = scheduleService.upsertPrivateMemo(
+            currentUserId,
+            scheduleId,
+            request
+        );
 
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
