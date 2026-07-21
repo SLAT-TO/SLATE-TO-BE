@@ -28,10 +28,10 @@ public class ProjectNotice extends BaseEntity {
     @JoinColumn(name = "writer_id", nullable = false)
     private Users writer;
 
-    @Column(name = "title", nullable = false, length = 100)
+    @Column(name = "title", nullable = true, length = 255)
     private String title;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "content", nullable = true, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "deleted_at", nullable = true)

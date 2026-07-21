@@ -2,6 +2,8 @@ package com.slatto.domain.user.entity;
 
 import com.slatto.domain.recruitment.entity.Recruitment;
 import com.slatto.domain.user.enums.RegionName;
+import com.slatto.global.exception.BaseException;
+import com.slatto.global.response.code.CommonErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -19,7 +21,7 @@ public class Location {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private Users user;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -36,6 +38,9 @@ public class Location {
     }
 
     public static Location createUserLocation(Users user, RegionName regionName) {
+        if (user == null) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
         return new Location(user, regionName);
     }
 }
