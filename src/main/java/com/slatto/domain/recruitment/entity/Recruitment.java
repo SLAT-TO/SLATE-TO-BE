@@ -25,7 +25,7 @@ public class Recruitment extends BaseEntity {
     @JoinColumn(name = "writer_id", nullable = false)
     private Users writer;
 
-    @Column(name = "title", nullable = false, length = 255)
+    @Column(name = "title", nullable = true, length = 255)
     private String title;
 
     @Column(name = "description", nullable = true, columnDefinition = "TEXT")

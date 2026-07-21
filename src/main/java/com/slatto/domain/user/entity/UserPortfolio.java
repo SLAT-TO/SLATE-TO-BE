@@ -36,7 +36,7 @@ public class UserPortfolio extends BaseEntity {
     private String customTypeName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "kind", nullable = true)
+    @Column(name = "kind", nullable = false)
     private Kind kind;
 
     @Column(name = "client_name", nullable = true, length = 255)

@@ -33,11 +33,11 @@ public class Project extends BaseEntity {
     @JoinColumn(name = "owner_user_id", nullable = false)
     private Users ownerUser;
 
-    @Column(name = "title", nullable = false, length = 255)
+    @Column(name = "title", nullable = true, length = 255)
     private String title;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = true)
+    @Column(name = "type", nullable = false)
     private CategoryName type;
 
     @Column(name = "custom_type_name", nullable = true, length = 100)

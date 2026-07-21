@@ -19,7 +19,7 @@ public class Location {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private Users user;
 
     @ManyToOne(fetch = FetchType.LAZY)
