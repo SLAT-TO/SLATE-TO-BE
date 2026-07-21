@@ -2,6 +2,7 @@ package com.slatto.domain.schedule.controller;
 
 import com.slatto.domain.schedule.dto.ScheduleCalendarResponse;
 import com.slatto.domain.schedule.dto.ScheduleCreateRequest;
+import com.slatto.domain.schedule.dto.ScheduleDailyResponse;
 import com.slatto.domain.schedule.dto.ScheduleResponse;
 import com.slatto.domain.schedule.dto.ScheduleUpdateRequest;
 import com.slatto.domain.schedule.enums.ScheduleQueryScope;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Tag(name = "Schedule", description = "일정 API")
@@ -37,6 +39,24 @@ public class ScheduleController {
     private static final String CURRENT_USER_ID_HEADER = "X-USER-ID";
 
     private final ScheduleService scheduleService;
+
+    @Operation(summary = "특정 날짜 일정 조회")
+    @GetMapping("/daily")
+    public ApiResponse<ScheduleDailyResponse> getDailySchedules(
+        @RequestHeader(CURRENT_USER_ID_HEADER) Long currentUserId,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+        @RequestParam(defaultValue = "ALL") ScheduleQueryScope scope,
+        @RequestParam(required = false) Long projectId
+    ) {
+        ScheduleDailyResponse response = scheduleService.getDailySchedules(
+            currentUserId,
+            date,
+            scope,
+            projectId
+        );
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
 
     @Operation(summary = "전체 일정 조회")
     @GetMapping
