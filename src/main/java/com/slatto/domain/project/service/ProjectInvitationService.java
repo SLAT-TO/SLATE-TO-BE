@@ -1,5 +1,6 @@
 package com.slatto.domain.project.service;
 
+import com.slatto.domain.project.dto.ProjectInvitationAcceptRequest;
 import com.slatto.domain.project.dto.ProjectInvitationAcceptResponse;
 import com.slatto.domain.project.dto.ProjectInvitationCreateRequest;
 import com.slatto.domain.project.dto.ProjectInvitationCreateResponse;
@@ -7,11 +8,14 @@ import com.slatto.domain.project.dto.ProjectInvitationDetailResponse;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectInvitation;
 import com.slatto.domain.project.entity.ProjectMember;
+import com.slatto.domain.project.entity.ProjectUserRole;
 import com.slatto.domain.project.enums.ExpirationPeriod;
 import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectInvitationRepository;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
+import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.user.entity.Users;
+import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.config.properties.ProjectInvitationProperties;
 import com.slatto.global.exception.BaseException;
@@ -27,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +44,7 @@ public class ProjectInvitationService {
 
     private final ProjectInvitationRepository projectInvitationRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectUserRoleRepository projectUserRoleRepository;
     private final UserRepository userRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final ProjectInvitationProperties projectInvitationProperties;
@@ -84,7 +90,11 @@ public class ProjectInvitationService {
     }
 
     @Transactional
-    public ProjectInvitationAcceptResponse acceptInvitation(String token, Long currentUserId) {
+    public ProjectInvitationAcceptResponse acceptInvitation(
+        String token,
+        Long currentUserId,
+        ProjectInvitationAcceptRequest request
+    ) {
         ProjectInvitation projectInvitation = getInvitationByTokenForUpdate(token);
 
         validateAcceptableInvitation(projectInvitation);
@@ -98,13 +108,27 @@ public class ProjectInvitationService {
 
         ProjectMember projectMember = ProjectMember.createMember(project, accepter);
         projectMemberRepository.save(projectMember);
+        List<RoleName> roleNames = request.getRoleNames()
+            .stream()
+            .distinct()
+            .toList();
+        saveProjectRoles(projectMember, roleNames);
         projectInvitation.accept(accepter);
 
         return ProjectInvitationAcceptResponse.builder()
             .projectId(project.getId())
             .memberId(projectMember.getId())
+            .roleNames(roleNames)
             .joinedAt(projectMember.getJoinedAt())
             .build();
+    }
+
+    private void saveProjectRoles(ProjectMember projectMember, List<RoleName> roleNames) {
+        List<ProjectUserRole> projectUserRoles = roleNames.stream()
+            .map(roleName -> ProjectUserRole.create(projectMember, roleName))
+            .toList();
+
+        projectUserRoleRepository.saveAll(projectUserRoles);
     }
 
     private void validateAcceptableInvitation(ProjectInvitation projectInvitation) {

@@ -1,6 +1,7 @@
 package com.slatto.domain.project.controller;
 
 import com.slatto.domain.project.dto.ProjectInvitationAcceptResponse;
+import com.slatto.domain.project.dto.ProjectInvitationAcceptRequest;
 import com.slatto.domain.project.dto.ProjectInvitationCreateRequest;
 import com.slatto.domain.project.dto.ProjectInvitationCreateResponse;
 import com.slatto.domain.project.dto.ProjectInvitationDetailResponse;
@@ -60,11 +61,13 @@ public class ProjectInvitationController {
     @PostMapping("/project-invitations/{token}/accept")
     public ApiResponse<ProjectInvitationAcceptResponse> acceptInvitation(
         @AuthenticationPrincipal Long currentUserId,
-        @PathVariable String token
+        @PathVariable String token,
+        @Valid @RequestBody ProjectInvitationAcceptRequest request
     ) {
         ProjectInvitationAcceptResponse response = projectInvitationService.acceptInvitation(
             token,
-            currentUserId
+            currentUserId,
+            request
         );
 
         return ApiResponse.success(CommonSuccessCode.OK, response);
