@@ -126,7 +126,7 @@ public class ScheduleConverter {
             .participantSummary(resolveParticipantSummary(responseParticipants))
             .publicMemo(schedule.getPublicMemo())
             .privateMemo(privateMemo)
-            .canEdit(canEditSchedule(schedule, currentUserId, participants))
+            .canEdit(schedule.isWriter(currentUserId))
             .build();
     }
 
@@ -150,17 +150,4 @@ public class ScheduleConverter {
         return participants.get(0).getNickname() + " 외 " + (participants.size() - 1) + "명";
     }
 
-    private boolean canEditSchedule(
-        Schedule schedule,
-        Long currentUserId,
-        List<ScheduleParticipant> participants
-    ) {
-        if (schedule.getScheduleScope() == ScheduleScope.PERSONAL) {
-            return schedule.isWriter(currentUserId);
-        }
-
-        return participants.stream()
-            .map(ScheduleParticipant::getUser)
-            .anyMatch(user -> user.getId().equals(currentUserId));
-    }
 }
