@@ -1,0 +1,58 @@
+name: CD Prod
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy-prod:
+    name: Deploy to Prod EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Make Gradle Wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Test and build Spring Boot jar
+        run: ./gradlew clean test bootJar --no-daemon
+
+      - name: Copy jar to EC2
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USERNAME }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          fingerprint: ${{ secrets.PROD_EC2_HOST_FINGERPRINT }}
+          source: build/libs/slatto.jar
+          target: /home/ubuntu/SLAT-TO-BE/build/libs/
+
+      - name: Deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USERNAME }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          fingerprint: ${{ secrets.PROD_EC2_HOST_FINGERPRINT }}
+          script: |
+            chmod +x /home/ubuntu/deploy/deploy.sh
+            /home/ubuntu/deploy/deploy.sh

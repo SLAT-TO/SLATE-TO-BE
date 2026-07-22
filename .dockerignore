@@ -26,9 +26,6 @@ nbdist
 .env
 .env.*
 !.env.example
-application-local.yml
-application-dev.yml
-application-prod.yml
 
 logs
 *.log
