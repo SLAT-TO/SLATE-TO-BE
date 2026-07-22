@@ -43,6 +43,9 @@ app:
       - /auth/callback
       - /onboarding
 
+  invitation:
+    base-url: http://localhost:3000/project-invitations
+
   cookie:
     refresh-token-name: refreshToken
     oauth-state-name: oauthState

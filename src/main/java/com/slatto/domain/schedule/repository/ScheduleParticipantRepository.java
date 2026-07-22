@@ -9,8 +9,6 @@ import java.util.List;
 
 public interface ScheduleParticipantRepository extends JpaRepository<ScheduleParticipant, Long> {
 
-    boolean existsByScheduleIdAndUserIdAndDeletedAtIsNull(Long scheduleId, Long userId);
-
     @Query("""
         select sp
         from ScheduleParticipant sp
