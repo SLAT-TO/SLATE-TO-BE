@@ -44,5 +44,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         Pageable pageable
     );
 
-    Optional<Notification> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
+    Optional<Notification> findByIdAndUserIdAndDeletedAtIsNullAndCreatedAtGreaterThanEqual(
+        Long id,
+        Long userId,
+        LocalDateTime createdAfter
+    );
 }

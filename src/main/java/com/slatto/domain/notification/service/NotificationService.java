@@ -35,7 +35,7 @@ public class NotificationService {
 
         int pageSize = normalizePageSize(size);
         LocalDateTime createdAfter = LocalDateTime.now().minusHours(NOTIFICATION_RETENTION_HOURS);
-        Notification cursorNotification = resolveCursor(currentUserId, cursor);
+        Notification cursorNotification = resolveCursor(currentUserId, cursor, createdAfter);
 
         List<Notification> notifications = notificationRepository.findRecentNotificationsByCursor(
             currentUserId,
@@ -72,12 +72,20 @@ public class NotificationService {
         }
     }
 
-    private Notification resolveCursor(Long currentUserId, Long cursor) {
+    private Notification resolveCursor(
+        Long currentUserId,
+        Long cursor,
+        LocalDateTime createdAfter
+    ) {
         if (cursor == null) {
             return null;
         }
 
-        return notificationRepository.findByIdAndUserIdAndDeletedAtIsNull(cursor, currentUserId)
+        return notificationRepository.findByIdAndUserIdAndDeletedAtIsNullAndCreatedAtGreaterThanEqual(
+                cursor,
+                currentUserId,
+                createdAfter
+            )
             .orElseThrow(() -> new BaseException(CommonErrorCode.BAD_REQUEST));
     }
 
