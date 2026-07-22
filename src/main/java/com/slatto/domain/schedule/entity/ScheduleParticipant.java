@@ -30,4 +30,17 @@ public class ScheduleParticipant extends BaseEntity {
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    private ScheduleParticipant(Schedule schedule, Users user) {
+        this.schedule = schedule;
+        this.user = user;
+    }
+
+    public static ScheduleParticipant create(Schedule schedule, Users user) {
+        return new ScheduleParticipant(schedule, user);
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
 }
