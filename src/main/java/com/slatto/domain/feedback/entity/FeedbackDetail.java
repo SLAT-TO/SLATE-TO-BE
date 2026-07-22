@@ -1,6 +1,8 @@
 package com.slatto.domain.feedback.entity;
 
 import com.slatto.domain.common.entity.BaseEntity;
+import com.slatto.domain.sharelink.entity.Guest;
+import com.slatto.domain.user.entity.Users;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -14,6 +16,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class FeedbackDetail extends BaseEntity {
 
+    private static final boolean DEFAULT_STATUS = false;  // 미해결
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -23,15 +27,54 @@ public class FeedbackDetail extends BaseEntity {
     @JoinColumn(name = "feedback_id", nullable = false)
     private Feedback feedback;
 
-    @Column(name = "user_id", nullable = true)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = true)
+    private Users user;
 
-    @Column(name = "guest_id", nullable = true)
-    private Long guestId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "guest_id", nullable = true)
+    private Guest guest;
 
-    @Column(name = "content", nullable = true, columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @Column(name = "status", nullable = false)
+    private Boolean status;
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    private FeedbackDetail(Feedback feedback, Users user, Guest guest, String content) {
+        this.feedback = feedback;
+        this.user = user;
+        this.guest = guest;
+        this.content = content;
+        this.status = DEFAULT_STATUS;
+    }
+
+    public static FeedbackDetail create(Feedback feedback, Users user, Guest guest, String content) {
+        return new FeedbackDetail(feedback, user, guest, content);
+    }
+
+    public void update(String content) {
+        if (content != null) this.content = content;
+    }
+
+    public void changeStatus(Boolean status) {
+        this.status = status;
+    }
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isWriter(Long userId, Long guestId) {
+        if (userId != null) {
+            return this.user != null && this.user.getId().equals(userId);
+        }
+        if (guestId != null) {
+            return this.guest != null && this.guest.getId().equals(guestId);
+        }
+        return false;
+    }
 }
