@@ -3,6 +3,8 @@ package com.slatto.domain.user.controller;
 import com.slatto.domain.user.dto.UserMeResponse;
 import com.slatto.domain.user.dto.UserOnboardingRequest;
 import com.slatto.domain.user.dto.UserOnboardingResponse;
+import com.slatto.domain.user.dto.UserProfileUpdateRequest;
+import com.slatto.domain.user.dto.UserProfileUpdateResponse;
 import com.slatto.domain.user.service.UserService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -12,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,6 +43,17 @@ public class UserController {
         @Valid @RequestBody UserOnboardingRequest request
     ) {
         UserOnboardingResponse response = userService.completeOnboarding(userId, request);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(summary = "프로필 수정", description = "마이페이지에서 내 프로필 정보를 수정한다. 전달된 항목만 부분 수정된다.")
+    @PatchMapping("/me")
+    public ApiResponse<UserProfileUpdateResponse> updateProfile(
+        @AuthenticationPrincipal Long userId,
+        @Valid @RequestBody UserProfileUpdateRequest request
+    ) {
+        UserProfileUpdateResponse response = userService.updateProfile(userId, request);
 
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }

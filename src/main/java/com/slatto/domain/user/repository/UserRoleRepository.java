@@ -8,4 +8,6 @@ import java.util.List;
 public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
 
     List<UserRole> findAllByUserIdOrderByIdAsc(Long userId);
+
+    void deleteByUserId(Long userId);
 }
