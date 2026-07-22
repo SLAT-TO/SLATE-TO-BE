@@ -2,6 +2,7 @@ package com.slatto.domain.feedback.converter;
 
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackCreateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackCreateResDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackUpdateResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.ActorDTO;
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.video.entity.Video;
@@ -34,6 +35,23 @@ public class FeedbackConverter {
                 feedback.getEndTime(),
                 feedback.getStatus(),
                 feedback.getCreatedAt()
+        );
+    }
+
+    public FeedbackUpdateResDTO toUpdateResponse(Feedback feedback) {
+        ActorDTO actor = (feedback.getUser() != null)
+                ? ActorDTO.fromUser(feedback.getUser())
+                : ActorDTO.fromGuest(feedback.getGuest());
+
+        return new FeedbackUpdateResDTO(
+                feedback.getId(),
+                feedback.getVideo().getId(),
+                actor,
+                feedback.getContent(),
+                feedback.getStartTime(),
+                feedback.getEndTime(),
+                feedback.getStatus(),
+                feedback.getUpdatedAt()
         );
     }
 }

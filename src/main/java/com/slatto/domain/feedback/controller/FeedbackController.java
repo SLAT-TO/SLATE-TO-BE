@@ -1,7 +1,9 @@
 package com.slatto.domain.feedback.controller;
 
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackCreateReqDTO;
+import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackCreateResDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackUpdateResDTO;
 import com.slatto.domain.feedback.service.FeedbackService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -15,14 +17,14 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Feedback", description = "피드백 API")
 @RestController
-@RequestMapping("/api/v1/videos/{videoId}/feedbacks")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class FeedbackController {
 
     private final FeedbackService feedbackService;
 
     @Operation(summary = "피드백 작성")
-    @PostMapping
+    @PostMapping("/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<FeedbackCreateResDTO>> createFeedback(
             @PathVariable Long videoId,
             @Valid @RequestBody FeedbackCreateReqDTO request
@@ -32,5 +34,17 @@ public class FeedbackController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(CommonSuccessCode.CREATED, result));
+    }
+
+    @Operation(summary = "피드백 수정")
+    @PatchMapping("/feedbacks/{feedbackId}")
+    public ResponseEntity<ApiResponse<FeedbackUpdateResDTO>> updateFeedback(
+            @PathVariable Long feedbackId,
+            @Valid @RequestBody FeedbackUpdateReqDTO request
+    ) {
+        FeedbackUpdateResDTO result = feedbackService.updateFeedback(feedbackId, request);
+
+        return ResponseEntity
+                .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
 }

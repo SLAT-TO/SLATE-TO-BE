@@ -3,6 +3,8 @@ package com.slatto.domain.feedback.service;
 import com.slatto.domain.feedback.converter.FeedbackConverter;
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackCreateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackCreateResDTO;
+import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackUpdateReqDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackUpdateResDTO;
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.feedback.repository.FeedbackRepository;
 import com.slatto.domain.sharelink.entity.Guest;
@@ -11,7 +13,7 @@ import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.domain.video.entity.Video;
 import com.slatto.global.exception.BaseException;
-import com.slatto.global.response.code.CommonErrorCode;     
+import com.slatto.global.response.code.CommonErrorCode;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -38,27 +40,61 @@ public class FeedbackService {
                 .setParameter("videoId", videoId)
                 .getResultStream()
                 .findFirst()
-                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));   // ✅ 404
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        // 2. 작성자 조회 — 회원이면 user, 게스트면 guest (둘 중 하나만)
+        // 2. 작성자 검증 — userId/guestId 둘 중 정확히 하나만
+        validateWriter(req.userId(), req.guestId());
+
+        // 3. 작성자 조회
         Users user = null;
         Guest guest = null;
 
         if (req.userId() != null) {
             user = userRepository.findByIdAndDeletedAtIsNull(req.userId())
-                    .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));   // ✅ 404
-        } else if (req.guestId() != null) {
-            guest = guestRepository.findById(req.guestId())
-                    .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));   // ✅ 404
+                    .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
         } else {
-            throw new BaseException(CommonErrorCode.BAD_REQUEST);                       // ✅ 400
+            guest = guestRepository.findById(req.guestId())
+                    .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
         }
 
-        // 3. Converter로 엔티티 만들고 저장
+        // 4. Converter로 엔티티 만들고 저장
         Feedback feedback = feedbackConverter.toFeedback(video, user, guest, req);
         Feedback saved = feedbackRepository.save(feedback);
 
-        // 4. 저장된 엔티티 → 응답 DTO
+        // 5. 저장된 엔티티 → 응답 DTO
         return feedbackConverter.toCreateResponse(saved);
+    }
+
+    @Transactional
+    public FeedbackUpdateResDTO updateFeedback(Long feedbackId, FeedbackUpdateReqDTO req) {
+
+        // 1. 피드백 조회 (삭제된 건 제외)
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .filter(f -> f.getDeletedAt() == null)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // 2. 작성자 검증 — userId/guestId 둘 중 정확히 하나만
+        validateWriter(req.userId(), req.guestId());
+
+        // 3. 본인 확인
+        if (!feedback.isWriter(req.userId(), req.guestId())) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        // 4. 수정 (더티 체킹으로 자동 반영)
+        feedback.update(req.content(), req.startTime(), req.endTime(), req.status());
+
+        return feedbackConverter.toUpdateResponse(feedback);
+    }
+
+    /**
+     * 작성자 정보 검증 — userId와 guestId 중 정확히 하나만 있어야 함
+     */
+    private void validateWriter(Long userId, Long guestId) {
+        boolean hasUser = (userId != null);
+        boolean hasGuest = (guestId != null);
+        if (hasUser == hasGuest) {   // 둘 다 있거나 둘 다 없으면
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
     }
 }

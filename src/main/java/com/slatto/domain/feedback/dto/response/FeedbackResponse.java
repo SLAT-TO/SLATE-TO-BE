@@ -37,8 +37,17 @@ public class FeedbackResponse {
             @Schema(example = "27", nullable = true) Long endTime,
             @Schema(example = "false") Boolean status,
             LocalDateTime createdAt
-    ) {
+    ) {  }
 
-
-    }
+    @Schema(description = "피드백 수정 응답")
+    public record FeedbackUpdateResDTO(
+            @Schema(example = "1") Long feedbackId,
+            @Schema(example = "10") Long videoId,
+            ActorDTO actor,
+            @Schema(example = "수정된 내용입니다") String content,
+            @Schema(example = "30", nullable = true) Long startTime,
+            @Schema(example = "35", nullable = true) Long endTime,
+            @Schema(example = "true") Boolean status,
+            LocalDateTime updatedAt
+    ) {   }
 }

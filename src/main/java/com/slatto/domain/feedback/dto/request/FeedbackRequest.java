@@ -23,6 +23,26 @@ public class FeedbackRequest {
             @Schema(example = "27", nullable = true)
             Long endTime
 
-    ) {
-    }
+    ) { }
+
+    @Schema(description = "피드백 수정 요청")
+    public record FeedbackUpdateReqDTO(
+            @Schema(example = "1", nullable = true)
+            Long userId,
+
+            @Schema(example = "5", nullable = true)
+            Long guestId,
+
+            @Schema(example = "수정된 내용입니다", nullable = true)
+            String content,
+
+            @Schema(example = "30", nullable = true)
+            Long startTime,
+
+            @Schema(example = "35", nullable = true)
+            Long endTime,
+
+            @Schema(example = "true", nullable = true)
+            Boolean status
+    ) { }
 }
