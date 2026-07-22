@@ -33,7 +33,13 @@ public class SecurityConfig {
 					"/api/v1/auth/callback/**",
 					"/api/v1/auth/refresh"
 				).permitAll()
-				.requestMatchers(HttpMethod.GET, "/api/v1/health", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+				.requestMatchers(
+					HttpMethod.GET,
+					"/api/v1/health",
+					"/swagger-ui/**",
+					"/v3/api-docs/**",
+					"/api/v1/project-invitations/*"
+				).permitAll()
 				.anyRequest().authenticated()
 			)
 			.exceptionHandling(handling -> handling.authenticationEntryPoint(jwtAuthenticationEntryPoint))
