@@ -6,6 +6,7 @@ import com.slatto.domain.sharelink.entity.Guest;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class FeedbackResponse {
 
@@ -50,4 +51,25 @@ public class FeedbackResponse {
             @Schema(example = "true") Boolean status,
             LocalDateTime updatedAt
     ) {   }
+
+    @Schema(description = "피드백 목록 항목")
+    public record FeedbackListItemDTO(
+            @Schema(example = "1") Long feedbackId,
+            @Schema(example = "10") Long videoId,
+            ActorDTO actor,
+            @Schema(example = "이 부분 색감 보정 부탁드려요") String content,
+            @Schema(example = "24", nullable = true) Long startTime,
+            @Schema(example = "27", nullable = true) Long endTime,
+            @Schema(example = "false") Boolean status,
+            LocalDateTime createdAt
+    ) {
+    }
+
+    @Schema(description = "피드백 목록 응답")
+    public record FeedbackListResDTO(
+            List<FeedbackListItemDTO> items,
+            @Schema(example = "24_5", nullable = true) String nextCursor,
+            @Schema(example = "true") Boolean hasNext
+    ) {
+    }
 }

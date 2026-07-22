@@ -5,6 +5,10 @@ import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackCreateReqD
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackCreateResDTO;
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackUpdateResDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResDTO;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import java.util.List;
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.feedback.repository.FeedbackRepository;
 import com.slatto.domain.sharelink.entity.Guest;
@@ -115,4 +119,66 @@ public class FeedbackService {
         // 4. soft delete (더티 체킹으로 자동 반영)
         feedback.softDelete();
     }
+
+    @Transactional(readOnly = true)
+    public FeedbackListResDTO getFeedbackList(Long videoId, String cursor, Integer size) {
+
+        // 1. 영상 존재 확인
+        boolean videoExists = entityManagerProvider.getObject().createQuery("""
+                        select count(v) from Video v where v.id = :videoId
+                        """, Long.class)
+                .setParameter("videoId", videoId)
+                .getSingleResult() > 0;
+
+        if (!videoExists) {
+            throw new BaseException(CommonErrorCode.NOT_FOUND);
+        }
+
+        // 2. size 기본값 처리
+        int pageSize = (size == null || size <= 0) ? DEFAULT_PAGE_SIZE : size;
+        Pageable pageable = PageRequest.of(0, pageSize + 1);   // hasNext 판단용으로 1개 더
+
+        // 3. 커서에 따라 조회
+        List<Feedback> feedbacks;
+
+        if (cursor == null || cursor.isBlank()) {
+            feedbacks = feedbackRepository.findFirstPage(videoId, pageable);
+        } else {
+            String[] parts = cursor.split("_");
+            if (parts.length != 2) {
+                throw new BaseException(CommonErrorCode.BAD_REQUEST);
+            }
+
+            try {
+                Long cursorId = Long.parseLong(parts[1]);
+
+                if ("n".equals(parts[0])) {
+                    feedbacks = feedbackRepository.findNextPageWithoutStartTime(videoId, cursorId, pageable);
+                } else {
+                    Long cursorStartTime = Long.parseLong(parts[0]);
+                    feedbacks = feedbackRepository.findNextPageWithStartTime(videoId, cursorStartTime, cursorId, pageable);
+                }
+            } catch (NumberFormatException e) {
+                throw new BaseException(CommonErrorCode.BAD_REQUEST);
+            }
+        }
+
+        // 4. hasNext 판단 + 초과분 제거
+        boolean hasNext = feedbacks.size() > pageSize;
+        if (hasNext) {
+            feedbacks = feedbacks.subList(0, pageSize);
+        }
+
+        // 5. nextCursor 조립
+        String nextCursor = null;
+        if (hasNext && !feedbacks.isEmpty()) {
+            Feedback last = feedbacks.get(feedbacks.size() - 1);
+            String timePart = (last.getStartTime() == null) ? "n" : String.valueOf(last.getStartTime());
+            nextCursor = timePart + "_" + last.getId();
+        }
+
+        return feedbackConverter.toListResponse(feedbacks, nextCursor, hasNext);
+    }
+
+    private static final int DEFAULT_PAGE_SIZE = 10;
 }

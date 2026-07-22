@@ -4,6 +4,7 @@ import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackCreateReqD
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackCreateResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackUpdateResDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResDTO;
 import com.slatto.domain.feedback.service.FeedbackService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -61,4 +62,16 @@ public class FeedbackController {
                 .ok(ApiResponse.success(CommonSuccessCode.OK, null));
     }
 
+    @Operation(summary = "피드백 목록 조회")
+    @GetMapping("/videos/{videoId}/feedbacks")
+    public ResponseEntity<ApiResponse<FeedbackListResDTO>> getFeedbackList(
+            @PathVariable Long videoId,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer size
+    ) {
+        FeedbackListResDTO result = feedbackService.getFeedbackList(videoId, cursor, size);
+
+        return ResponseEntity
+                .ok(ApiResponse.success(CommonSuccessCode.OK, result));
+    }
 }
