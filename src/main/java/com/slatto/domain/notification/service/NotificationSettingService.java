@@ -4,7 +4,8 @@ import com.slatto.domain.notification.dto.NotificationSettingResponse;
 import com.slatto.domain.notification.dto.NotificationSettingUpdateRequest;
 import com.slatto.domain.notification.entity.NotificationSetting;
 import com.slatto.domain.notification.repository.NotificationSettingRepository;
-import com.slatto.domain.user.repository.UserRepository;
+import com.slatto.global.exception.BaseException;
+import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationSettingService {
 
     private final NotificationSettingRepository notificationSettingRepository;
-    private final UserRepository userRepository;
 
     public NotificationSettingResponse getMySettings(Long userId) {
         return NotificationSettingResponse.from(getOrCreate(userId));
@@ -36,8 +36,10 @@ public class NotificationSettingService {
 
     private NotificationSetting getOrCreate(Long userId) {
         return notificationSettingRepository.findByUserId(userId)
-            .orElseGet(() -> notificationSettingRepository.save(
-                NotificationSetting.createDefault(userRepository.getReferenceById(userId))
-            ));
+            .orElseGet(() -> {
+                notificationSettingRepository.insertDefaultIfAbsent(userId);
+                return notificationSettingRepository.findByUserId(userId)
+                    .orElseThrow(() -> new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR));
+            });
     }
 }
