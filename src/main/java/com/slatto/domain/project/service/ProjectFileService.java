@@ -1,5 +1,6 @@
 package com.slatto.domain.project.service;
 
+import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
 import com.slatto.domain.project.dto.ProjectFileResponse;
 import com.slatto.domain.project.dto.ProjectFileListResponse;
 import com.slatto.domain.project.dto.ProjectFileUpdateRequest;
@@ -144,6 +145,24 @@ public class ProjectFileService {
         validateFileEditable(projectFile, currentMember, currentUserId);
 
         projectFile.delete();
+    }
+
+    public ProjectFileDownloadResponse downloadProjectFile(
+        Long projectId,
+        Long fileId,
+        Long currentUserId
+    ) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.validateProjectAccess(projectId, currentUserId);
+
+        ProjectFile projectFile = getActiveFileOrThrow(projectId, fileId);
+
+        return ProjectFileDownloadResponse.builder()
+            .fileName(projectFile.getFileName())
+            .contentType(projectFile.getContentType())
+            .fileSize(projectFile.getFileSize())
+            .inputStream(storageService.download(projectFile.getStorageKey()))
+            .build();
     }
 
     private void updateProjectFileInfo(ProjectFile projectFile, ProjectFileUpdateRequest request) {

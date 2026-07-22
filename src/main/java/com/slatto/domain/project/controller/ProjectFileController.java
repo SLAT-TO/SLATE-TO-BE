@@ -1,5 +1,6 @@
 package com.slatto.domain.project.controller;
 
+import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
 import com.slatto.domain.project.dto.ProjectFileListResponse;
 import com.slatto.domain.project.dto.ProjectFileResponse;
 import com.slatto.domain.project.dto.ProjectFileUpdateRequest;
@@ -11,8 +12,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.nio.charset.StandardCharsets;
 
 @Tag(name = "Project File", description = "프로젝트 파일 API")
 @RestController
@@ -102,5 +108,29 @@ public class ProjectFileController {
         projectFileService.deleteProjectFile(projectId, fileId, currentUserId);
 
         return ApiResponse.success(CommonSuccessCode.OK, null);
+    }
+
+    @Operation(summary = "프로젝트 파일 다운로드")
+    @GetMapping("/{fileId}/download")
+    public ResponseEntity<InputStreamResource> downloadProjectFile(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long projectId,
+        @PathVariable Long fileId
+    ) {
+        ProjectFileDownloadResponse response = projectFileService.downloadProjectFile(
+            projectId,
+            fileId,
+            currentUserId
+        );
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(response.getContentType()))
+            .contentLength(response.getFileSize())
+            .headers(headers -> headers.setContentDisposition(
+                ContentDisposition.attachment()
+                    .filename(response.getFileName(), StandardCharsets.UTF_8)
+                    .build()
+            ))
+            .body(new InputStreamResource(response.getInputStream()));
     }
 }
