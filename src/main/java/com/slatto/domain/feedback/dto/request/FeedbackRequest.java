@@ -13,9 +13,16 @@ public class FeedbackRequest {
             @Schema(example = "5", nullable = true)
             Long guestId,
 
-            @Schema(example = "00:15 자막 오타 있어요")
+            @Schema(example = "이 부분 색감 보정 부탁드려요")
             @NotBlank(message = "내용은 필수입니다.")
-            String content
+            String content,
+            
+            @Schema(example = "24", nullable = true)
+            Long startTime,
+
+            @Schema(example = "27", nullable = true)
+            Long endTime
+
     ) {
     }
 }
