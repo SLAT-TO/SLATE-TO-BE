@@ -36,6 +36,14 @@ jobs:
       - name: Test and build Spring Boot jar
         run: ./gradlew clean test bootJar --no-daemon
 
+      - name: Check build output
+        run: |
+          if [ ! -f build/libs/slatto.jar ]; then
+            echo "slatto.jar 파일을 찾을 수 없습니다."
+            exit 1
+          fi
+          echo "slatto.jar 파일 확인 완료"
+
       - name: Copy jar to EC2
         uses: appleboy/scp-action@v1
         with:
