@@ -102,6 +102,10 @@ public class ProjectFile extends BaseEntity {
         return pinnedAt != null;
     }
 
+    public void updateFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
     public void updateDescription(String description) {
         this.description = description;
     }
