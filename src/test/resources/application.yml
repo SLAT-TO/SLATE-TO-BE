@@ -46,6 +46,12 @@ app:
   invitation:
     base-url: http://localhost:3000/project-invitations
 
+  s3:
+    access-key: test-access-key
+    secret-key: test-secret-key
+    region: ap-northeast-2
+    bucket: test-bucket
+
   cookie:
     refresh-token-name: refreshToken
     oauth-state-name: oauthState
