@@ -47,4 +47,18 @@ public class FeedbackController {
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
+
+    @Operation(summary = "피드백 삭제")
+    @DeleteMapping("/feedbacks/{feedbackId}")
+    public ResponseEntity<ApiResponse<Void>> deleteFeedback(
+            @PathVariable Long feedbackId,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long guestId
+    ) {
+        feedbackService.deleteFeedback(feedbackId, userId, guestId);
+
+        return ResponseEntity
+                .ok(ApiResponse.success(CommonSuccessCode.OK, null));
+    }
+
 }

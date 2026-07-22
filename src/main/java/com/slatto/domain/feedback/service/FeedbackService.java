@@ -87,14 +87,32 @@ public class FeedbackService {
         return feedbackConverter.toUpdateResponse(feedback);
     }
 
-    /**
-     * 작성자 정보 검증 — userId와 guestId 중 정확히 하나만 있어야 함
-     */
+    // 작성자 정보 검증 — userId와 guestId 중 정확히 하나만 있어야 함
     private void validateWriter(Long userId, Long guestId) {
         boolean hasUser = (userId != null);
         boolean hasGuest = (guestId != null);
         if (hasUser == hasGuest) {   // 둘 다 있거나 둘 다 없으면
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
+    }
+
+    @Transactional
+    public void deleteFeedback(Long feedbackId, Long userId, Long guestId) {
+
+        // 1. 피드백 조회 (이미 삭제된 건 제외)
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .filter(f -> f.getDeletedAt() == null)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // 2. 작성자 검증
+        validateWriter(userId, guestId);
+
+        // 3. 본인 확인
+        if (!feedback.isWriter(userId, guestId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        // 4. soft delete (더티 체킹으로 자동 반영)
+        feedback.softDelete();
     }
 }
