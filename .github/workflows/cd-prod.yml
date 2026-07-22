@@ -52,7 +52,7 @@ jobs:
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
           fingerprint: ${{ secrets.PROD_EC2_HOST_FINGERPRINT }}
           source: build/libs/slatto.jar
-          target: /home/ubuntu/SLAT-TO-BE/build/libs/
+          target: /home/ubuntu/SLAT-TO-BE
 
       - name: Deploy
         uses: appleboy/ssh-action@v1
