@@ -1,6 +1,5 @@
 package com.slatto.domain.feedback.dto.response;
 
-import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.sharelink.entity.Guest;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -62,14 +61,19 @@ public class FeedbackResponse {
             @Schema(example = "27", nullable = true) Long endTime,
             @Schema(example = "false") Boolean status,
             LocalDateTime createdAt
-    ) {
-    }
+    ) { }
 
     @Schema(description = "피드백 목록 응답")
     public record FeedbackListResDTO(
             List<FeedbackListItemDTO> items,
             @Schema(example = "24_5", nullable = true) String nextCursor,
             @Schema(example = "true") Boolean hasNext
-    ) {
-    }
+    ) { }
+
+    @Schema(description = "피드백 해결 상태 변경 응답")
+    public record FeedbackStatusResDTO(
+            @Schema(example = "1") Long feedbackId,
+            @Schema(example = "true") Boolean status,
+            LocalDateTime updatedAt
+    ) { }
 }

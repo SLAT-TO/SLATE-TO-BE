@@ -87,4 +87,8 @@ public class Feedback extends BaseEntity {
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
     }
+
+    public void changeStatus(Boolean status) {
+        this.status = status;
+    }
 }

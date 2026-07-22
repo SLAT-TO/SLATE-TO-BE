@@ -6,6 +6,9 @@ import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackCreateRe
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackUpdateResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResDTO;
+import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
+import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
@@ -33,6 +36,7 @@ public class FeedbackService {
     private final GuestRepository guestRepository;
     private final FeedbackConverter feedbackConverter;
     private final ObjectProvider<EntityManager> entityManagerProvider;
+    private final ProjectMemberRepository projectMemberRepository;
 
     @Transactional
     public FeedbackCreateResDTO createFeedback(Long videoId, FeedbackCreateReqDTO req) {
@@ -172,7 +176,7 @@ public class FeedbackService {
         // 5. nextCursor 조립
         String nextCursor = null;
         if (hasNext && !feedbacks.isEmpty()) {
-            Feedback last = feedbacks.get(feedbacks.size() - 1);
+            Feedback last = feedbacks.getLast();
             String timePart = (last.getStartTime() == null) ? "n" : String.valueOf(last.getStartTime());
             nextCursor = timePart + "_" + last.getId();
         }
@@ -181,4 +185,28 @@ public class FeedbackService {
     }
 
     private static final int DEFAULT_PAGE_SIZE = 10;
+
+    @Transactional
+    public FeedbackStatusResDTO changeFeedbackStatus(Long feedbackId, FeedbackStatusReqDTO req) {
+
+        // 1. 피드백 조회
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .filter(f -> f.getDeletedAt() == null)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // 2. 프로젝트 멤버인지 확인 (피드백 → 영상 → 프로젝트)
+        Long projectId = feedback.getVideo().getProject().getId();
+
+        boolean isMember = projectMemberRepository
+                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, req.userId());
+
+        if (!isMember) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        // 3. 상태 변경 (더티 체킹)
+        feedback.changeStatus(req.status());
+
+        return feedbackConverter.toStatusResponse(feedback);
+    }
 }

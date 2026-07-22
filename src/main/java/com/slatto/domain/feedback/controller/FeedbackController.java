@@ -5,6 +5,8 @@ import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackUpdateReqD
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackCreateResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackUpdateResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResDTO;
+import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
 import com.slatto.domain.feedback.service.FeedbackService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -70,6 +72,18 @@ public class FeedbackController {
             @RequestParam(required = false) Integer size
     ) {
         FeedbackListResDTO result = feedbackService.getFeedbackList(videoId, cursor, size);
+
+        return ResponseEntity
+                .ok(ApiResponse.success(CommonSuccessCode.OK, result));
+    }
+
+    @Operation(summary = "피드백 해결 상태 변경")
+    @PatchMapping("/feedbacks/{feedbackId}/status")
+    public ResponseEntity<ApiResponse<FeedbackStatusResDTO>> changeFeedbackStatus(
+            @PathVariable Long feedbackId,
+            @Valid @RequestBody FeedbackStatusReqDTO request
+    ) {
+        FeedbackStatusResDTO result = feedbackService.changeFeedbackStatus(feedbackId, request);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));

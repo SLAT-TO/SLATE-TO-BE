@@ -2,6 +2,7 @@ package com.slatto.domain.feedback.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class FeedbackRequest {
 
@@ -45,4 +46,16 @@ public class FeedbackRequest {
             @Schema(example = "true", nullable = true)
             Boolean status
     ) { }
+
+    @Schema(description = "피드백 해결 상태 변경 요청")
+    public record FeedbackStatusReqDTO(
+            @Schema(example = "1")
+            @NotNull(message = "사용자 ID는 필수입니다.")
+            Long userId,
+
+            @Schema(example = "true")
+            @NotNull(message = "상태는 필수입니다.")
+            Boolean status
+    ) {
+    }
 }
