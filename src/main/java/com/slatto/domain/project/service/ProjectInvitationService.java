@@ -1,0 +1,199 @@
+package com.slatto.domain.project.service;
+
+import com.slatto.domain.project.dto.ProjectInvitationAcceptRequest;
+import com.slatto.domain.project.dto.ProjectInvitationAcceptResponse;
+import com.slatto.domain.project.dto.ProjectInvitationCreateRequest;
+import com.slatto.domain.project.dto.ProjectInvitationCreateResponse;
+import com.slatto.domain.project.dto.ProjectInvitationDetailResponse;
+import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.project.entity.ProjectInvitation;
+import com.slatto.domain.project.entity.ProjectMember;
+import com.slatto.domain.project.entity.ProjectUserRole;
+import com.slatto.domain.project.enums.ExpirationPeriod;
+import com.slatto.domain.project.exception.ProjectErrorCode;
+import com.slatto.domain.project.repository.ProjectInvitationRepository;
+import com.slatto.domain.project.repository.ProjectMemberRepository;
+import com.slatto.domain.project.repository.ProjectUserRoleRepository;
+import com.slatto.domain.user.entity.Users;
+import com.slatto.domain.user.enums.RoleName;
+import com.slatto.domain.user.repository.UserRepository;
+import com.slatto.global.config.properties.ProjectInvitationProperties;
+import com.slatto.global.exception.BaseException;
+import com.slatto.global.response.code.CommonErrorCode;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.HexFormat;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class ProjectInvitationService {
+
+    private static final ExpirationPeriod DEFAULT_EXPIRATION_PERIOD = ExpirationPeriod.HOURS_72;
+    private static final int TOKEN_BYTE_LENGTH = 32;
+    private static final int MAX_TOKEN_GENERATION_ATTEMPTS = 5;
+
+    private final ProjectInvitationRepository projectInvitationRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectUserRoleRepository projectUserRoleRepository;
+    private final UserRepository userRepository;
+    private final ProjectAccessValidator projectAccessValidator;
+    private final ProjectInvitationProperties projectInvitationProperties;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    @Transactional
+    public ProjectInvitationCreateResponse createInvitation(
+        Long projectId,
+        Long currentUserId,
+        ProjectInvitationCreateRequest request
+    ) {
+        Project project = projectAccessValidator.getProjectOrThrow(projectId);
+        ProjectMember inviter = projectAccessValidator.getCurrentAdminOrThrow(projectId, currentUserId);
+
+        String token = generateUniqueToken();
+        LocalDateTime expiresAt = resolveExpirationPeriod(request).calculateExpiresAt(LocalDateTime.now());
+
+        ProjectInvitation projectInvitation = ProjectInvitation.create(
+            project,
+            inviter.getUser(),
+            hashToken(token),
+            expiresAt
+        );
+        projectInvitationRepository.save(projectInvitation);
+
+        return ProjectInvitationCreateResponse.builder()
+            .inviteUrl(toInviteUrl(token))
+            .expiresAt(expiresAt)
+            .build();
+    }
+
+    public ProjectInvitationDetailResponse getInvitation(String token) {
+        ProjectInvitation projectInvitation = getInvitationByToken(token);
+        Project project = projectInvitation.getProject();
+
+        return ProjectInvitationDetailResponse.builder()
+            .projectId(project.getId())
+            .projectTitle(project.getTitle())
+            .inviterName(projectInvitation.getInviter().getNickname())
+            .status(projectInvitation.getStatus())
+            .expiresAt(projectInvitation.getExpiresAt())
+            .build();
+    }
+
+    @Transactional
+    public ProjectInvitationAcceptResponse acceptInvitation(
+        String token,
+        Long currentUserId,
+        ProjectInvitationAcceptRequest request
+    ) {
+        ProjectInvitation projectInvitation = getInvitationByTokenForUpdate(token);
+
+        validateAcceptableInvitation(projectInvitation);
+
+        Project project = projectInvitation.getProject();
+        Users accepter = getUserOrThrow(currentUserId);
+
+        if (projectMemberRepository.existsByProjectIdAndUserIdAndLeftAtIsNull(project.getId(), currentUserId)) {
+            throw new BaseException(ProjectErrorCode.PROJECT_MEMBER_ALREADY_EXISTS);
+        }
+
+        ProjectMember projectMember = ProjectMember.createMember(project, accepter);
+        projectMemberRepository.save(projectMember);
+        List<RoleName> roleNames = request.getRoleNames()
+            .stream()
+            .distinct()
+            .toList();
+        saveProjectRoles(projectMember, roleNames);
+        projectInvitation.accept(accepter);
+
+        return ProjectInvitationAcceptResponse.builder()
+            .projectId(project.getId())
+            .memberId(projectMember.getId())
+            .roleNames(roleNames)
+            .joinedAt(projectMember.getJoinedAt())
+            .build();
+    }
+
+    private void saveProjectRoles(ProjectMember projectMember, List<RoleName> roleNames) {
+        List<ProjectUserRole> projectUserRoles = roleNames.stream()
+            .map(roleName -> ProjectUserRole.create(projectMember, roleName))
+            .toList();
+
+        projectUserRoleRepository.saveAll(projectUserRoles);
+    }
+
+    private void validateAcceptableInvitation(ProjectInvitation projectInvitation) {
+        if (projectInvitation.isAccepted()) {
+            throw new BaseException(ProjectErrorCode.PROJECT_INVITATION_ALREADY_ACCEPTED);
+        }
+
+        if (projectInvitation.isExpired()) {
+            throw new BaseException(ProjectErrorCode.PROJECT_INVITATION_EXPIRED);
+        }
+    }
+
+    private Users getUserOrThrow(Long userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+    }
+
+    private ProjectInvitation getInvitationByToken(String token) {
+        return projectInvitationRepository.findByTokenHashWithProjectAndUsers(hashToken(token))
+            .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_INVITATION_NOT_FOUND));
+    }
+
+    private ProjectInvitation getInvitationByTokenForUpdate(String token) {
+        return projectInvitationRepository.findByTokenHashWithProjectAndUsersForUpdate(hashToken(token))
+            .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_INVITATION_NOT_FOUND));
+    }
+
+    private ExpirationPeriod resolveExpirationPeriod(ProjectInvitationCreateRequest request) {
+        if (request == null || request.getExpirationPeriod() == null) {
+            return DEFAULT_EXPIRATION_PERIOD;
+        }
+
+        return request.getExpirationPeriod();
+    }
+
+    private String generateUniqueToken() {
+        for (int attempt = 0; attempt < MAX_TOKEN_GENERATION_ATTEMPTS; attempt++) {
+            String token = generateToken();
+            if (!projectInvitationRepository.existsByTokenHash(hashToken(token))) {
+                return token;
+            }
+        }
+
+        throw new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+    }
+
+    private String generateToken() {
+        byte[] bytes = new byte[TOKEN_BYTE_LENGTH];
+        secureRandom.nextBytes(bytes);
+
+        return Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(bytes);
+    }
+
+    private String hashToken(String token) {
+        try {
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(messageDigest.digest(token.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private String toInviteUrl(String token) {
+        return projectInvitationProperties.baseUrl().replaceAll("/+$", "") + "/" + token;
+    }
+}
