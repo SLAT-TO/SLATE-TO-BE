@@ -5,6 +5,7 @@ import com.slatto.domain.user.dto.UserOnboardingRequest;
 import com.slatto.domain.user.dto.UserOnboardingResponse;
 import com.slatto.domain.user.dto.UserProfileUpdateRequest;
 import com.slatto.domain.user.dto.UserProfileUpdateResponse;
+import com.slatto.domain.user.dto.UserPublicProfileResponse;
 import com.slatto.domain.user.entity.Location;
 import com.slatto.domain.user.entity.UserCategory;
 import com.slatto.domain.user.entity.UserRole;
@@ -174,6 +175,36 @@ public class UserService {
             .roles(roles)
             .categories(categories)
             .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserPublicProfileResponse getPublicProfile(Long userId) {
+        Users user = getUserOrThrow(userId);
+
+        List<RoleName> roles = userRoleRepository.findAllByUserIdOrderByIdAsc(userId)
+            .stream()
+            .map(UserRole::getRoleName)
+            .toList();
+
+        List<CategoryName> categories = userCategoryRepository.findAllByUserIdOrderByIdAsc(userId)
+            .stream()
+            .map(UserCategory::getCategoryName)
+            .toList();
+
+        RegionName region = locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
+            .map(Location::getRegionName)
+            .orElse(null);
+
+        return UserPublicProfileResponse.builder()
+            .id(user.getId())
+            .nickname(user.getNickname())
+            .profileImageUrl(user.getProfileImageUrl())
+            .bio(user.getBio())
+            .location(region)
+            .primaryRole(roles.isEmpty() ? null : roles.get(0))
+            .roles(roles)
+            .categories(categories)
+            .stats(UserPublicProfileResponse.Stats.empty())
             .build();
     }
 

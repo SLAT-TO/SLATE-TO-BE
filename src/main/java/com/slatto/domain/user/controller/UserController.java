@@ -5,6 +5,7 @@ import com.slatto.domain.user.dto.UserOnboardingRequest;
 import com.slatto.domain.user.dto.UserOnboardingResponse;
 import com.slatto.domain.user.dto.UserProfileUpdateRequest;
 import com.slatto.domain.user.dto.UserProfileUpdateResponse;
+import com.slatto.domain.user.dto.UserPublicProfileResponse;
 import com.slatto.domain.user.service.UserService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,6 +56,14 @@ public class UserController {
         @Valid @RequestBody UserProfileUpdateRequest request
     ) {
         UserProfileUpdateResponse response = userService.updateProfile(userId, request);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(summary = "공개 프로필 조회", description = "다른 유저의 공개 프로필을 조회한다. 이메일 등 비공개 필드는 제외된다.")
+    @GetMapping("/{userId}")
+    public ApiResponse<UserPublicProfileResponse> getPublicProfile(@PathVariable Long userId) {
+        UserPublicProfileResponse response = userService.getPublicProfile(userId);
 
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
