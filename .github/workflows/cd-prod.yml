@@ -36,6 +36,9 @@ jobs:
       - name: Test and build Spring Boot jar
         run: ./gradlew clean test bootJar --no-daemon
 
+      - name: Check build output
+        run: ls -al build/libs
+
       - name: Copy jar to EC2
         uses: appleboy/scp-action@v1
         with:
