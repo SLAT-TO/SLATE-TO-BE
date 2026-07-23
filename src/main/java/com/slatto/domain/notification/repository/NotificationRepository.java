@@ -49,4 +49,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         Long userId,
         LocalDateTime createdAfter
     );
+
+    Optional<Notification> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
+
+    List<Notification> findAllByUserIdAndIsReadFalseAndDeletedAtIsNull(Long userId);
 }
