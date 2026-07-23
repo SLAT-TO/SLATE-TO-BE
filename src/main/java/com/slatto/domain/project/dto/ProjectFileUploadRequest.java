@@ -16,7 +16,5 @@ public class ProjectFileUploadRequest {
 
     private String description;
 
-    private Boolean isPinned;
-
     private Boolean isFinal;
 }
