@@ -31,20 +31,21 @@ public class VideoResponse {
 
     @Schema(description = "YouTube URL 검증 응답")
     public record YoutubeValidateResDTO(
-            @Schema(example = "true") boolean valid,
-            @Schema(example = "abc123") String youtubeVideoId,
-            @Schema(example = "영상 제목") String title,
-            @Schema(example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg") String thumbnailUrl,
-            @Schema(example = "1018") int durationSeconds,
-            @Schema(example = "true") boolean playable,
-            @Schema(example = "등록 가능한 영상입니다.") String message
+            @Schema(description = "프로젝트에 등록 가능한지 여부", example = "true") boolean valid,
+            @Schema(description = "URL에서 추출한 YouTube 영상 ID", example = "abc123") String youtubeVideoId,
+            @Schema(description = "YouTube에서 조회한 영상 제목", example = "영상 제목") String title,
+            @Schema(description = "YouTube 썸네일 URL", example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg")
+            String thumbnailUrl,
+            @Schema(description = "영상 길이(초)", example = "1018") int durationSeconds,
+            @Schema(description = "외부 서비스에서 재생 가능한지 여부", example = "true") boolean playable,
+            @Schema(description = "검증 결과 안내 메시지", example = "등록 가능한 영상입니다.") String message
     ) {
     }
 
     @Schema(description = "영상 등록 응답")
     public record VideoCreateResDTO(
             @Schema(example = "1") Long videoId,
-            @Schema(example = "프로젝트 명") String title,
+            @Schema(example = "촬영 콘셉트 참고 영상") String title,
             @Schema(example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg") String thumbnailUrl,
             @Schema(example = "1018") Integer durationSeconds,
             @Schema(example = "false") boolean bookmarked,
@@ -61,6 +62,7 @@ public class VideoResponse {
 
     @Schema(description = "영상 목록 조회 응답")
     public record VideoListResDTO(
+            @Schema(description = "조회된 영상 목록")
             List<VideoItemResDTO> items,
             @Schema(description = "다음 페이지 조회 커서", example = "9", nullable = true)
             Long nextCursor,
@@ -69,9 +71,10 @@ public class VideoResponse {
     ) {
     }
 
+    @Schema(description = "영상 목록 항목")
     public record VideoItemResDTO(
             @Schema(example = "10") Long videoId,
-            @Schema(example = "프로젝트 명") String title,
+            @Schema(example = "촬영 콘셉트 참고 영상") String title,
             @Schema(example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg") String thumbnailUrl,
             @Schema(example = "true") boolean bookmarked,
             @Schema(example = "IN_PROGRESS") String progressStatus,
