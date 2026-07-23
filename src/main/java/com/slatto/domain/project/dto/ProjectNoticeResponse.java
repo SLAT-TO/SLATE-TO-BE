@@ -17,6 +17,8 @@ public class ProjectNoticeResponse {
 
     private WriterSummary writer;
 
+    private Boolean isRead;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

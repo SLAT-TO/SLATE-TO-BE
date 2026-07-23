@@ -7,7 +7,9 @@ import com.slatto.domain.project.dto.ProjectNoticeUpdateRequest;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.entity.ProjectNotice;
+import com.slatto.domain.project.entity.ProjectNoticeRead;
 import com.slatto.domain.project.exception.ProjectErrorCode;
+import com.slatto.domain.project.repository.ProjectNoticeReadRepository;
 import com.slatto.domain.project.repository.ProjectNoticeRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.global.exception.BaseException;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +31,7 @@ public class ProjectNoticeService {
     private static final int MAX_PAGE_SIZE = 50;
 
     private final ProjectNoticeRepository projectNoticeRepository;
+    private final ProjectNoticeReadRepository projectNoticeReadRepository;
     private final ProjectAccessValidator projectAccessValidator;
 
     public ProjectNoticeListResponse getProjectNotices(
@@ -49,9 +54,13 @@ public class ProjectNoticeService {
         List<ProjectNotice> currentPageNotices = projectNotices.stream()
             .limit(pageSize)
             .toList();
+        Map<Long, Boolean> readByNoticeId = getReadByNoticeId(currentUserId, currentPageNotices);
 
         List<ProjectNoticeResponse> items = currentPageNotices.stream()
-            .map(this::toResponse)
+            .map(projectNotice -> toResponse(
+                projectNotice,
+                readByNoticeId.getOrDefault(projectNotice.getId(), false)
+            ))
             .toList();
 
         Long nextCursor = hasNext && !items.isEmpty()
@@ -82,7 +91,7 @@ public class ProjectNoticeService {
         );
         ProjectNotice savedNotice = projectNoticeRepository.save(projectNotice);
 
-        return toResponse(savedNotice);
+        return toResponse(savedNotice, false);
     }
 
     @Transactional
@@ -99,7 +108,7 @@ public class ProjectNoticeService {
 
         projectNotice.update(request.getTitle(), request.getContent());
 
-        return toResponse(projectNotice);
+        return toResponse(projectNotice, false);
     }
 
     @Transactional
@@ -129,7 +138,7 @@ public class ProjectNoticeService {
         throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
     }
 
-    private ProjectNoticeResponse toResponse(ProjectNotice projectNotice) {
+    private ProjectNoticeResponse toResponse(ProjectNotice projectNotice, boolean isRead) {
         Users writer = projectNotice.getWriter();
 
         return ProjectNoticeResponse.builder()
@@ -140,9 +149,28 @@ public class ProjectNoticeService {
                 .id(writer.getId())
                 .nickname(writer.getNickname())
                 .build())
+            .isRead(isRead)
             .createdAt(projectNotice.getCreatedAt())
             .updatedAt(projectNotice.getUpdatedAt())
             .build();
+    }
+
+    private Map<Long, Boolean> getReadByNoticeId(Long userId, List<ProjectNotice> projectNotices) {
+        List<Long> noticeIds = projectNotices.stream()
+            .map(ProjectNotice::getId)
+            .toList();
+
+        if (noticeIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return projectNoticeReadRepository.findAllByUserIdAndNoticeIds(userId, noticeIds)
+            .stream()
+            .collect(Collectors.toMap(
+                projectNoticeRead -> projectNoticeRead.getNotice().getId(),
+                projectNoticeRead -> true,
+                (left, right) -> left
+            ));
     }
 
     private int normalizePageSize(int size) {
