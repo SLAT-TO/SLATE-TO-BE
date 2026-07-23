@@ -3,6 +3,7 @@ package com.slatto.domain.project.converter;
 import com.slatto.domain.project.dto.ProjectCreateRequest;
 import com.slatto.domain.project.dto.ProjectDetailResponse;
 import com.slatto.domain.project.dto.ProjectListResponse;
+import com.slatto.domain.project.dto.ProjectPinResponse;
 import com.slatto.domain.project.dto.ProjectResponse;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
@@ -43,6 +44,14 @@ public class ProjectConverter {
             .status(project.getStatus())
             .createdAt(project.getCreatedAt())
             .updatedAt(project.getUpdatedAt())
+            .build();
+    }
+
+    public ProjectPinResponse toPinResponse(Long projectId, LocalDateTime pinnedAt) {
+        return ProjectPinResponse.builder()
+            .id(projectId)
+            .isPinned(pinnedAt != null)
+            .pinnedAt(pinnedAt)
             .build();
     }
 

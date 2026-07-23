@@ -4,6 +4,7 @@ import com.slatto.domain.project.converter.ProjectConverter;
 import com.slatto.domain.project.dto.ProjectCreateRequest;
 import com.slatto.domain.project.dto.ProjectDetailResponse;
 import com.slatto.domain.project.dto.ProjectListResponse;
+import com.slatto.domain.project.dto.ProjectPinResponse;
 import com.slatto.domain.project.dto.ProjectResponse;
 import com.slatto.domain.project.dto.ProjectUpdateRequest;
 import com.slatto.domain.project.entity.Project;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -93,7 +95,12 @@ public class ProjectService {
         Map<Long, String> previewImageUrlByProjectId = getPreviewImageUrlByProjectId(currentPageMembers);
         Map<Long, LocalDateTime> pinnedAtByProjectId = getPinnedAtByProjectId(currentUserId, currentPageMembers);
 
-        List<ProjectListResponse.ProjectSummary> items = currentPageMembers.stream()
+        List<ProjectMember> sortedPageMembers = sortByPinnedAt(currentPageMembers, pinnedAtByProjectId);
+        Long nextCursor = hasNext && !currentPageMembers.isEmpty()
+            ? currentPageMembers.get(currentPageMembers.size() - 1).getProject().getId()
+            : null;
+
+        List<ProjectListResponse.ProjectSummary> items = sortedPageMembers.stream()
             .map(projectMember -> projectConverter.toSummary(
                 projectMember.getProject(),
                 countActiveMembers(projectMember.getProject()),
@@ -105,10 +112,6 @@ public class ProjectService {
                 resolveLastActivityAt(projectMember.getProject())
             ))
             .toList();
-
-        Long nextCursor = hasNext && !items.isEmpty()
-            ? items.get(items.size() - 1).getId()
-            : null;
 
         return projectConverter.toListResponse(items, nextCursor, hasNext);
     }
@@ -131,6 +134,28 @@ public class ProjectService {
             projectPin,
             countActiveMembers(project)
         );
+    }
+
+    @Transactional
+    public ProjectPinResponse pinProject(Long projectId, Long currentUserId) {
+        Project project = projectAccessValidator.getProjectOrThrow(projectId);
+        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+
+        ProjectPin projectPin = projectPinRepository.findByUserIdAndProjectId(currentUserId, projectId)
+            .orElseGet(() -> projectPinRepository.save(ProjectPin.create(currentMember.getUser(), project)));
+
+        return projectConverter.toPinResponse(project.getId(), projectPin.getPinnedAt());
+    }
+
+    @Transactional
+    public ProjectPinResponse unpinProject(Long projectId, Long currentUserId) {
+        Project project = projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+
+        projectPinRepository.findByUserIdAndProjectId(currentUserId, projectId)
+            .ifPresent(projectPinRepository::delete);
+
+        return projectConverter.toPinResponse(project.getId(), null);
     }
 
     @Transactional
@@ -260,6 +285,20 @@ public class ProjectService {
                 projectPin -> projectPin.getProject().getId(),
                 ProjectPin::getPinnedAt
             ));
+    }
+
+    private List<ProjectMember> sortByPinnedAt(
+        List<ProjectMember> projectMembers,
+        Map<Long, LocalDateTime> pinnedAtByProjectId
+    ) {
+        return projectMembers.stream()
+            .sorted(Comparator
+                .comparing(
+                    (ProjectMember projectMember) -> pinnedAtByProjectId.get(projectMember.getProject().getId()),
+                    Comparator.nullsLast(Comparator.reverseOrder())
+                )
+                .thenComparing(projectMember -> projectMember.getProject().getId(), Comparator.reverseOrder()))
+            .toList();
     }
 
     private LocalDateTime resolveLastActivityAt(Project project) {
