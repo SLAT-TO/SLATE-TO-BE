@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,5 +37,16 @@ public class NotificationController {
         );
 
         return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(summary = "알림 단건 읽음 처리")
+    @PatchMapping("/{notificationId}/read")
+    public ApiResponse<Void> markNotificationAsRead(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long notificationId
+    ) {
+        notificationService.markNotificationAsRead(currentUserId, notificationId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, null);
     }
 }
