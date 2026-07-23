@@ -2,6 +2,9 @@ package com.slatto.domain.user.service;
 
 import com.slatto.domain.user.dto.PortfolioCreateRequest;
 import com.slatto.domain.user.dto.PortfolioCreateResponse;
+import com.slatto.domain.user.dto.PortfolioDetailResponse;
+import com.slatto.domain.user.dto.PortfolioListResponse;
+import com.slatto.domain.user.dto.PortfolioSummaryResponse;
 import com.slatto.domain.user.entity.UserPortfolio;
 import com.slatto.domain.user.entity.UserPortfolioRole;
 import com.slatto.domain.user.entity.Users;
@@ -15,16 +18,21 @@ import com.slatto.domain.video.util.YoutubeUrlParser;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PortfolioService {
 
+    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int MAX_PAGE_SIZE = 50;
     private static final String THUMBNAIL_URL_FORMAT = "https://img.youtube.com/vi/%s/maxresdefault.jpg";
 
     private final UserRepository userRepository;
@@ -59,6 +67,86 @@ public class PortfolioService {
             .build();
     }
 
+    public PortfolioDetailResponse getPortfolio(Long userId, Long portfolioId) {
+        UserPortfolio portfolio = getOwnedPortfolioOrThrow(userId, portfolioId);
+
+        List<RoleName> roles = userPortfolioRoleRepository.findAllByPortfolioIdOrderByIdAsc(portfolioId)
+            .stream()
+            .map(UserPortfolioRole::getRoleName)
+            .toList();
+
+        return PortfolioDetailResponse.builder()
+            .id(portfolio.getId())
+            .title(portfolio.getTitle())
+            .type(portfolio.getType())
+            .customTypeName(portfolio.getCustomTypeName())
+            .kind(portfolio.getKind())
+            .clientName(portfolio.getClientName())
+            .roles(roles)
+            .description(portfolio.getDescription())
+            .comment(portfolio.getComment())
+            .youtubeUrl(portfolio.getYoutubeUrl())
+            .thumbnailUrl(portfolio.getThumbnailUrl())
+            .createdAt(portfolio.getCreatedAt())
+            .updatedAt(portfolio.getUpdatedAt())
+            .build();
+    }
+
+    public PortfolioListResponse getPortfolios(Long userId, Long cursor, int size) {
+        getUserOrThrow(userId);
+
+        int pageSize = normalizePageSize(size);
+        List<UserPortfolio> portfolios = userPortfolioRepository.findActivePortfoliosByCursor(
+            userId,
+            cursor,
+            PageRequest.of(0, pageSize + 1)
+        );
+
+        boolean hasNext = portfolios.size() > pageSize;
+        List<UserPortfolio> currentPagePortfolios = portfolios.stream()
+            .limit(pageSize)
+            .toList();
+
+        Map<Long, List<RoleName>> rolesByPortfolioId = findRolesByPortfolioIds(
+            currentPagePortfolios.stream().map(UserPortfolio::getId).toList()
+        );
+
+        List<PortfolioSummaryResponse> items = currentPagePortfolios.stream()
+            .map(portfolio -> PortfolioSummaryResponse.builder()
+                .id(portfolio.getId())
+                .title(portfolio.getTitle())
+                .type(portfolio.getType())
+                .customTypeName(portfolio.getCustomTypeName())
+                .roles(rolesByPortfolioId.getOrDefault(portfolio.getId(), List.of()))
+                .thumbnailUrl(portfolio.getThumbnailUrl())
+                .createdAt(portfolio.getCreatedAt())
+                .build())
+            .toList();
+
+        Long nextCursor = hasNext && !items.isEmpty()
+            ? items.get(items.size() - 1).getId()
+            : null;
+
+        return PortfolioListResponse.builder()
+            .items(items)
+            .nextCursor(nextCursor)
+            .hasNext(hasNext)
+            .build();
+    }
+
+    private Map<Long, List<RoleName>> findRolesByPortfolioIds(List<Long> portfolioIds) {
+        if (portfolioIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return userPortfolioRoleRepository.findAllByPortfolioIdInOrderByIdAsc(portfolioIds)
+            .stream()
+            .collect(Collectors.groupingBy(
+                role -> role.getPortfolio().getId(),
+                Collectors.mapping(UserPortfolioRole::getRoleName, Collectors.toList())
+            ));
+    }
+
     private void replaceRoles(UserPortfolio portfolio, Users user, List<RoleName> roleNames) {
         List<UserPortfolioRole> roles = roleNames.stream()
             .distinct()
@@ -80,8 +168,21 @@ public class PortfolioService {
         return kind == Kind.EXTERNAL ? clientName : null;
     }
 
+    private UserPortfolio getOwnedPortfolioOrThrow(Long userId, Long portfolioId) {
+        return userPortfolioRepository.findByIdAndUserIdAndDeletedAtIsNull(portfolioId, userId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+    }
+
     private Users getUserOrThrow(Long userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+    }
+
+    private int normalizePageSize(int size) {
+        if (size <= 0) {
+            return DEFAULT_PAGE_SIZE;
+        }
+
+        return Math.min(size, MAX_PAGE_SIZE);
     }
 }
