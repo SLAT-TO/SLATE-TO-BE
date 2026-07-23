@@ -5,6 +5,8 @@ import com.slatto.domain.user.dto.PortfolioCreateResponse;
 import com.slatto.domain.user.dto.PortfolioDetailResponse;
 import com.slatto.domain.user.dto.PortfolioListResponse;
 import com.slatto.domain.user.dto.PortfolioSummaryResponse;
+import com.slatto.domain.user.dto.PortfolioUpdateRequest;
+import com.slatto.domain.user.dto.PortfolioUpdateResponse;
 import com.slatto.domain.user.entity.UserPortfolio;
 import com.slatto.domain.user.entity.UserPortfolioRole;
 import com.slatto.domain.user.entity.Users;
@@ -65,6 +67,60 @@ public class PortfolioService {
             .thumbnailUrl(savedPortfolio.getThumbnailUrl())
             .createdAt(savedPortfolio.getCreatedAt())
             .build();
+    }
+
+    @Transactional
+    public PortfolioUpdateResponse updatePortfolio(
+        Long userId,
+        Long portfolioId,
+        PortfolioUpdateRequest request
+    ) {
+        UserPortfolio portfolio = getOwnedPortfolioOrThrow(userId, portfolioId);
+
+        portfolio.updateBasicInfo(request.getTitle(), request.getDescription(), request.getComment());
+
+        if (request.getType() != null || request.getCustomTypeName() != null) {
+            CategoryName type = request.getType() != null ? request.getType() : portfolio.getType();
+            String customTypeName = request.getCustomTypeName() != null
+                ? request.getCustomTypeName()
+                : portfolio.getCustomTypeName();
+
+            portfolio.changeType(type, resolveCustomTypeName(type, customTypeName));
+        }
+
+        if (request.getKind() != null || request.getClientName() != null) {
+            Kind kind = request.getKind() != null ? request.getKind() : portfolio.getKind();
+            String clientName = request.getClientName() != null
+                ? request.getClientName()
+                : portfolio.getClientName();
+
+            portfolio.changeKind(kind, resolveClientName(kind, clientName));
+        }
+
+        if (request.getYoutubeUrl() != null) {
+            portfolio.changeVideo(request.getYoutubeUrl(), extractThumbnailUrl(request.getYoutubeUrl()));
+        }
+
+        if (request.getRoles() != null) {
+            userPortfolioRoleRepository.deleteByPortfolioId(portfolioId);
+            userPortfolioRoleRepository.flush();
+
+            replaceRoles(portfolio, portfolio.getUser(), request.getRoles());
+        }
+
+        userPortfolioRepository.flush();
+
+        return PortfolioUpdateResponse.builder()
+            .id(portfolio.getId())
+            .updatedAt(portfolio.getUpdatedAt())
+            .build();
+    }
+
+    @Transactional
+    public void deletePortfolio(Long userId, Long portfolioId) {
+        UserPortfolio portfolio = getOwnedPortfolioOrThrow(userId, portfolioId);
+
+        portfolio.delete();
     }
 
     public PortfolioDetailResponse getPortfolio(Long userId, Long portfolioId) {

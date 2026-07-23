@@ -4,6 +4,8 @@ import com.slatto.domain.user.dto.PortfolioCreateRequest;
 import com.slatto.domain.user.dto.PortfolioCreateResponse;
 import com.slatto.domain.user.dto.PortfolioDetailResponse;
 import com.slatto.domain.user.dto.PortfolioListResponse;
+import com.slatto.domain.user.dto.PortfolioUpdateRequest;
+import com.slatto.domain.user.dto.PortfolioUpdateResponse;
 import com.slatto.domain.user.service.PortfolioService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -13,7 +15,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -63,5 +67,28 @@ public class PortfolioController {
         PortfolioCreateResponse response = portfolioService.createPortfolio(currentUserId, request);
 
         return ApiResponse.success(CommonSuccessCode.CREATED, response);
+    }
+
+    @Operation(summary = "포트폴리오 수정", description = "내 포트폴리오를 수정한다. 전달된 항목만 부분 수정되며 roles는 전체 교체된다.")
+    @PatchMapping("/me/portfolios/{portfolioId}")
+    public ApiResponse<PortfolioUpdateResponse> updatePortfolio(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long portfolioId,
+        @Valid @RequestBody PortfolioUpdateRequest request
+    ) {
+        PortfolioUpdateResponse response = portfolioService.updatePortfolio(currentUserId, portfolioId, request);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(summary = "포트폴리오 삭제", description = "내 포트폴리오를 soft delete 한다.")
+    @DeleteMapping("/me/portfolios/{portfolioId}")
+    public ApiResponse<Void> deletePortfolio(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long portfolioId
+    ) {
+        portfolioService.deletePortfolio(currentUserId, portfolioId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, null);
     }
 }
