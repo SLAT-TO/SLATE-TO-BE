@@ -31,10 +31,10 @@ public class S3StorageService implements StorageService {
 	@Override
 	public void upload(MultipartFile file, String storageKey) {
 		try (InputStream inputStream = file.getInputStream()) {
-				PutObjectRequest request = PutObjectRequest.builder()
-					.bucket(bucket)
-					.key(storageKey)
-					.contentType(file.getContentType())
+			PutObjectRequest request = PutObjectRequest.builder()
+				.bucket(bucket)
+				.key(storageKey)
+				.contentType(file.getContentType())
 				.contentLength(file.getSize())
 				.build();
 
@@ -48,10 +48,10 @@ public class S3StorageService implements StorageService {
 	@Override
 	public ResponseInputStream<GetObjectResponse> download(String storageKey) {
 		try {
-				GetObjectRequest request = GetObjectRequest.builder()
-					.bucket(bucket)
-					.key(storageKey)
-					.build();
+			GetObjectRequest request = GetObjectRequest.builder()
+				.bucket(bucket)
+				.key(storageKey)
+				.build();
 
 			return s3Client.getObject(request);
 		} catch (SdkException exception) {
@@ -62,11 +62,11 @@ public class S3StorageService implements StorageService {
 
 	@Override
 	public void delete(String storageKey) {
-			try {
-				s3Client.deleteObject(request -> request
-					.bucket(bucket)
-					.key(storageKey)
-				);
+		try {
+			s3Client.deleteObject(request -> request
+				.bucket(bucket)
+				.key(storageKey)
+			);
 		} catch (SdkException exception) {
 			log.warn("S3 file delete failed. storageKey={}", storageKey, exception);
 			throw new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR);

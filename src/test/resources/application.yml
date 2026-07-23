@@ -17,6 +17,11 @@ youtube:
     connect-timeout: 3s
     read-timeout: 5s
 
+cloud:
+  aws:
+    s3:
+      bucket: test-bucket
+
 app:
   jwt:
     secret: test-secret-key-for-context-load-only-32bytes
@@ -45,12 +50,6 @@ app:
 
   invitation:
     base-url: http://localhost:3000/project-invitations
-
-  s3:
-    access-key: test-access-key
-    secret-key: test-secret-key
-    region: ap-northeast-2
-    bucket: test-bucket
 
   cookie:
     refresh-token-name: refreshToken
