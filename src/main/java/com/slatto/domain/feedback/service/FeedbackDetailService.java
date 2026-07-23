@@ -125,4 +125,24 @@ public class FeedbackDetailService {
 
         return feedbackDetailConverter.toUpdateResponse(reply);
     }
+
+    @Transactional
+    public void deleteReply(Long replyId, Long userId, Long guestId) {
+
+        // 1. 답글 조회 (이미 삭제된 건 제외)
+        FeedbackDetail reply = feedbackDetailRepository.findById(replyId)
+                .filter(r -> r.getDeletedAt() == null)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // 2. 작성자 검증
+        validateWriter(userId, guestId);
+
+        // 3. 본인 확인
+        if (!reply.isWriter(userId, guestId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        // 4. soft delete (더티 체킹)
+        reply.softDelete();
+    }
 }
