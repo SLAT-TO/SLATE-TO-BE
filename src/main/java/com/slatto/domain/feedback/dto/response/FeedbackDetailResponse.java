@@ -16,7 +16,8 @@ public class FeedbackDetailResponse {
             @Schema(example = "확인했습니다. 수정하겠습니다") String content,
             @Schema(example = "false") Boolean status,
             LocalDateTime createdAt
-    ) { }
+    ) {
+    }
 
     @Schema(description = "답글 목록 항목")
     public record ReplyListItemDTO(
@@ -36,4 +37,16 @@ public class FeedbackDetailResponse {
             @Schema(example = "true") Boolean hasNext
     ) {
     }
+
+    @Schema(description = "답글 수정 응답")
+    public record ReplyUpdateResDTO(
+            @Schema(example = "1") Long replyId,
+            @Schema(example = "10") Long feedbackId,
+            ActorDTO actor,
+            @Schema(example = "수정된 답글입니다") String content,
+            @Schema(example = "false") Boolean status,
+            LocalDateTime updatedAt
+    ) {
+    }
+
 }

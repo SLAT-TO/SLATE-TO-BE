@@ -3,6 +3,8 @@ package com.slatto.domain.feedback.controller;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyCreateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreateResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
+import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyUpdateReqDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
 import com.slatto.domain.feedback.service.FeedbackDetailService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -43,6 +45,18 @@ public class FeedbackDetailController {
             @RequestParam(required = false) Integer size
     ) {
         ReplyListResDTO result = feedbackDetailService.getReplyList(feedbackId, cursor, size);
+
+        return ResponseEntity
+                .ok(ApiResponse.success(CommonSuccessCode.OK, result));
+    }
+
+    @Operation(summary = "답글 수정")
+    @PatchMapping("/replies/{replyId}")
+    public ResponseEntity<ApiResponse<ReplyUpdateResDTO>> updateReply(
+            @PathVariable Long replyId,
+            @Valid @RequestBody ReplyUpdateReqDTO request
+    ) {
+        ReplyUpdateResDTO result = feedbackDetailService.updateReply(replyId, request);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));

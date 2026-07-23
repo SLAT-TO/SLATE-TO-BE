@@ -18,4 +18,18 @@ public class FeedbackDetailRequest {
             String content
     ) {
     }
+
+    @Schema(description = "답글 수정 요청")
+    public record ReplyUpdateReqDTO(
+            @Schema(example = "1", nullable = true)
+            Long userId,
+
+            @Schema(example = "5", nullable = true)
+            Long guestId,
+
+            @Schema(example = "수정된 답글입니다")
+            @NotBlank(message = "내용은 필수입니다.")
+            String content
+    ) {
+    }
 }

@@ -5,6 +5,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreat
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.ActorDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListItemDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
 import java.util.List;
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.feedback.entity.FeedbackDetail;
@@ -56,5 +57,20 @@ public class FeedbackDetailConverter {
                 .toList();
 
         return new ReplyListResDTO(items, nextCursor, hasNext);
+    }
+
+    public ReplyUpdateResDTO toUpdateResponse(FeedbackDetail reply) {
+        ActorDTO actor = (reply.getUser() != null)
+                ? ActorDTO.fromUser(reply.getUser())
+                : ActorDTO.fromGuest(reply.getGuest());
+
+        return new ReplyUpdateResDTO(
+                reply.getId(),
+                reply.getFeedback().getId(),
+                actor,
+                reply.getContent(),
+                reply.getStatus(),
+                reply.getUpdatedAt()
+        );
     }
 }

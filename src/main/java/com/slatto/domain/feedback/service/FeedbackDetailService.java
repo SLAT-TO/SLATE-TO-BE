@@ -4,6 +4,8 @@ import com.slatto.domain.feedback.converter.FeedbackDetailConverter;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyCreateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreateResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
+import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyUpdateReqDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
@@ -100,5 +102,27 @@ public class FeedbackDetailService {
                 : null;
 
         return feedbackDetailConverter.toListResponse(replies, nextCursor, hasNext);
+    }
+
+    @Transactional
+    public ReplyUpdateResDTO updateReply(Long replyId, ReplyUpdateReqDTO req) {
+
+        // 1. 답글 조회 (삭제된 건 제외)
+        FeedbackDetail reply = feedbackDetailRepository.findById(replyId)
+                .filter(r -> r.getDeletedAt() == null)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // 2. 작성자 검증
+        validateWriter(req.userId(), req.guestId());
+
+        // 3. 본인 확인
+        if (!reply.isWriter(req.userId(), req.guestId())) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        // 4. 수정 (더티 체킹)
+        reply.update(req.content());
+
+        return feedbackDetailConverter.toUpdateResponse(reply);
     }
 }
