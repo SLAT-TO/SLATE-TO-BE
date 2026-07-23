@@ -3,6 +3,10 @@ package com.slatto.domain.feedback.service;
 import com.slatto.domain.feedback.converter.FeedbackDetailConverter;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyCreateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreateResDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import java.util.List;
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.feedback.entity.FeedbackDetail;
 import com.slatto.domain.feedback.repository.FeedbackDetailRepository;
@@ -26,6 +30,8 @@ public class FeedbackDetailService {
     private final UserRepository userRepository;
     private final GuestRepository guestRepository;
     private final FeedbackDetailConverter feedbackDetailConverter;
+
+    private static final int DEFAULT_PAGE_SIZE = 10;
 
     @Transactional
     public ReplyCreateResDTO createReply(Long feedbackId, ReplyCreateReqDTO req) {
@@ -63,5 +69,36 @@ public class FeedbackDetailService {
         if (hasUser == hasGuest) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public ReplyListResDTO getReplyList(Long feedbackId, Long cursor, Integer size) {
+
+        // 1. 원 피드백 존재 확인
+        feedbackRepository.findById(feedbackId)
+                .filter(f -> f.getDeletedAt() == null)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // 2. size 기본값
+        int pageSize = (size == null || size <= 0) ? DEFAULT_PAGE_SIZE : size;
+        Pageable pageable = PageRequest.of(0, pageSize + 1);   // hasNext 판단용 +1
+
+        // 3. 조회
+        List<FeedbackDetail> replies = (cursor == null)
+                ? feedbackDetailRepository.findFirstPage(feedbackId, pageable)
+                : feedbackDetailRepository.findNextPage(feedbackId, cursor, pageable);
+
+        // 4. hasNext 판단 + 초과분 제거
+        boolean hasNext = replies.size() > pageSize;
+        if (hasNext) {
+            replies = replies.subList(0, pageSize);
+        }
+
+        // 5. nextCursor
+        Long nextCursor = (hasNext && !replies.isEmpty())
+                ? replies.getLast().getId()
+                : null;
+
+        return feedbackDetailConverter.toListResponse(replies, nextCursor, hasNext);
     }
 }

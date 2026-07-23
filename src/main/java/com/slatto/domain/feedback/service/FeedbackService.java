@@ -38,6 +38,8 @@ public class FeedbackService {
     private final ObjectProvider<EntityManager> entityManagerProvider;
     private final ProjectMemberRepository projectMemberRepository;
 
+    private static final int DEFAULT_PAGE_SIZE = 10;
+
     @Transactional
     public FeedbackCreateResDTO createFeedback(Long videoId, FeedbackCreateReqDTO req) {
 
@@ -183,8 +185,6 @@ public class FeedbackService {
 
         return feedbackConverter.toListResponse(feedbacks, nextCursor, hasNext);
     }
-
-    private static final int DEFAULT_PAGE_SIZE = 10;
 
     @Transactional
     public FeedbackStatusResDTO changeFeedbackStatus(Long feedbackId, FeedbackStatusReqDTO req) {

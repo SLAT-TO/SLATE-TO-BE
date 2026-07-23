@@ -2,6 +2,7 @@ package com.slatto.domain.feedback.controller;
 
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyCreateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreateResDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
 import com.slatto.domain.feedback.service.FeedbackDetailService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -32,5 +33,18 @@ public class FeedbackDetailController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(CommonSuccessCode.CREATED, result));
+    }
+
+    @Operation(summary = "답글 목록 조회")
+    @GetMapping("/feedbacks/{feedbackId}/replies")
+    public ResponseEntity<ApiResponse<ReplyListResDTO>> getReplyList(
+            @PathVariable Long feedbackId,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(required = false) Integer size
+    ) {
+        ReplyListResDTO result = feedbackDetailService.getReplyList(feedbackId, cursor, size);
+
+        return ResponseEntity
+                .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
 }

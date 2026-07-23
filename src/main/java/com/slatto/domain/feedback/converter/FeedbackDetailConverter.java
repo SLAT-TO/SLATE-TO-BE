@@ -3,6 +3,9 @@ package com.slatto.domain.feedback.converter;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyCreateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreateResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.ActorDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListItemDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
+import java.util.List;
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.feedback.entity.FeedbackDetail;
 import com.slatto.domain.sharelink.entity.Guest;
@@ -30,5 +33,28 @@ public class FeedbackDetailConverter {
                 reply.getStatus(),
                 reply.getCreatedAt()
         );
+    }
+
+    public ReplyListItemDTO toListItem(FeedbackDetail reply) {
+        ActorDTO actor = (reply.getUser() != null)
+                ? ActorDTO.fromUser(reply.getUser())
+                : ActorDTO.fromGuest(reply.getGuest());
+
+        return new ReplyListItemDTO(
+                reply.getId(),
+                reply.getFeedback().getId(),
+                actor,
+                reply.getContent(),
+                reply.getStatus(),
+                reply.getCreatedAt()
+        );
+    }
+
+    public ReplyListResDTO toListResponse(List<FeedbackDetail> replies, Long nextCursor, boolean hasNext) {
+        List<ReplyListItemDTO> items = replies.stream()
+                .map(this::toListItem)
+                .toList();
+
+        return new ReplyListResDTO(items, nextCursor, hasNext);
     }
 }
