@@ -35,7 +35,7 @@ public class PortfolioService {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;
-    private static final String THUMBNAIL_URL_FORMAT = "https://img.youtube.com/vi/%s/maxresdefault.jpg";
+    private static final String THUMBNAIL_URL_FORMAT = "https://img.youtube.com/vi/%s/hqdefault.jpg";
 
     private final UserRepository userRepository;
     private final UserPortfolioRepository userPortfolioRepository;

@@ -107,10 +107,6 @@ public class UserPortfolio extends BaseEntity {
         );
     }
 
-    public void updateCustomTypeName(String customTypeName) {
-        this.customTypeName = customTypeName;
-    }
-
     public void updateBasicInfo(String title, String description, String comment) {
         if (title != null) {
             this.title = title;
