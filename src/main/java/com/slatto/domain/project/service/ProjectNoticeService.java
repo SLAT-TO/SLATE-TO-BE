@@ -2,6 +2,7 @@ package com.slatto.domain.project.service;
 
 import com.slatto.domain.project.dto.ProjectNoticeCreateRequest;
 import com.slatto.domain.project.dto.ProjectNoticeListResponse;
+import com.slatto.domain.project.dto.ProjectNoticeReadResponse;
 import com.slatto.domain.project.dto.ProjectNoticeResponse;
 import com.slatto.domain.project.dto.ProjectNoticeUpdateRequest;
 import com.slatto.domain.project.entity.Project;
@@ -121,6 +122,27 @@ public class ProjectNoticeService {
         projectNotice.delete();
     }
 
+    @Transactional
+    public ProjectNoticeReadResponse readProjectNotice(Long projectId, Long noticeId, Long currentUserId) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+        ProjectNotice projectNotice = getActiveNoticeOrThrow(projectId, noticeId);
+
+        ProjectNoticeRead projectNoticeRead = projectNoticeReadRepository.findByNoticeIdAndUserId(
+                noticeId,
+                currentUserId
+            )
+            .map(existingRead -> {
+                existingRead.refreshReadAt();
+                return existingRead;
+            })
+            .orElseGet(() -> projectNoticeReadRepository.save(
+                ProjectNoticeRead.create(projectNotice, currentMember.getUser())
+            ));
+
+        return toReadResponse(projectNoticeRead);
+    }
+
     private ProjectNotice getActiveNoticeOrThrow(Long projectId, Long noticeId) {
         return projectNoticeRepository.findActiveNoticeByProjectIdAndNoticeId(projectId, noticeId)
             .orElseThrow(() -> new BaseException(ProjectErrorCode.PROJECT_NOTICE_NOT_FOUND));
@@ -152,6 +174,14 @@ public class ProjectNoticeService {
             .isRead(isRead)
             .createdAt(projectNotice.getCreatedAt())
             .updatedAt(projectNotice.getUpdatedAt())
+            .build();
+    }
+
+    private ProjectNoticeReadResponse toReadResponse(ProjectNoticeRead projectNoticeRead) {
+        return ProjectNoticeReadResponse.builder()
+            .id(projectNoticeRead.getNotice().getId())
+            .isRead(true)
+            .readAt(projectNoticeRead.getReadAt())
             .build();
     }
 
