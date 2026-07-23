@@ -50,7 +50,6 @@ jobs:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USERNAME }}
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.PROD_EC2_HOST_FINGERPRINT }}
           source: build/libs/slatto.jar
           target: /home/ubuntu/SLAT-TO-BE
 
@@ -60,7 +59,6 @@ jobs:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USERNAME }}
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.PROD_EC2_HOST_FINGERPRINT }}
           script: |
             chmod +x /home/ubuntu/deploy/deploy.sh
             /home/ubuntu/deploy/deploy.sh
