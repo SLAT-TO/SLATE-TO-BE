@@ -49,4 +49,14 @@ public class NotificationController {
 
         return ApiResponse.success(CommonSuccessCode.OK, null);
     }
+
+    @Operation(summary = "알림 전체 읽음 처리")
+    @PatchMapping("/read-all")
+    public ApiResponse<Void> markAllNotificationsAsRead(
+        @AuthenticationPrincipal Long currentUserId
+    ) {
+        notificationService.markAllNotificationsAsRead(currentUserId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, null);
+    }
 }
