@@ -8,10 +8,12 @@ import com.slatto.domain.project.dto.ProjectResponse;
 import com.slatto.domain.project.dto.ProjectUpdateRequest;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
+import com.slatto.domain.project.entity.ProjectPin;
 import com.slatto.domain.project.entity.ProjectUserRole;
 import com.slatto.domain.project.enums.ProjectStatus;
 import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
+import com.slatto.domain.project.repository.ProjectPinRepository;
 import com.slatto.domain.project.repository.ProjectRepository;
 import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.user.entity.Users;
@@ -43,6 +45,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectPinRepository projectPinRepository;
     private final ProjectUserRoleRepository projectUserRoleRepository;
     private final UserRepository userRepository;
     private final VideoRepository videoRepository;
@@ -88,6 +91,7 @@ public class ProjectService {
 
         Map<Long, List<RoleName>> roleNamesByMemberId = getRoleNamesByMemberId(currentPageMembers);
         Map<Long, String> previewImageUrlByProjectId = getPreviewImageUrlByProjectId(currentPageMembers);
+        Map<Long, LocalDateTime> pinnedAtByProjectId = getPinnedAtByProjectId(currentUserId, currentPageMembers);
 
         List<ProjectListResponse.ProjectSummary> items = currentPageMembers.stream()
             .map(projectMember -> projectConverter.toSummary(
@@ -96,6 +100,7 @@ public class ProjectService {
                 getMemberPreviewImageUrls(projectMember.getProject()),
                 roleNamesByMemberId.getOrDefault(projectMember.getId(), List.of()),
                 previewImageUrlByProjectId.get(projectMember.getProject().getId()),
+                pinnedAtByProjectId.get(projectMember.getProject().getId()),
                 projectMember.getPermission(),
                 resolveLastActivityAt(projectMember.getProject())
             ))
@@ -116,11 +121,14 @@ public class ProjectService {
             .stream()
             .map(ProjectUserRole::getRoleName)
             .toList();
+        ProjectPin projectPin = projectPinRepository.findByUserIdAndProjectId(currentUserId, projectId)
+            .orElse(null);
 
         return projectConverter.toDetailResponse(
             project,
             currentMember,
             roleNames,
+            projectPin,
             countActiveMembers(project)
         );
     }
@@ -234,6 +242,24 @@ public class ProjectService {
         }
 
         return videoRepository.findLatestThumbnailUrlsByProjectIds(projectIds);
+    }
+
+    private Map<Long, LocalDateTime> getPinnedAtByProjectId(Long userId, List<ProjectMember> projectMembers) {
+        List<Long> projectIds = projectMembers.stream()
+            .map(ProjectMember::getProject)
+            .map(Project::getId)
+            .toList();
+
+        if (projectIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return projectPinRepository.findAllByUserIdAndProjectIds(userId, projectIds)
+            .stream()
+            .collect(Collectors.toMap(
+                projectPin -> projectPin.getProject().getId(),
+                ProjectPin::getPinnedAt
+            ));
     }
 
     private LocalDateTime resolveLastActivityAt(Project project) {

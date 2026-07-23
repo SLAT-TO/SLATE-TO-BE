@@ -6,6 +6,7 @@ import com.slatto.domain.project.dto.ProjectListResponse;
 import com.slatto.domain.project.dto.ProjectResponse;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
+import com.slatto.domain.project.entity.ProjectPin;
 import com.slatto.domain.project.enums.Permission;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
@@ -63,6 +64,7 @@ public class ProjectConverter {
         List<String> memberPreviewImageUrls,
         List<RoleName> roleNames,
         String previewImageUrl,
+        LocalDateTime pinnedAt,
         Permission myPermission,
         LocalDateTime lastActivityAt
     ) {
@@ -83,8 +85,8 @@ public class ProjectConverter {
             .lastActivityAt(lastActivityAt)
             .memberPreviewImageUrls(memberPreviewImageUrls)
             .memberCount(memberCount)
-            .isPinned(false)
-            .pinnedAt(null)
+            .isPinned(pinnedAt != null)
+            .pinnedAt(pinnedAt)
             .myPermission(myPermission)
             .canEdit(admin)
             .canDelete(admin)
@@ -97,9 +99,11 @@ public class ProjectConverter {
         Project project,
         ProjectMember currentMember,
         List<RoleName> roleNames,
+        ProjectPin projectPin,
         Long memberCount
     ) {
         boolean admin = currentMember.isAdmin();
+        LocalDateTime pinnedAt = projectPin != null ? projectPin.getPinnedAt() : null;
 
         return ProjectDetailResponse.builder()
             .id(project.getId())
@@ -116,6 +120,8 @@ public class ProjectConverter {
             .myPermission(currentMember.getPermission())
             .roleNames(roleNames)
             .memberCount(memberCount)
+            .isPinned(pinnedAt != null)
+            .pinnedAt(pinnedAt)
             .canEdit(admin)
             .canDelete(admin)
             .createdAt(project.getCreatedAt())

@@ -45,6 +45,10 @@ public class ProjectDetailResponse {
 
     private Long memberCount;
 
+    private Boolean isPinned;
+
+    private LocalDateTime pinnedAt;
+
     private Boolean canEdit;
 
     private Boolean canDelete;
