@@ -6,6 +6,9 @@ import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreat
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
+import com.slatto.domain.project.repository.ProjectMemberRepository;
+import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyStatusReqDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyStatusResDTO;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
@@ -32,6 +35,7 @@ public class FeedbackDetailService {
     private final UserRepository userRepository;
     private final GuestRepository guestRepository;
     private final FeedbackDetailConverter feedbackDetailConverter;
+    private final ProjectMemberRepository projectMemberRepository;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
 
@@ -144,5 +148,29 @@ public class FeedbackDetailService {
 
         // 4. soft delete (더티 체킹)
         reply.softDelete();
+    }
+
+    @Transactional
+    public ReplyStatusResDTO changeReplyStatus(Long replyId, ReplyStatusReqDTO req) {
+
+        // 1. 답글 조회
+        FeedbackDetail reply = feedbackDetailRepository.findById(replyId)
+                .filter(r -> r.getDeletedAt() == null)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // 2. 프로젝트 멤버 확인 (답글 → 피드백 → 영상 → 프로젝트)
+        Long projectId = reply.getFeedback().getVideo().getProject().getId();
+
+        boolean isMember = projectMemberRepository
+                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, req.userId());
+
+        if (!isMember) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        // 3. 상태 변경 (더티 체킹)
+        reply.changeStatus(req.status());
+
+        return feedbackDetailConverter.toStatusResponse(reply);
     }
 }

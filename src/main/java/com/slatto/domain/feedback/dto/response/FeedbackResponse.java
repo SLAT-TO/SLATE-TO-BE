@@ -37,7 +37,8 @@ public class FeedbackResponse {
             @Schema(example = "27", nullable = true) Long endTime,
             @Schema(example = "false") Boolean status,
             LocalDateTime createdAt
-    ) {  }
+    ) {
+    }
 
     @Schema(description = "피드백 수정 응답")
     public record FeedbackUpdateResDTO(
@@ -49,7 +50,8 @@ public class FeedbackResponse {
             @Schema(example = "35", nullable = true) Long endTime,
             @Schema(example = "true") Boolean status,
             LocalDateTime updatedAt
-    ) {   }
+    ) {
+    }
 
     @Schema(description = "피드백 목록 항목")
     public record FeedbackListItemDTO(
@@ -61,19 +63,23 @@ public class FeedbackResponse {
             @Schema(example = "27", nullable = true) Long endTime,
             @Schema(example = "false") Boolean status,
             LocalDateTime createdAt
-    ) { }
+    ) {
+    }
 
     @Schema(description = "피드백 목록 응답")
     public record FeedbackListResDTO(
             List<FeedbackListItemDTO> items,
             @Schema(example = "24_5", nullable = true) String nextCursor,
             @Schema(example = "true") Boolean hasNext
-    ) { }
+    ) {
+    }
 
     @Schema(description = "피드백 해결 상태 변경 응답")
     public record FeedbackStatusResDTO(
             @Schema(example = "1") Long feedbackId,
             @Schema(example = "true") Boolean status,
             LocalDateTime updatedAt
-    ) { }
+    ) {
+    }
+
 }

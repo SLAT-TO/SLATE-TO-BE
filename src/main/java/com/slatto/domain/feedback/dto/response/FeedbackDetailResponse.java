@@ -49,4 +49,11 @@ public class FeedbackDetailResponse {
     ) {
     }
 
+    @Schema(description = "답글 해결 상태 변경 응답")
+    public record ReplyStatusResDTO(
+            @Schema(example = "1") Long replyId,
+            @Schema(example = "true") Boolean status,
+            LocalDateTime updatedAt
+    ) {
+    }
 }

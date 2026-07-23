@@ -6,6 +6,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackResponse.ActorDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListItemDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyStatusResDTO;
 import java.util.List;
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.feedback.entity.FeedbackDetail;
@@ -69,6 +70,14 @@ public class FeedbackDetailConverter {
                 reply.getFeedback().getId(),
                 actor,
                 reply.getContent(),
+                reply.getStatus(),
+                reply.getUpdatedAt()
+        );
+    }
+
+    public ReplyStatusResDTO toStatusResponse(FeedbackDetail reply) {
+        return new ReplyStatusResDTO(
+                reply.getId(),
                 reply.getStatus(),
                 reply.getUpdatedAt()
         );

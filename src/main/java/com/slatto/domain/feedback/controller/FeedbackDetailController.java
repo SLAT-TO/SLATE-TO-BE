@@ -5,6 +5,8 @@ import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreat
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
+import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyStatusReqDTO;
+import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyStatusResDTO;
 import com.slatto.domain.feedback.service.FeedbackDetailService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -73,5 +75,17 @@ public class FeedbackDetailController {
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, null));
+    }
+
+    @Operation(summary = "답글 해결 상태 변경")
+    @PatchMapping("/replies/{replyId}/status")
+    public ResponseEntity<ApiResponse<ReplyStatusResDTO>> changeReplyStatus(
+            @PathVariable Long replyId,
+            @Valid @RequestBody ReplyStatusReqDTO request
+    ) {
+        ReplyStatusResDTO result = feedbackDetailService.changeReplyStatus(replyId, request);
+
+        return ResponseEntity
+                .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
 }
