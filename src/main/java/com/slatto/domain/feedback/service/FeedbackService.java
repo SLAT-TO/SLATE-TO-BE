@@ -8,10 +8,15 @@ import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackUpdateRe
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResDTO;
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
+import com.slatto.domain.feedback.repository.FeedbackDetailRepository;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.feedback.repository.FeedbackRepository;
 import com.slatto.domain.sharelink.entity.Guest;
@@ -37,6 +42,7 @@ public class FeedbackService {
     private final FeedbackConverter feedbackConverter;
     private final ObjectProvider<EntityManager> entityManagerProvider;
     private final ProjectMemberRepository projectMemberRepository;
+    private final FeedbackDetailRepository feedbackDetailRepository;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
 
@@ -183,7 +189,20 @@ public class FeedbackService {
             nextCursor = timePart + "_" + last.getId();
         }
 
-        return feedbackConverter.toListResponse(feedbacks, nextCursor, hasNext);
+        // 6. 답글 개수 한 번에 조회
+        Map<Long, Long> replyCountMap = new HashMap<>();
+
+        if (!feedbacks.isEmpty()) {
+            List<Long> feedbackIds = feedbacks.stream()
+                    .map(Feedback::getId)
+                    .toList();
+
+            for (Object[] row : feedbackDetailRepository.countByFeedbackIds(feedbackIds)) {
+                replyCountMap.put((Long) row[0], (Long) row[1]);
+            }
+        }
+
+        return feedbackConverter.toListResponse(feedbacks, replyCountMap, nextCursor, hasNext);
     }
 
     @Transactional

@@ -30,4 +30,13 @@ public interface FeedbackDetailRepository extends JpaRepository<FeedbackDetail, 
     List<FeedbackDetail> findNextPage(@Param("feedbackId") Long feedbackId,
                                       @Param("cursor") Long cursor,
                                       Pageable pageable);
+
+    @Query("""
+            select fd.feedback.id, count(fd)
+            from FeedbackDetail fd
+            where fd.feedback.id in :feedbackIds
+              and fd.deletedAt is null
+            group by fd.feedback.id
+            """)
+    List<Object[]> countByFeedbackIds(@Param("feedbackIds") List<Long> feedbackIds);
 }

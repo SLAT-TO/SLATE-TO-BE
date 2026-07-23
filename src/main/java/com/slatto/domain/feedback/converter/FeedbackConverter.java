@@ -7,6 +7,8 @@ import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListItem
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
 import java.util.List;
+import java.util.Map;
+
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.ActorDTO;
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.video.entity.Video;
@@ -59,7 +61,7 @@ public class FeedbackConverter {
         );
     }
 
-    public FeedbackListItemDTO toListItem(Feedback feedback) {
+    public FeedbackListItemDTO toListItem(Feedback feedback, Long replyCount) {
         ActorDTO actor = (feedback.getUser() != null)
                 ? ActorDTO.fromUser(feedback.getUser())
                 : ActorDTO.fromGuest(feedback.getGuest());
@@ -72,13 +74,17 @@ public class FeedbackConverter {
                 feedback.getStartTime(),
                 feedback.getEndTime(),
                 feedback.getStatus(),
+                replyCount,
                 feedback.getCreatedAt()
         );
     }
 
-    public FeedbackListResDTO toListResponse(List<Feedback> feedbacks, String nextCursor, boolean hasNext) {
+    public FeedbackListResDTO toListResponse(List<Feedback> feedbacks,
+                                             Map<Long, Long> replyCountMap,
+                                             String nextCursor,
+                                             boolean hasNext) {
         List<FeedbackListItemDTO> items = feedbacks.stream()
-                .map(this::toListItem)
+                .map(f -> toListItem(f, replyCountMap.getOrDefault(f.getId(), 0L)))
                 .toList();
 
         return new FeedbackListResDTO(items, nextCursor, hasNext);

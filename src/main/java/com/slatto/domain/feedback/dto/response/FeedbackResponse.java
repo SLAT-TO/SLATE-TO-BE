@@ -62,6 +62,7 @@ public class FeedbackResponse {
             @Schema(example = "24", nullable = true) Long startTime,
             @Schema(example = "27", nullable = true) Long endTime,
             @Schema(example = "false") Boolean status,
+            @Schema(example = "3") Long replyCount,
             LocalDateTime createdAt
     ) {
     }
