@@ -106,6 +106,7 @@ public class PortfolioService {
             userPortfolioRoleRepository.flush();
 
             replaceRoles(portfolio, portfolio.getUser(), request.getRoles());
+            portfolio.markUpdated();
         }
 
         userPortfolioRepository.flush();
