@@ -17,6 +17,7 @@ import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.UserRepository;
+import com.slatto.domain.video.repository.VideoRepository;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +45,7 @@ public class ProjectService {
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectUserRoleRepository projectUserRoleRepository;
     private final UserRepository userRepository;
+    private final VideoRepository videoRepository;
     private final ProjectConverter projectConverter;
     private final ProjectAccessValidator projectAccessValidator;
 
@@ -82,13 +86,18 @@ public class ProjectService {
             .limit(pageSize)
             .toList();
 
+        Map<Long, List<RoleName>> roleNamesByMemberId = getRoleNamesByMemberId(currentPageMembers);
+        Map<Long, String> previewImageUrlByProjectId = getPreviewImageUrlByProjectId(currentPageMembers);
+
         List<ProjectListResponse.ProjectSummary> items = currentPageMembers.stream()
-            .map(ProjectMember::getProject)
-            .map(project -> projectConverter.toSummary(
-                project,
-                countActiveMembers(project),
-                getMemberPreviewImageUrls(project),
-                resolveLastActivityAt(project)
+            .map(projectMember -> projectConverter.toSummary(
+                projectMember.getProject(),
+                countActiveMembers(projectMember.getProject()),
+                getMemberPreviewImageUrls(projectMember.getProject()),
+                roleNamesByMemberId.getOrDefault(projectMember.getId(), List.of()),
+                previewImageUrlByProjectId.get(projectMember.getProject().getId()),
+                projectMember.getPermission(),
+                resolveLastActivityAt(projectMember.getProject())
             ))
             .toList();
 
@@ -194,6 +203,37 @@ public class ProjectService {
             .map(Users::getProfileImageUrl)
             .filter(Objects::nonNull)
             .toList();
+    }
+
+    private Map<Long, List<RoleName>> getRoleNamesByMemberId(List<ProjectMember> projectMembers) {
+        List<Long> projectMemberIds = projectMembers.stream()
+            .map(ProjectMember::getId)
+            .toList();
+
+        if (projectMemberIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return projectUserRoleRepository
+            .findAllByProjectMemberIdsOrderByProjectMemberIdAscAndIdAsc(projectMemberIds)
+            .stream()
+            .collect(Collectors.groupingBy(
+                projectUserRole -> projectUserRole.getProjectMember().getId(),
+                Collectors.mapping(ProjectUserRole::getRoleName, Collectors.toList())
+            ));
+    }
+
+    private Map<Long, String> getPreviewImageUrlByProjectId(List<ProjectMember> projectMembers) {
+        List<Long> projectIds = projectMembers.stream()
+            .map(ProjectMember::getProject)
+            .map(Project::getId)
+            .toList();
+
+        if (projectIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return videoRepository.findLatestThumbnailUrlsByProjectIds(projectIds);
     }
 
     private LocalDateTime resolveLastActivityAt(Project project) {

@@ -6,6 +6,7 @@ import com.slatto.domain.project.dto.ProjectListResponse;
 import com.slatto.domain.project.dto.ProjectResponse;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
+import com.slatto.domain.project.enums.Permission;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
 import org.springframework.stereotype.Component;
@@ -60,8 +61,13 @@ public class ProjectConverter {
         Project project,
         Long memberCount,
         List<String> memberPreviewImageUrls,
+        List<RoleName> roleNames,
+        String previewImageUrl,
+        Permission myPermission,
         LocalDateTime lastActivityAt
     ) {
+        boolean admin = myPermission == Permission.ADMIN;
+
         return ProjectListResponse.ProjectSummary.builder()
             .id(project.getId())
             .title(project.getTitle())
@@ -69,12 +75,19 @@ public class ProjectConverter {
             .lengthType(project.getLengthType())
             .status(project.getStatus())
             .kind(project.getKind())
+            .roleNames(roleNames)
+            .previewImageUrl(previewImageUrl)
             .startDate(project.getStartDate())
             .endDate(project.getEndDate())
             .deadlineProgressPercent(calculateDeadlineProgressPercent(project.getStartDate(), project.getEndDate()))
             .lastActivityAt(lastActivityAt)
             .memberPreviewImageUrls(memberPreviewImageUrls)
             .memberCount(memberCount)
+            .isPinned(false)
+            .pinnedAt(null)
+            .myPermission(myPermission)
+            .canEdit(admin)
+            .canDelete(admin)
             .createdAt(project.getCreatedAt())
             .updatedAt(project.getUpdatedAt())
             .build();
