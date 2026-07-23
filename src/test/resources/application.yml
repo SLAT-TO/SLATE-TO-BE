@@ -11,6 +11,11 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
+cloud:
+  aws:
+    s3:
+      bucket: test-bucket
+
 youtube:
   api:
     key: test-youtube-api-key

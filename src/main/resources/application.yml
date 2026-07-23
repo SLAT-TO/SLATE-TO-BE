@@ -24,6 +24,11 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
+cloud:
+  aws:
+    s3:
+      bucket: ${CLOUD_AWS_S3_BUCKET}
+
 youtube:
   api:
     key: ${YOUTUBE_API_KEY}
