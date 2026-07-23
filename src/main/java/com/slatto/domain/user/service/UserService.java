@@ -3,6 +3,9 @@ package com.slatto.domain.user.service;
 import com.slatto.domain.user.dto.UserMeResponse;
 import com.slatto.domain.user.dto.UserOnboardingRequest;
 import com.slatto.domain.user.dto.UserOnboardingResponse;
+import com.slatto.domain.user.dto.UserProfileUpdateRequest;
+import com.slatto.domain.user.dto.UserProfileUpdateResponse;
+import com.slatto.domain.user.dto.UserPublicProfileResponse;
 import com.slatto.domain.user.entity.Location;
 import com.slatto.domain.user.entity.UserCategory;
 import com.slatto.domain.user.entity.UserRole;
@@ -99,6 +102,109 @@ public class UserService {
             .id(user.getId())
             .onboardingCompleted(user.getOnboardingCompleted())
             .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    @Transactional
+    public UserProfileUpdateResponse updateProfile(Long userId, UserProfileUpdateRequest request) {
+        Users user = getUserOrThrow(userId);
+
+        if (request.getNickname() != null
+            && !request.getNickname().equals(user.getNickname())
+            && userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull(request.getNickname(), userId)) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+
+        user.updateProfile(request.getNickname(), request.getBio(), request.getProfileImageUrl());
+
+        if (request.getRoles() != null) {
+            userRoleRepository.deleteByUserId(userId);
+            userRoleRepository.flush();
+
+            List<UserRole> roles = request.getRoles()
+                .stream()
+                .distinct()
+                .map(roleName -> UserRole.create(user, roleName))
+                .toList();
+            userRoleRepository.saveAll(roles);
+        }
+
+        if (request.getCategories() != null) {
+            userCategoryRepository.deleteByUserId(userId);
+            userCategoryRepository.flush();
+
+            List<UserCategory> categories = request.getCategories()
+                .stream()
+                .distinct()
+                .map(categoryName -> UserCategory.create(user, categoryName))
+                .toList();
+            userCategoryRepository.saveAll(categories);
+        }
+
+        if (request.getLocation() != null) {
+            locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
+                .ifPresentOrElse(
+                    location -> location.changeRegion(request.getLocation()),
+                    () -> locationRepository.save(Location.createUserLocation(user, request.getLocation()))
+                );
+        }
+
+        userRepository.flush();
+
+        List<RoleName> roles = userRoleRepository.findAllByUserIdOrderByIdAsc(userId)
+            .stream()
+            .map(UserRole::getRoleName)
+            .toList();
+
+        List<CategoryName> categories = userCategoryRepository.findAllByUserIdOrderByIdAsc(userId)
+            .stream()
+            .map(UserCategory::getCategoryName)
+            .toList();
+
+        RegionName region = locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
+            .map(Location::getRegionName)
+            .orElse(null);
+
+        return UserProfileUpdateResponse.builder()
+            .id(user.getId())
+            .nickname(user.getNickname())
+            .profileImageUrl(user.getProfileImageUrl())
+            .bio(user.getBio())
+            .location(region)
+            .primaryRole(roles.isEmpty() ? null : roles.get(0))
+            .roles(roles)
+            .categories(categories)
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserPublicProfileResponse getPublicProfile(Long userId) {
+        Users user = getUserOrThrow(userId);
+
+        List<RoleName> roles = userRoleRepository.findAllByUserIdOrderByIdAsc(userId)
+            .stream()
+            .map(UserRole::getRoleName)
+            .toList();
+
+        List<CategoryName> categories = userCategoryRepository.findAllByUserIdOrderByIdAsc(userId)
+            .stream()
+            .map(UserCategory::getCategoryName)
+            .toList();
+
+        RegionName region = locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
+            .map(Location::getRegionName)
+            .orElse(null);
+
+        return UserPublicProfileResponse.builder()
+            .id(user.getId())
+            .nickname(user.getNickname())
+            .profileImageUrl(user.getProfileImageUrl())
+            .bio(user.getBio())
+            .location(region)
+            .primaryRole(roles.isEmpty() ? null : roles.get(0))
+            .roles(roles)
+            .categories(categories)
+            .stats(UserPublicProfileResponse.Stats.empty())
             .build();
     }
 

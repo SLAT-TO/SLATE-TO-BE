@@ -9,6 +9,8 @@ import com.slatto.domain.auth.exception.AuthErrorCode;
 import com.slatto.domain.auth.repository.RefreshTokenRepository;
 import com.slatto.domain.auth.support.GoogleAuthFailureReason;
 import com.slatto.domain.auth.support.OAuthState;
+import com.slatto.domain.notification.entity.NotificationSetting;
+import com.slatto.domain.notification.repository.NotificationSettingRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.UserRepository;
@@ -31,6 +33,7 @@ public class AuthService {
 	private final GoogleOAuthClient googleOAuthClient;
 	private final UserRepository userRepository;
 	private final RefreshTokenRepository refreshTokenRepository;
+	private final NotificationSettingRepository notificationSettingRepository;
 	private final JwtTokenProvider jwtTokenProvider;
 	private final FrontendProperties frontendProperties;
 
@@ -115,13 +118,17 @@ public class AuthService {
 					existing.linkSocialAccount(SocialType.GOOGLE, userInfo.sub());
 					return existing;
 				}))
-			.orElseGet(() -> userRepository.save(Users.createSocialUser(
-				userInfo.email(),
-				userInfo.name(),
-				userInfo.picture(),
-				SocialType.GOOGLE,
-				userInfo.sub()
-			)));
+			.orElseGet(() -> {
+				Users createdUser = userRepository.save(Users.createSocialUser(
+					userInfo.email(),
+					userInfo.name(),
+					userInfo.picture(),
+					SocialType.GOOGLE,
+					userInfo.sub()
+				));
+				notificationSettingRepository.save(NotificationSetting.createDefault(createdUser));
+				return createdUser;
+			});
 	}
 
 	private String issueRefreshToken(Users user) {
