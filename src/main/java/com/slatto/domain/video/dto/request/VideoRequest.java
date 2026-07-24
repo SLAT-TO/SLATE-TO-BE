@@ -25,12 +25,12 @@ public class VideoRequest {
     public record YoutubeValidateReqDTO(
             @NotBlank(message = "YouTube URL은 필수입니다.")
             @Size(max = 500, message = "YouTube URL은 최대 500자까지 입력할 수 있습니다.")
-            @Schema(example = "https://www.youtube.com/watch?v=abc123")
+            @Schema(description = "검증할 YouTube 영상 URL", example = "https://www.youtube.com/watch?v=abc123")
             String youtubeUrl,
 
             @NotNull(message = "프로젝트 ID는 필수입니다.")
             @Positive(message = "프로젝트 ID는 양수여야 합니다.")
-            @Schema(example = "10")
+            @Schema(description = "영상 등록 여부를 확인할 프로젝트 ID", example = "10")
             Long projectId
     ) {
     }
@@ -39,15 +39,15 @@ public class VideoRequest {
     public record VideoCreateReqDTO(
             @NotBlank(message = "YouTube URL은 필수입니다.")
             @Size(max = 500, message = "YouTube URL은 최대 500자까지 입력할 수 있습니다.")
-            @Schema(example = "https://www.youtube.com/watch?v=abc123")
+            @Schema(description = "등록할 YouTube 영상 URL", example = "https://www.youtube.com/watch?v=abc123")
             String youtubeUrl,
 
             @NotBlank(message = "영상 제목은 필수입니다.")
             @Size(max = 255, message = "영상 제목은 최대 255자까지 입력할 수 있습니다.")
-            @Schema(example = "프로젝트 명")
+            @Schema(description = "프로젝트에 표시할 영상 제목", example = "촬영 콘셉트 참고 영상")
             String title,
 
-            @Schema(example = "영상에 관련된 메모", nullable = true)
+            @Schema(description = "영상 관련 메모", example = "오프닝 연출 참고", nullable = true)
             String memo
     ) {
     }

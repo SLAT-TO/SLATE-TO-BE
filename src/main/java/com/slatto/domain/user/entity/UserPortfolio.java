@@ -107,7 +107,34 @@ public class UserPortfolio extends BaseEntity {
         );
     }
 
-    public void updateCustomTypeName(String customTypeName) {
+    public void updateBasicInfo(String title, String description, String comment) {
+        if (title != null) {
+            this.title = title;
+        }
+        if (description != null) {
+            this.description = description;
+        }
+        if (comment != null) {
+            this.comment = comment;
+        }
+    }
+
+    public void changeType(CategoryName type, String customTypeName) {
+        this.type = type;
         this.customTypeName = customTypeName;
+    }
+
+    public void changeKind(Kind kind, String clientName) {
+        this.kind = kind;
+        this.clientName = clientName;
+    }
+
+    public void changeVideo(String youtubeUrl, String thumbnailUrl) {
+        this.youtubeUrl = youtubeUrl;
+        this.thumbnailUrl = thumbnailUrl;
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
     }
 }

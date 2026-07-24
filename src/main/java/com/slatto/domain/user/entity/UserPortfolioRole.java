@@ -28,4 +28,14 @@ public class UserPortfolioRole {
     @Enumerated(EnumType.STRING)
     @Column(name = "role_name", nullable = false)
     private RoleName roleName;
+
+    private UserPortfolioRole(UserPortfolio portfolio, Users user, RoleName roleName) {
+        this.portfolio = portfolio;
+        this.user = user;
+        this.roleName = roleName;
+    }
+
+    public static UserPortfolioRole create(UserPortfolio portfolio, Users user, RoleName roleName) {
+        return new UserPortfolioRole(portfolio, user, roleName);
+    }
 }

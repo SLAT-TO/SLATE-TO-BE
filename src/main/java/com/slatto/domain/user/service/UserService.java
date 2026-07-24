@@ -149,6 +149,13 @@ public class UserService {
                 );
         }
 
+        boolean associationChanged = request.getRoles() != null
+            || request.getCategories() != null
+            || request.getLocation() != null;
+        if (associationChanged) {
+            user.markUpdated();
+        }
+
         userRepository.flush();
 
         List<RoleName> roles = userRoleRepository.findAllByUserIdOrderByIdAsc(userId)
