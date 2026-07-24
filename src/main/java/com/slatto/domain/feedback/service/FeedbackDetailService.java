@@ -38,6 +38,7 @@ public class FeedbackDetailService {
     private final ProjectMemberRepository projectMemberRepository;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
 
     @Transactional
     public ReplyCreateResDTO createReply(Long feedbackId, ReplyCreateReqDTO req) {
@@ -85,8 +86,10 @@ public class FeedbackDetailService {
                 .filter(f -> f.getDeletedAt() == null)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        // 2. size 기본값
-        int pageSize = (size == null || size <= 0) ? DEFAULT_PAGE_SIZE : size;
+        // 2. size 기본값 + 상한 처리
+        int pageSize = (size == null || size <= 0)
+                ? DEFAULT_PAGE_SIZE
+                : Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(0, pageSize + 1);   // hasNext 판단용 +1
 
         // 3. 조회
@@ -126,6 +129,9 @@ public class FeedbackDetailService {
 
         // 4. 수정 (더티 체킹)
         reply.update(req.content());
+
+        // 5. updatedAt 갱신 반영
+        feedbackDetailRepository.flush();
 
         return feedbackDetailConverter.toUpdateResponse(reply);
     }
@@ -170,6 +176,9 @@ public class FeedbackDetailService {
 
         // 3. 상태 변경 (더티 체킹)
         reply.changeStatus(req.status());
+
+        // 4. updatedAt 갱신 반영
+        feedbackDetailRepository.flush();
 
         return feedbackDetailConverter.toStatusResponse(reply);
     }

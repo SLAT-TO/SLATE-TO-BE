@@ -45,6 +45,7 @@ public class FeedbackService {
     private final FeedbackDetailRepository feedbackDetailRepository;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
 
     @Transactional
     public FeedbackCreateResDTO createFeedback(Long videoId, FeedbackCreateReqDTO req) {
@@ -73,7 +74,7 @@ public class FeedbackService {
                     .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
         }
 
-        // 4. Converter로 엔티티 만들고 저장
+        // 4. Converter로 엔티티 만들고 저장 (타임코드 검증은 엔티티 생성자에서)
         Feedback feedback = feedbackConverter.toFeedback(video, user, guest, req);
         Feedback saved = feedbackRepository.save(feedback);
 
@@ -97,8 +98,11 @@ public class FeedbackService {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        // 4. 수정 (더티 체킹으로 자동 반영)
-        feedback.update(req.content(), req.startTime(), req.endTime(), req.status());
+        // 4. 수정 (status 전달 안 함 — 해결 상태는 전용 API에서만 변경)
+        feedback.update(req.content(), req.startTime(), req.endTime());
+
+        // 5. updatedAt 갱신을 응답에 반영하기 위해 flush
+        feedbackRepository.flush();
 
         return feedbackConverter.toUpdateResponse(feedback);
     }
@@ -146,8 +150,10 @@ public class FeedbackService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
 
-        // 2. size 기본값 처리
-        int pageSize = (size == null || size <= 0) ? DEFAULT_PAGE_SIZE : size;
+        // 2. size 기본값 + 상한 처리
+        int pageSize = (size == null || size <= 0)
+                ? DEFAULT_PAGE_SIZE
+                : Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(0, pageSize + 1);   // hasNext 판단용으로 1개 더
 
         // 3. 커서에 따라 조회
@@ -225,6 +231,9 @@ public class FeedbackService {
 
         // 3. 상태 변경 (더티 체킹)
         feedback.changeStatus(req.status());
+
+        // 4. updatedAt 갱신 반영
+        feedbackRepository.flush();
 
         return feedbackConverter.toStatusResponse(feedback);
     }
