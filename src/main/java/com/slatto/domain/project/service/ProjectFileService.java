@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -60,10 +61,12 @@ public class ProjectFileService {
         projectAccessValidator.validateProjectAccess(projectId, currentUserId);
 
         int pageSize = normalizePageSize(size);
+        LocalDateTime cursorPinnedAt = getFileCursorPinnedAt(projectId, cursor);
         List<ProjectFile> projectFiles = projectFileRepository.findActiveFilesByCursor(
             projectId,
             keyword,
             cursor,
+            cursorPinnedAt,
             PageRequest.of(0, pageSize + 1)
         );
 
@@ -303,6 +306,14 @@ public class ProjectFileService {
             .createdAt(projectFile.getCreatedAt())
             .updatedAt(projectFile.getUpdatedAt())
             .build();
+    }
+
+    private LocalDateTime getFileCursorPinnedAt(Long projectId, Long cursor) {
+        if (cursor == null) {
+            return null;
+        }
+
+        return getActiveFileOrThrow(projectId, cursor).getPinnedAt();
     }
 
     private ProjectFilePinResponse toPinResponse(ProjectFile projectFile) {

@@ -29,7 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -79,10 +78,12 @@ public class ProjectService {
         validateActiveUserExists(currentUserId);
 
         int pageSize = normalizePageSize(size);
+        LocalDateTime cursorPinnedAt = getProjectCursorPinnedAt(currentUserId, cursor);
         List<ProjectMember> projectMembers = projectMemberRepository.findJoinedProjectsByCursor(
             currentUserId,
             status,
             cursor,
+            cursorPinnedAt,
             PageRequest.of(0, pageSize + 1)
         );
 
@@ -95,12 +96,11 @@ public class ProjectService {
         Map<Long, String> previewImageUrlByProjectId = getPreviewImageUrlByProjectId(currentPageMembers);
         Map<Long, LocalDateTime> pinnedAtByProjectId = getPinnedAtByProjectId(currentUserId, currentPageMembers);
 
-        List<ProjectMember> sortedPageMembers = sortByPinnedAt(currentPageMembers, pinnedAtByProjectId);
         Long nextCursor = hasNext && !currentPageMembers.isEmpty()
             ? currentPageMembers.get(currentPageMembers.size() - 1).getProject().getId()
             : null;
 
-        List<ProjectListResponse.ProjectSummary> items = sortedPageMembers.stream()
+        List<ProjectListResponse.ProjectSummary> items = currentPageMembers.stream()
             .map(projectMember -> projectConverter.toSummary(
                 projectMember.getProject(),
                 countActiveMembers(projectMember.getProject()),
@@ -287,18 +287,14 @@ public class ProjectService {
             ));
     }
 
-    private List<ProjectMember> sortByPinnedAt(
-        List<ProjectMember> projectMembers,
-        Map<Long, LocalDateTime> pinnedAtByProjectId
-    ) {
-        return projectMembers.stream()
-            .sorted(Comparator
-                .comparing(
-                    (ProjectMember projectMember) -> pinnedAtByProjectId.get(projectMember.getProject().getId()),
-                    Comparator.nullsLast(Comparator.reverseOrder())
-                )
-                .thenComparing(projectMember -> projectMember.getProject().getId(), Comparator.reverseOrder()))
-            .toList();
+    private LocalDateTime getProjectCursorPinnedAt(Long userId, Long cursor) {
+        if (cursor == null) {
+            return null;
+        }
+
+        return projectPinRepository.findByUserIdAndProjectId(userId, cursor)
+            .map(ProjectPin::getPinnedAt)
+            .orElse(null);
     }
 
     private LocalDateTime resolveLastActivityAt(Project project) {
