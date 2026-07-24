@@ -6,6 +6,7 @@ import com.slatto.domain.video.dto.request.VideoRequest.VideoUpdateReqDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoBookmarkUpdateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoDeleteResDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.VideoDetailResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoUpdateResDTO;
 import com.slatto.domain.video.service.VideoService;
@@ -41,6 +42,25 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class VideoController {
 
     private final VideoService videoService;
+
+    @GetMapping("/{videoId}")
+    @Operation(
+            summary = "영상 상세 조회",
+            description = "프로젝트 접근 권한이 있는 사용자가 영상 상세 정보를 조회합니다. 게스트와 작업자 모두 동일한 응답을 반환하며, " +
+                    "bookmarked는 로그인한 사용자 기준으로 계산합니다."
+    )
+    public ApiResponse<VideoDetailResDTO> getVideo(
+            @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "프로젝트 ID", example = "10")
+            @PathVariable @Positive Long projectId,
+            @Parameter(description = "조회할 영상 ID", example = "1")
+            @PathVariable @Positive Long videoId
+    ) {
+        return ApiResponse.success(
+                CommonSuccessCode.OK,
+                videoService.getVideo(memberId, projectId, videoId)
+        );
+    }
 
     @PatchMapping("/{videoId}/bookmark")
     @Operation(

@@ -8,6 +8,50 @@ import java.util.List;
 
 public class VideoResponse {
 
+    @Schema(description = "영상 상세 조회 응답")
+    public record VideoDetailResDTO(
+            @Schema(description = "영상 ID", example = "1") Long videoId,
+            @Schema(description = "프로젝트 ID", example = "10") Long projectId,
+            @Schema(description = "영상 제목", example = "버전명") String title,
+            @Schema(description = "YouTube 영상 URL", example = "https://www.youtube.com/watch?v=abc123")
+            String youtubeUrl,
+            @Schema(description = "YouTube 영상 ID", example = "abc123") String youtubeVideoId,
+            @Schema(description = "영상 썸네일 URL", example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg")
+            String thumbnailUrl,
+            @Schema(description = "영상 진행 상태", example = "IN_PROGRESS") String progressStatus,
+            @Schema(description = "로그인한 사용자의 북마크 여부", example = "true") boolean bookmarked,
+            @Schema(description = "로그인한 사용자의 읽지 않은 피드백 개수", example = "0")
+            int unreadCommentCount,
+            @Schema(description = "프로젝트 소개", example = "프로젝트 소개글") String description,
+            @Schema(description = "영상 메모", example = "영상에 관련된 메모", nullable = true) String memo,
+            @Schema(description = "프로젝트 태그", example = "[\"뮤직비디오\", \"단편\", \"외주\", \"연출\"]")
+            List<String> projectTags,
+            @Schema(description = "생성일", example = "2026-05-20T00:00:00") LocalDateTime createdAt,
+            @Schema(description = "수정일", example = "2026-05-25T00:00:00") LocalDateTime updatedAt
+    ) {
+        public static VideoDetailResDTO from(Video video, boolean bookmarked, List<String> projectTags) {
+            // TODO: 피드백 도메인의 사용자별 읽지 않은 피드백 개수 조회 기능 연동 후 실제 값으로 교체
+            int unreadCommentCount = 0;
+
+            return new VideoDetailResDTO(
+                    video.getId(),
+                    video.getProject().getId(),
+                    video.getTitle(),
+                    video.getYoutubeUrl(),
+                    video.getYoutubeVideoId(),
+                    video.getThumbnailUrl(),
+                    video.getProgressStatus().name(),
+                    bookmarked,
+                    unreadCommentCount,
+                    video.getProject().getDescription(),
+                    video.getMemo(),
+                    projectTags,
+                    video.getCreatedAt(),
+                    video.getUpdatedAt()
+            );
+        }
+    }
+
     @Schema(description = "영상 북마크 상태 변경 응답")
     public record VideoBookmarkUpdateResDTO(
             @Schema(description = "영상 ID", example = "1") Long videoId,
