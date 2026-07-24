@@ -4,7 +4,9 @@ import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.video.client.YoutubeApiClient;
 import com.slatto.domain.video.client.YoutubeApiClient.YoutubeVideoInfo;
 import com.slatto.domain.video.dto.request.VideoRequest.VideoCreateReqDTO;
+import com.slatto.domain.video.dto.request.VideoRequest.VideoBookmarkUpdateReqDTO;
 import com.slatto.domain.video.dto.request.VideoRequest.VideoUpdateReqDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.VideoBookmarkUpdateResDTO;
 import com.slatto.domain.video.dto.request.VideoRequest.YoutubeValidateReqDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoDeleteResDTO;
@@ -13,6 +15,7 @@ import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoUpdateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.YoutubeValidateResDTO;
 import com.slatto.domain.video.entity.Video;
+import com.slatto.domain.video.entity.VideoBookmark;
 import com.slatto.domain.video.repository.VideoBookmarkRepository;
 import com.slatto.domain.video.repository.VideoProjectAccessRepository;
 import com.slatto.domain.video.repository.VideoRepository;
@@ -40,12 +43,41 @@ public class VideoService {
     private static final String PRIVATE_VIDEO_MESSAGE = "비공개 영상은 등록할 수 없습니다.";
     private static final String NOT_EMBEDDABLE_MESSAGE = "재생할 수 없는 영상은 등록할 수 없습니다.";
     private static final String VIDEO_DELETED_MESSAGE = "영상이 삭제되었습니다.";
+    private static final String BOOKMARK_UPDATED_MESSAGE = "북마크 상태가 변경되었습니다.";
 
     private final VideoProjectAccessRepository projectAccessRepository;
     private final VideoRepository videoRepository;
     private final VideoBookmarkRepository videoBookmarkRepository;
     private final YoutubeUrlParser youtubeUrlParser;
     private final YoutubeApiClient youtubeApiClient;
+
+    @Transactional
+    public VideoBookmarkUpdateResDTO updateBookmark(
+            Long memberId,
+            Long projectId,
+            Long videoId,
+            VideoBookmarkUpdateReqDTO request
+    ) {
+        if (!projectAccessRepository.projectExistsById(projectId)) {
+            throw new BaseException(CommonErrorCode.NOT_FOUND);
+        }
+        if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+        VideoBookmark bookmark = videoBookmarkRepository.findByVideoIdAndUserId(videoId, memberId)
+                .orElse(null);
+
+        if (request.bookmarked() && bookmark == null) {
+            videoBookmarkRepository.save(video, memberId);
+        } else if (!request.bookmarked() && bookmark != null) {
+            videoBookmarkRepository.delete(bookmark);
+        }
+
+        return new VideoBookmarkUpdateResDTO(videoId, request.bookmarked(), BOOKMARK_UPDATED_MESSAGE);
+    }
 
     public YoutubeValidateResDTO validateYoutubeUrl(Long memberId, YoutubeValidateReqDTO request) {
         if (projectAccessRepository.findProjectById(request.projectId()).isEmpty()) {

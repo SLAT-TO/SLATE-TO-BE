@@ -1,7 +1,9 @@
 package com.slatto.domain.video.controller;
 
 import com.slatto.domain.video.dto.request.VideoRequest.VideoCreateReqDTO;
+import com.slatto.domain.video.dto.request.VideoRequest.VideoBookmarkUpdateReqDTO;
 import com.slatto.domain.video.dto.request.VideoRequest.VideoUpdateReqDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.VideoBookmarkUpdateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoDeleteResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
@@ -39,6 +41,26 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class VideoController {
 
     private final VideoService videoService;
+
+    @PatchMapping("/{videoId}/bookmark")
+    @Operation(
+            summary = "영상 북마크 상태 변경",
+            description = "프로젝트 멤버가 영상의 북마크 상태를 변경합니다. bookmarked에 원하는 상태를 전달하며, " +
+                    "이미 같은 상태인 경우에도 성공으로 처리합니다."
+    )
+    public ApiResponse<VideoBookmarkUpdateResDTO> updateBookmark(
+            @AuthenticationPrincipal Long memberId,
+            @Parameter(description = "프로젝트 ID", example = "10")
+            @PathVariable @Positive Long projectId,
+            @Parameter(description = "북마크 상태를 변경할 영상 ID", example = "1")
+            @PathVariable @Positive Long videoId,
+            @Valid @RequestBody VideoBookmarkUpdateReqDTO request
+    ) {
+        return ApiResponse.success(
+                CommonSuccessCode.OK,
+                videoService.updateBookmark(memberId, projectId, videoId, request)
+        );
+    }
 
     @PatchMapping("/{videoId}")
     @Operation(summary = "영상 수정",

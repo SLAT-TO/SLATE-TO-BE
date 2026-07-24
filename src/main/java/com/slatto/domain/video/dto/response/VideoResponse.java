@@ -8,6 +8,14 @@ import java.util.List;
 
 public class VideoResponse {
 
+    @Schema(description = "영상 북마크 상태 변경 응답")
+    public record VideoBookmarkUpdateResDTO(
+            @Schema(description = "영상 ID", example = "1") Long videoId,
+            @Schema(description = "변경된 북마크 상태", example = "true") boolean bookmarked,
+            @Schema(description = "처리 결과 메시지", example = "북마크 상태가 변경되었습니다.") String message
+    ) {
+    }
+
     @Schema(description = "영상 수정 응답")
     public record VideoUpdateResDTO(
             @Schema(example = "1") Long videoId,

@@ -9,6 +9,14 @@ import jakarta.validation.constraints.Size;
 
 public class VideoRequest {
 
+    @Schema(description = "영상 북마크 상태 변경 요청")
+    public record VideoBookmarkUpdateReqDTO(
+            @NotNull(message = "북마크 상태는 필수입니다.")
+            @Schema(description = "변경할 북마크 상태", example = "true")
+            Boolean bookmarked
+    ) {
+    }
+
     @Schema(description = "영상 수정 요청")
     public record VideoUpdateReqDTO(
             @Pattern(regexp = "(?s).*\\S.*", message = "영상 제목은 공백일 수 없습니다.")
