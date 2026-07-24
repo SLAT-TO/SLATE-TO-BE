@@ -20,7 +20,6 @@ import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoUpdateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.YoutubeValidateResDTO;
 import com.slatto.domain.video.entity.Video;
-import com.slatto.domain.video.entity.VideoBookmark;
 import com.slatto.domain.video.repository.VideoBookmarkRepository;
 import com.slatto.domain.video.repository.VideoProjectAccessRepository;
 import com.slatto.domain.video.repository.VideoRepository;
@@ -92,13 +91,10 @@ public class VideoService {
 
         Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
-        VideoBookmark bookmark = videoBookmarkRepository.findByVideoIdAndUserId(videoId, memberId)
-                .orElse(null);
-
-        if (request.bookmarked() && bookmark == null) {
-            videoBookmarkRepository.save(video, memberId);
-        } else if (!request.bookmarked() && bookmark != null) {
-            videoBookmarkRepository.delete(bookmark);
+        if (request.bookmarked()) {
+            videoBookmarkRepository.insertIgnore(video.getId(), memberId);
+        } else {
+            videoBookmarkRepository.deleteByVideoIdAndUserId(video.getId(), memberId);
         }
 
         return new VideoBookmarkUpdateResDTO(videoId, request.bookmarked(), BOOKMARK_UPDATED_MESSAGE);

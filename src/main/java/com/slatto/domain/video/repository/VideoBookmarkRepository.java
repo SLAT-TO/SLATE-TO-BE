@@ -1,7 +1,5 @@
 package com.slatto.domain.video.repository;
 
-import com.slatto.domain.user.entity.Users;
-import com.slatto.domain.video.entity.Video;
 import com.slatto.domain.video.entity.VideoBookmark;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +15,36 @@ public class VideoBookmarkRepository {
 
     private final ObjectProvider<EntityManager> entityManagerProvider;
 
+    public void insertIgnore(Long videoId, Long userId) {
+        entityManagerProvider.getObject().createNativeQuery("""
+                        insert ignore into video_bookmark (video_id, user_id, created_at, updated_at)
+                        values (:videoId, :userId, current_timestamp, current_timestamp)
+                        """)
+                .setParameter("videoId", videoId)
+                .setParameter("userId", userId)
+                .executeUpdate();
+    }
+
+    public void deleteByVideoIdAndUserId(Long videoId, Long userId) {
+        entityManagerProvider.getObject().createQuery("""
+                        delete from VideoBookmark bookmark
+                        where bookmark.video.id = :videoId and bookmark.user.id = :userId
+                        """)
+                .setParameter("videoId", videoId)
+                .setParameter("userId", userId)
+                .executeUpdate();
+    }
+
+    public long countByVideoIdAndUserId(Long videoId, Long userId) {
+        return entityManagerProvider.getObject().createQuery("""
+                        select count(bookmark) from VideoBookmark bookmark
+                        where bookmark.video.id = :videoId and bookmark.user.id = :userId
+                        """, Long.class)
+                .setParameter("videoId", videoId)
+                .setParameter("userId", userId)
+                .getSingleResult();
+    }
+
     public Optional<VideoBookmark> findByVideoIdAndUserId(Long videoId, Long userId) {
         return entityManagerProvider.getObject().createQuery("""
                         select bookmark from VideoBookmark bookmark
@@ -26,16 +54,6 @@ public class VideoBookmarkRepository {
                 .setParameter("userId", userId)
                 .getResultStream()
                 .findFirst();
-    }
-
-    public void save(Video video, Long userId) {
-        EntityManager entityManager = entityManagerProvider.getObject();
-        Users user = entityManager.getReference(Users.class, userId);
-        entityManager.persist(VideoBookmark.create(video, user));
-    }
-
-    public void delete(VideoBookmark bookmark) {
-        entityManagerProvider.getObject().remove(bookmark);
     }
 
     public List<Long> findBookmarkedVideoIdsByUserIdAndVideoIds(Long userId, List<Long> videoIds) {
