@@ -3,6 +3,8 @@ package com.slatto.domain.feedback.entity;
 import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.user.entity.Users;
+import com.slatto.global.exception.BaseException;
+import com.slatto.global.response.code.CommonErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -45,6 +47,10 @@ public class FeedbackDetail extends BaseEntity {
     private LocalDateTime deletedAt;
 
     private FeedbackDetail(Feedback feedback, Users user, Guest guest, String content) {
+        // 작성자는 회원/게스트 중 정확히 하나여야 함
+        if ((user == null) == (guest == null)) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
         this.feedback = feedback;
         this.user = user;
         this.guest = guest;
