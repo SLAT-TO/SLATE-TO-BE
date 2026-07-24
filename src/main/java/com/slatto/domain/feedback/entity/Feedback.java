@@ -55,6 +55,10 @@ public class Feedback extends BaseEntity {
 
     private Feedback(Video video, Users user, Guest guest,
                      String content, Long startTime, Long endTime) {
+        // 작성자는 회원/게스트 중 정확히 하나여야 함
+        if ((user == null) == (guest == null)) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
         this.video = video;
         this.user = user;
         this.guest = guest;
