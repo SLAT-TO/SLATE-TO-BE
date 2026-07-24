@@ -103,7 +103,7 @@ public class ProjectService {
         Project project = projectAccessValidator.getProjectOrThrow(projectId);
         ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
 
-        List<RoleName> myRoles = projectUserRoleRepository.findAllByProjectMemberId(currentMember.getId())
+        List<RoleName> roleNames = projectUserRoleRepository.findAllByProjectMemberId(currentMember.getId())
             .stream()
             .map(ProjectUserRole::getRoleName)
             .toList();
@@ -111,7 +111,7 @@ public class ProjectService {
         return projectConverter.toDetailResponse(
             project,
             currentMember,
-            myRoles,
+            roleNames,
             countActiveMembers(project)
         );
     }
@@ -128,7 +128,6 @@ public class ProjectService {
         project.updateInfo(
             request.getTitle(),
             request.getType(),
-            request.getCustomTypeName(),
             request.getLengthType(),
             request.getDescription(),
             request.getEndDate(),

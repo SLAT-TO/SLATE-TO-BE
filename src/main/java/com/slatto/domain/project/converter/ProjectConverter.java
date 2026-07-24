@@ -26,7 +26,6 @@ public class ProjectConverter {
             ownerUser,
             request.getTitle(),
             request.getType(),
-            request.getCustomTypeName(),
             request.getLengthType(),
             request.getDescription(),
             request.getEndDate(),
@@ -84,7 +83,7 @@ public class ProjectConverter {
     public ProjectDetailResponse toDetailResponse(
         Project project,
         ProjectMember currentMember,
-        List<RoleName> myRoles,
+        List<RoleName> roleNames,
         Long memberCount
     ) {
         boolean admin = currentMember.isAdmin();
@@ -102,7 +101,7 @@ public class ProjectConverter {
             .kind(project.getKind())
             .owner(toOwnerSummary(project.getOwnerUser()))
             .myPermission(currentMember.getPermission())
-            .myRoles(myRoles)
+            .roleNames(roleNames)
             .memberCount(memberCount)
             .canEdit(admin)
             .canDelete(admin)
