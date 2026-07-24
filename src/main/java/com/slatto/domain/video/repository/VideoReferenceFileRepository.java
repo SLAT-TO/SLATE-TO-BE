@@ -1,5 +1,6 @@
 package com.slatto.domain.video.repository;
 
+import com.slatto.domain.project.entity.ProjectFile;
 import com.slatto.domain.video.entity.VideoReferenceFile;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -43,6 +44,19 @@ public interface VideoReferenceFileRepository extends JpaRepository<VideoReferen
     long countActiveReferenceFile(
         @Param("projectId") Long projectId,
         @Param("videoId") Long videoId,
+        @Param("projectFileId") Long projectFileId
+    );
+
+    @Query("""
+        select pf
+        from ProjectFile pf
+        join fetch pf.uploader uploader
+        where pf.project.id = :projectId
+            and pf.id = :projectFileId
+            and pf.deletedAt is null
+        """)
+    Optional<ProjectFile> findActiveProjectFile(
+        @Param("projectId") Long projectId,
         @Param("projectFileId") Long projectFileId
     );
 
