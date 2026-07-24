@@ -51,4 +51,13 @@ public class VideoRequest {
             String memo
     ) {
     }
+
+    @Schema(description = "영상 참조 파일 연결 요청")
+    public record VideoReferenceFileCreateReqDTO(
+            @NotNull(message = "프로젝트 파일 ID는 필수입니다.")
+            @Positive(message = "프로젝트 파일 ID는 양수여야 합니다.")
+            @Schema(description = "영상에 연결할 프로젝트 파일 ID", example = "10")
+            Long projectFileId
+    ) {
+    }
 }
