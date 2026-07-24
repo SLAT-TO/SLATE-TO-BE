@@ -49,10 +49,6 @@ public class ProjectDetailResponse {
 
     private LocalDateTime pinnedAt;
 
-    private Boolean canEdit;
-
-    private Boolean canDelete;
-
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

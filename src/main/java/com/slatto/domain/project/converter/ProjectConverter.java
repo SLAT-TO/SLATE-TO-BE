@@ -77,8 +77,6 @@ public class ProjectConverter {
         Permission myPermission,
         LocalDateTime lastActivityAt
     ) {
-        boolean admin = myPermission == Permission.ADMIN;
-
         return ProjectListResponse.ProjectSummary.builder()
             .id(project.getId())
             .title(project.getTitle())
@@ -97,8 +95,6 @@ public class ProjectConverter {
             .isPinned(pinnedAt != null)
             .pinnedAt(pinnedAt)
             .myPermission(myPermission)
-            .canEdit(admin)
-            .canDelete(admin)
             .createdAt(project.getCreatedAt())
             .updatedAt(project.getUpdatedAt())
             .build();
@@ -111,7 +107,6 @@ public class ProjectConverter {
         ProjectPin projectPin,
         Long memberCount
     ) {
-        boolean admin = currentMember.isAdmin();
         LocalDateTime pinnedAt = projectPin != null ? projectPin.getPinnedAt() : null;
 
         return ProjectDetailResponse.builder()
@@ -131,8 +126,6 @@ public class ProjectConverter {
             .memberCount(memberCount)
             .isPinned(pinnedAt != null)
             .pinnedAt(pinnedAt)
-            .canEdit(admin)
-            .canDelete(admin)
             .createdAt(project.getCreatedAt())
             .updatedAt(project.getUpdatedAt())
             .build();

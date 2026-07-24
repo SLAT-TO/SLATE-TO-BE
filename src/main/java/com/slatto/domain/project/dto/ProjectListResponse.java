@@ -61,10 +61,6 @@ public class ProjectListResponse {
 
         private Permission myPermission;
 
-        private Boolean canEdit;
-
-        private Boolean canDelete;
-
         private LocalDateTime createdAt;
 
         private LocalDateTime updatedAt;
