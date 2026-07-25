@@ -139,10 +139,11 @@ public class ProjectService {
     @Transactional
     public ProjectPinResponse pinProject(Long projectId, Long currentUserId) {
         Project project = projectAccessValidator.getProjectOrThrow(projectId);
-        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+        projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
 
+        projectPinRepository.insertIgnore(currentUserId, projectId);
         ProjectPin projectPin = projectPinRepository.findByUserIdAndProjectId(currentUserId, projectId)
-            .orElseGet(() -> projectPinRepository.save(ProjectPin.create(currentMember.getUser(), project)));
+            .orElseThrow(() -> new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR));
 
         return projectConverter.toPinResponse(project.getId(), projectPin.getPinnedAt());
     }
