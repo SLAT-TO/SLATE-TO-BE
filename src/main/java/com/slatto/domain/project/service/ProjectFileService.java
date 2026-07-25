@@ -16,9 +16,12 @@ import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import com.slatto.global.storage.StorageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +33,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProjectFileService {
@@ -102,6 +106,7 @@ public class ProjectFileService {
         String contentType = file.getContentType();
         String storageKey = createStorageKey(projectId, request.getFileName());
         storageService.upload(file, storageKey);
+        registerStorageCleanupOnRollback(storageKey);
 
         ProjectFile projectFile = ProjectFile.create(
             project,
@@ -117,6 +122,31 @@ public class ProjectFileService {
         ProjectFile savedFile = projectFileRepository.save(projectFile);
 
         return toResponse(savedFile);
+    }
+
+    private void registerStorageCleanupOnRollback(String storageKey) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_COMMITTED) {
+                    return;
+                }
+
+                deleteUploadedFileQuietly(storageKey);
+            }
+        });
+    }
+
+    private void deleteUploadedFileQuietly(String storageKey) {
+        try {
+            storageService.delete(storageKey);
+        } catch (RuntimeException exception) {
+            log.warn("Failed to clean up S3 object after project file upload rollback. storageKey={}", storageKey, exception);
+        }
     }
 
     @Transactional
