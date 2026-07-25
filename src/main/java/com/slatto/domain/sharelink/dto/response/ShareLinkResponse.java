@@ -53,4 +53,25 @@ public class ShareLinkResponse {
             @Schema(example = "2026-07-24T14:00:00")
             LocalDateTime createdAt
     ) { }
+
+    @Schema(description = "공유 링크 조회 응답 (소유자용)")
+    public record ShareLinkInfoResDTO(
+            @Schema(example = "5")
+            Long shareLinkId,
+
+            @Schema(example = "10")
+            Long videoId,
+
+            @Schema(example = "550e8400-e29b-41d4-a716-446655440000")
+            String token,
+
+            @Schema(example = "true")
+            Boolean isActive,
+
+            @Schema(example = "2026-12-31T23:59:59", nullable = true)
+            LocalDateTime expiredAt,
+
+            @Schema(example = "2026-07-24T14:00:00")
+            LocalDateTime createdAt
+    ) { }
 }

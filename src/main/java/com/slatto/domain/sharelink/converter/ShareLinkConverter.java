@@ -3,6 +3,7 @@ package com.slatto.domain.sharelink.converter;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
 import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.sharelink.entity.ShareLink;
 import com.slatto.domain.video.entity.Video;
@@ -46,6 +47,17 @@ public class ShareLinkConverter {
                 guest.getShareLink().getId(),
                 guest.getName(),
                 guest.getCreatedAt()
+        );
+    }
+
+    public ShareLinkInfoResDTO toInfoResponse(ShareLink shareLink) {
+        return new ShareLinkInfoResDTO(
+                shareLink.getId(),
+                shareLink.getVideo().getId(),
+                shareLink.getToken(),
+                shareLink.getIsActive(),
+                shareLink.getExpiredAt(),
+                shareLink.getCreatedAt()
         );
     }
 }

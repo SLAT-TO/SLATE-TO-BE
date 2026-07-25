@@ -5,6 +5,8 @@ import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreat
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.GuestCreateReqDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.slatto.domain.sharelink.service.ShareLinkService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -57,6 +59,19 @@ public class ShareLinkController {
         return ApiResponse.success(
                 CommonSuccessCode.CREATED,
                 shareLinkService.registerGuest(token, req)
+        );
+    }
+
+    @Operation(summary = "공유 링크 조회 (소유자용)", description = "영상의 공유 링크를 조회합니다. 프로젝트 멤버만 가능합니다.")
+    @GetMapping("/videos/{videoId}/share-links")
+    public ApiResponse<
+            ShareLinkInfoResDTO> getShareLinkByVideo(
+            @PathVariable Long videoId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ApiResponse.success(
+                CommonSuccessCode.OK,
+                shareLinkService.getShareLinkByVideo(videoId, userId)
         );
     }
 }
