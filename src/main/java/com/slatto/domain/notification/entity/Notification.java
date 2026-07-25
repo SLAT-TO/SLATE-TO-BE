@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Notification extends BaseEntity {
 
+    private static final boolean DEFAULT_READ_STATUS = false;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -51,6 +53,26 @@ public class Notification extends BaseEntity {
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    public static Notification create(
+        Users user,
+        Project project,
+        NotificationType type,
+        String content,
+        String targetType,
+        Long targetId
+    ) {
+        Notification notification = new Notification();
+        notification.user = user;
+        notification.project = project;
+        notification.type = type;
+        notification.content = content;
+        notification.targetType = targetType;
+        notification.targetId = targetId;
+        notification.isRead = DEFAULT_READ_STATUS;
+
+        return notification;
+    }
 
     public void markAsRead() {
         if (Boolean.TRUE.equals(isRead)) {
