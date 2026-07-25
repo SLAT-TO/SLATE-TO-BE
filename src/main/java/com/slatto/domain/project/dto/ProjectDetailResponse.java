@@ -41,7 +41,7 @@ public class ProjectDetailResponse {
 
     private Permission myPermission;
 
-    private List<RoleName> myRoles;
+    private List<RoleName> roleNames;
 
     private Long memberCount;
 
