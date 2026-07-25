@@ -83,8 +83,7 @@ public class NotificationService {
     public void markAllNotificationsAsRead(Long currentUserId) {
         validateActiveUser(currentUserId);
 
-        notificationRepository.findAllByUserIdAndIsReadFalseAndDeletedAtIsNull(currentUserId)
-            .forEach(Notification::markAsRead);
+        notificationRepository.markAllAsReadByUserId(currentUserId, LocalDateTime.now());
     }
 
     private void validateActiveUser(Long currentUserId) {
