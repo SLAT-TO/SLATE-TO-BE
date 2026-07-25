@@ -1,6 +1,8 @@
 package com.slatto.domain.video.dto.response;
 
+import com.slatto.domain.project.entity.ProjectFile;
 import com.slatto.domain.video.entity.Video;
+import com.slatto.domain.video.entity.VideoReferenceFile;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
@@ -138,6 +140,85 @@ public class VideoResponse {
             return new VideoItemResDTO(
                     video.getId(), video.getTitle(), video.getThumbnailUrl(), bookmarked,
                     video.getProgressStatus().name(), 0, video.getCreatedAt(), video.getUpdatedAt()
+            );
+        }
+    }
+
+    @Schema(description = "영상 참조 파일 목록 조회 응답")
+    public record VideoReferenceFileListResDTO(
+            @Schema(description = "참조 파일 목록")
+            List<VideoReferenceFileItemResDTO> items,
+            @Schema(description = "다음 페이지 조회 커서", example = "9", nullable = true)
+            Long nextCursor,
+            @Schema(description = "다음 목록 존재 여부", example = "true")
+            boolean hasNext
+    ) {
+    }
+
+    @Schema(description = "영상 참조 파일 목록 항목")
+    public record VideoReferenceFileItemResDTO(
+            @Schema(example = "1") Long referenceFileId,
+            @Schema(example = "10") Long projectFileId,
+            @Schema(example = "reference.pdf") String fileName,
+            @Schema(example = "application/pdf") String contentType,
+            @Schema(example = "1048576") Long fileSize,
+            @Schema(example = "false") Boolean isFinal,
+            VideoReferenceFileUploaderResDTO uploader,
+            LocalDateTime createdAt
+    ) {
+        public static VideoReferenceFileItemResDTO from(VideoReferenceFile referenceFile) {
+            ProjectFile projectFile = referenceFile.getProjectFile();
+
+            return new VideoReferenceFileItemResDTO(
+                    referenceFile.getId(),
+                    projectFile.getId(),
+                    projectFile.getFileName(),
+                    projectFile.getContentType(),
+                    projectFile.getFileSize(),
+                    projectFile.getIsFinal(),
+                    VideoReferenceFileUploaderResDTO.from(projectFile),
+                    referenceFile.getCreatedAt()
+            );
+        }
+    }
+
+    @Schema(description = "영상 참조 파일 업로더 정보")
+    public record VideoReferenceFileUploaderResDTO(
+            @Schema(example = "1") Long id,
+            @Schema(example = "김수민") String nickname
+    ) {
+        public static VideoReferenceFileUploaderResDTO from(ProjectFile projectFile) {
+            return new VideoReferenceFileUploaderResDTO(
+                    projectFile.getUploader().getId(),
+                    projectFile.getUploader().getNickname()
+            );
+        }
+    }
+
+    @Schema(description = "영상 참조 파일 연결 응답")
+    public record VideoReferenceFileCreateResDTO(
+            @Schema(example = "1") Long referenceFileId,
+            @Schema(example = "10") Long projectFileId,
+            LocalDateTime createdAt
+    ) {
+        public static VideoReferenceFileCreateResDTO from(VideoReferenceFile referenceFile) {
+            return new VideoReferenceFileCreateResDTO(
+                    referenceFile.getId(),
+                    referenceFile.getProjectFile().getId(),
+                    referenceFile.getCreatedAt()
+            );
+        }
+    }
+
+    @Schema(description = "영상 참조 파일 연결 제거 응답")
+    public record VideoReferenceFileDeleteResDTO(
+            @Schema(example = "1") Long referenceFileId,
+            LocalDateTime deletedAt
+    ) {
+        public static VideoReferenceFileDeleteResDTO from(VideoReferenceFile referenceFile) {
+            return new VideoReferenceFileDeleteResDTO(
+                    referenceFile.getId(),
+                    referenceFile.getDeletedAt()
             );
         }
     }
