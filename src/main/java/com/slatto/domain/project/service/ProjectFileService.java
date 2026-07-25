@@ -3,6 +3,7 @@ package com.slatto.domain.project.service;
 import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
 import com.slatto.domain.project.dto.ProjectFileResponse;
 import com.slatto.domain.project.dto.ProjectFileListResponse;
+import com.slatto.domain.project.dto.ProjectFilePinResponse;
 import com.slatto.domain.project.dto.ProjectFileUpdateRequest;
 import com.slatto.domain.project.dto.ProjectFileUploadRequest;
 import com.slatto.domain.project.entity.Project;
@@ -24,6 +25,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -63,10 +65,12 @@ public class ProjectFileService {
         projectAccessValidator.validateProjectAccess(projectId, currentUserId);
 
         int pageSize = normalizePageSize(size);
+        LocalDateTime cursorPinnedAt = getFileCursorPinnedAt(projectId, cursor);
         List<ProjectFile> projectFiles = projectFileRepository.findActiveFilesByCursor(
             projectId,
             keyword,
             cursor,
+            cursorPinnedAt,
             PageRequest.of(0, pageSize + 1)
         );
 
@@ -114,10 +118,6 @@ public class ProjectFileService {
             request.getIsFinal(),
             storageKey
         );
-
-        if (Boolean.TRUE.equals(request.getIsPinned())) {
-            projectFile.pin();
-        }
 
         ProjectFile savedFile = projectFileRepository.save(projectFile);
 
@@ -167,6 +167,38 @@ public class ProjectFileService {
     }
 
     @Transactional
+    public ProjectFilePinResponse pinProjectFile(
+        Long projectId,
+        Long fileId,
+        Long currentUserId
+    ) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+        ProjectFile projectFile = getActiveFileOrThrow(projectId, fileId);
+
+        validateFileEditable(projectFile, currentMember, currentUserId);
+        projectFile.pin();
+
+        return toPinResponse(projectFile);
+    }
+
+    @Transactional
+    public ProjectFilePinResponse unpinProjectFile(
+        Long projectId,
+        Long fileId,
+        Long currentUserId
+    ) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+        ProjectFile projectFile = getActiveFileOrThrow(projectId, fileId);
+
+        validateFileEditable(projectFile, currentMember, currentUserId);
+        projectFile.unpin();
+
+        return toPinResponse(projectFile);
+    }
+
+    @Transactional
     public void deleteProjectFile(Long projectId, Long fileId, Long currentUserId) {
         projectAccessValidator.getProjectOrThrow(projectId);
         ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
@@ -208,17 +240,6 @@ public class ProjectFileService {
         if (request.getIsFinal() != null) {
             projectFile.changeFinal(request.getIsFinal());
         }
-
-        if (request.getIsPinned() == null) {
-            return;
-        }
-
-        if (Boolean.TRUE.equals(request.getIsPinned())) {
-            projectFile.pin();
-            return;
-        }
-
-        projectFile.unpin();
     }
 
     private void validateFile(MultipartFile file, String fileName) {
@@ -314,6 +335,22 @@ public class ProjectFileService {
                 .build())
             .createdAt(projectFile.getCreatedAt())
             .updatedAt(projectFile.getUpdatedAt())
+            .build();
+    }
+
+    private LocalDateTime getFileCursorPinnedAt(Long projectId, Long cursor) {
+        if (cursor == null) {
+            return null;
+        }
+
+        return getActiveFileOrThrow(projectId, cursor).getPinnedAt();
+    }
+
+    private ProjectFilePinResponse toPinResponse(ProjectFile projectFile) {
+        return ProjectFilePinResponse.builder()
+            .id(projectFile.getId())
+            .isPinned(projectFile.isPinned())
+            .pinnedAt(projectFile.getPinnedAt())
             .build();
     }
 }

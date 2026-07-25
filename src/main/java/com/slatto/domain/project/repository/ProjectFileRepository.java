@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +21,23 @@ public interface ProjectFileRepository extends JpaRepository<ProjectFile, Long> 
             and (:keyword is null
                 or :keyword = ''
                 or lower(pf.fileName) like lower(concat('%', :keyword, '%')))
-            and (:cursor is null or pf.id < :cursor)
+            and (
+                :cursor is null
+                or (
+                    :cursorPinnedAt is not null
+                    and (
+                        (pf.pinnedAt is not null
+                            and (pf.pinnedAt < :cursorPinnedAt
+                                or (pf.pinnedAt = :cursorPinnedAt and pf.id < :cursor)))
+                        or pf.pinnedAt is null
+                    )
+                )
+                or (
+                    :cursorPinnedAt is null
+                    and pf.pinnedAt is null
+                    and pf.id < :cursor
+                )
+            )
         order by
             case when pf.pinnedAt is null then 1 else 0 end asc,
             pf.pinnedAt desc,
@@ -30,6 +47,7 @@ public interface ProjectFileRepository extends JpaRepository<ProjectFile, Long> 
         @Param("projectId") Long projectId,
         @Param("keyword") String keyword,
         @Param("cursor") Long cursor,
+        @Param("cursorPinnedAt") LocalDateTime cursorPinnedAt,
         Pageable pageable
     );
 

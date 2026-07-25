@@ -3,6 +3,7 @@ package com.slatto.domain.project.controller;
 import com.slatto.domain.project.dto.ProjectCreateRequest;
 import com.slatto.domain.project.dto.ProjectDetailResponse;
 import com.slatto.domain.project.dto.ProjectListResponse;
+import com.slatto.domain.project.dto.ProjectPinResponse;
 import com.slatto.domain.project.dto.ProjectResponse;
 import com.slatto.domain.project.dto.ProjectUpdateRequest;
 import com.slatto.domain.project.enums.ProjectStatus;
@@ -91,5 +92,27 @@ public class ProjectController {
         projectService.deleteProject(projectId, currentUserId);
 
         return ApiResponse.success(CommonSuccessCode.OK, null);
+    }
+
+    @Operation(summary = "프로젝트 고정")
+    @PostMapping("/{projectId}/pin")
+    public ApiResponse<ProjectPinResponse> pinProject(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long projectId
+    ) {
+        ProjectPinResponse response = projectService.pinProject(projectId, currentUserId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(summary = "프로젝트 고정 해제")
+    @DeleteMapping("/{projectId}/pin")
+    public ApiResponse<ProjectPinResponse> unpinProject(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long projectId
+    ) {
+        ProjectPinResponse response = projectService.unpinProject(projectId, currentUserId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 }

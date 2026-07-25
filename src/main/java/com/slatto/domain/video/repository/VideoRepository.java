@@ -7,7 +7,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -60,5 +62,30 @@ public class VideoRepository {
                 .setParameter("cursor", cursor)
                 .setMaxResults(limit)
                 .getResultList();
+    }
+
+    public Map<Long, String> findLatestThumbnailUrlsByProjectIds(List<Long> projectIds) {
+        if (projectIds == null || projectIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Object[]> rows = entityManagerProvider.getObject().createQuery("""
+                        select video.project.id, video.thumbnailUrl from Video video
+                        where video.project.id in :projectIds
+                          and video.thumbnailUrl is not null
+                          and video.id = (
+                              select max(subVideo.id) from Video subVideo
+                              where subVideo.project.id = video.project.id
+                                and subVideo.thumbnailUrl is not null
+                          )
+                        """, Object[].class)
+                .setParameter("projectIds", projectIds)
+                .getResultList();
+
+        return rows.stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (String) row[1]
+                ));
     }
 }

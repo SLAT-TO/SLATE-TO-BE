@@ -2,6 +2,7 @@ package com.slatto.domain.project.controller;
 
 import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
 import com.slatto.domain.project.dto.ProjectFileListResponse;
+import com.slatto.domain.project.dto.ProjectFilePinResponse;
 import com.slatto.domain.project.dto.ProjectFileResponse;
 import com.slatto.domain.project.dto.ProjectFileUpdateRequest;
 import com.slatto.domain.project.dto.ProjectFileUploadRequest;
@@ -108,6 +109,38 @@ public class ProjectFileController {
         projectFileService.deleteProjectFile(projectId, fileId, currentUserId);
 
         return ApiResponse.success(CommonSuccessCode.OK, null);
+    }
+
+    @Operation(summary = "프로젝트 파일 고정")
+    @PostMapping("/{fileId}/pin")
+    public ApiResponse<ProjectFilePinResponse> pinProjectFile(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long projectId,
+        @PathVariable Long fileId
+    ) {
+        ProjectFilePinResponse response = projectFileService.pinProjectFile(
+            projectId,
+            fileId,
+            currentUserId
+        );
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(summary = "프로젝트 파일 고정 해제")
+    @DeleteMapping("/{fileId}/pin")
+    public ApiResponse<ProjectFilePinResponse> unpinProjectFile(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long projectId,
+        @PathVariable Long fileId
+    ) {
+        ProjectFilePinResponse response = projectFileService.unpinProjectFile(
+            projectId,
+            fileId,
+            currentUserId
+        );
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
     @Operation(summary = "프로젝트 파일 다운로드")

@@ -1,9 +1,11 @@
 package com.slatto.domain.project.dto;
 
 import com.slatto.domain.project.enums.LengthType;
+import com.slatto.domain.project.enums.Permission;
 import com.slatto.domain.project.enums.ProjectStatus;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.Kind;
+import com.slatto.domain.user.enums.RoleName;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -37,6 +39,10 @@ public class ProjectListResponse {
 
         private Kind kind;
 
+        private List<RoleName> roleNames;
+
+        private String previewImageUrl;
+
         private LocalDate startDate;
 
         private LocalDate endDate;
@@ -48,6 +54,12 @@ public class ProjectListResponse {
         private List<String> memberPreviewImageUrls;
 
         private Long memberCount;
+
+        private Boolean isPinned;
+
+        private LocalDateTime pinnedAt;
+
+        private Permission myPermission;
 
         private LocalDateTime createdAt;
 

@@ -4,19 +4,23 @@ import com.slatto.domain.project.converter.ProjectConverter;
 import com.slatto.domain.project.dto.ProjectCreateRequest;
 import com.slatto.domain.project.dto.ProjectDetailResponse;
 import com.slatto.domain.project.dto.ProjectListResponse;
+import com.slatto.domain.project.dto.ProjectPinResponse;
 import com.slatto.domain.project.dto.ProjectResponse;
 import com.slatto.domain.project.dto.ProjectUpdateRequest;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
+import com.slatto.domain.project.entity.ProjectPin;
 import com.slatto.domain.project.entity.ProjectUserRole;
 import com.slatto.domain.project.enums.ProjectStatus;
 import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
+import com.slatto.domain.project.repository.ProjectPinRepository;
 import com.slatto.domain.project.repository.ProjectRepository;
 import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.UserRepository;
+import com.slatto.domain.video.repository.VideoRepository;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,8 +46,10 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ProjectPinRepository projectPinRepository;
     private final ProjectUserRoleRepository projectUserRoleRepository;
     private final UserRepository userRepository;
+    private final VideoRepository videoRepository;
     private final ProjectConverter projectConverter;
     private final ProjectAccessValidator projectAccessValidator;
 
@@ -70,10 +78,12 @@ public class ProjectService {
         validateActiveUserExists(currentUserId);
 
         int pageSize = normalizePageSize(size);
+        LocalDateTime cursorPinnedAt = getProjectCursorPinnedAt(currentUserId, cursor);
         List<ProjectMember> projectMembers = projectMemberRepository.findJoinedProjectsByCursor(
             currentUserId,
             status,
             cursor,
+            cursorPinnedAt,
             PageRequest.of(0, pageSize + 1)
         );
 
@@ -82,19 +92,26 @@ public class ProjectService {
             .limit(pageSize)
             .toList();
 
+        Map<Long, List<RoleName>> roleNamesByMemberId = getRoleNamesByMemberId(currentPageMembers);
+        Map<Long, String> previewImageUrlByProjectId = getPreviewImageUrlByProjectId(currentPageMembers);
+        Map<Long, LocalDateTime> pinnedAtByProjectId = getPinnedAtByProjectId(currentUserId, currentPageMembers);
+
+        Long nextCursor = hasNext && !currentPageMembers.isEmpty()
+            ? currentPageMembers.get(currentPageMembers.size() - 1).getProject().getId()
+            : null;
+
         List<ProjectListResponse.ProjectSummary> items = currentPageMembers.stream()
-            .map(ProjectMember::getProject)
-            .map(project -> projectConverter.toSummary(
-                project,
-                countActiveMembers(project),
-                getMemberPreviewImageUrls(project),
-                resolveLastActivityAt(project)
+            .map(projectMember -> projectConverter.toSummary(
+                projectMember.getProject(),
+                countActiveMembers(projectMember.getProject()),
+                getMemberPreviewImageUrls(projectMember.getProject()),
+                roleNamesByMemberId.getOrDefault(projectMember.getId(), List.of()),
+                previewImageUrlByProjectId.get(projectMember.getProject().getId()),
+                pinnedAtByProjectId.get(projectMember.getProject().getId()),
+                projectMember.getPermission(),
+                resolveLastActivityAt(projectMember.getProject())
             ))
             .toList();
-
-        Long nextCursor = hasNext && !items.isEmpty()
-            ? items.get(items.size() - 1).getId()
-            : null;
 
         return projectConverter.toListResponse(items, nextCursor, hasNext);
     }
@@ -107,13 +124,39 @@ public class ProjectService {
             .stream()
             .map(ProjectUserRole::getRoleName)
             .toList();
+        ProjectPin projectPin = projectPinRepository.findByUserIdAndProjectId(currentUserId, projectId)
+            .orElse(null);
 
         return projectConverter.toDetailResponse(
             project,
             currentMember,
             roleNames,
+            projectPin,
             countActiveMembers(project)
         );
+    }
+
+    @Transactional
+    public ProjectPinResponse pinProject(Long projectId, Long currentUserId) {
+        Project project = projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+
+        projectPinRepository.insertIgnore(currentUserId, projectId);
+        ProjectPin projectPin = projectPinRepository.findByUserIdAndProjectId(currentUserId, projectId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR));
+
+        return projectConverter.toPinResponse(project.getId(), projectPin.getPinnedAt());
+    }
+
+    @Transactional
+    public ProjectPinResponse unpinProject(Long projectId, Long currentUserId) {
+        Project project = projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+
+        projectPinRepository.findByUserIdAndProjectId(currentUserId, projectId)
+            .ifPresent(projectPinRepository::delete);
+
+        return projectConverter.toPinResponse(project.getId(), null);
     }
 
     @Transactional
@@ -194,6 +237,65 @@ public class ProjectService {
             .map(Users::getProfileImageUrl)
             .filter(Objects::nonNull)
             .toList();
+    }
+
+    private Map<Long, List<RoleName>> getRoleNamesByMemberId(List<ProjectMember> projectMembers) {
+        List<Long> projectMemberIds = projectMembers.stream()
+            .map(ProjectMember::getId)
+            .toList();
+
+        if (projectMemberIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return projectUserRoleRepository
+            .findAllByProjectMemberIdsOrderByProjectMemberIdAscAndIdAsc(projectMemberIds)
+            .stream()
+            .collect(Collectors.groupingBy(
+                projectUserRole -> projectUserRole.getProjectMember().getId(),
+                Collectors.mapping(ProjectUserRole::getRoleName, Collectors.toList())
+            ));
+    }
+
+    private Map<Long, String> getPreviewImageUrlByProjectId(List<ProjectMember> projectMembers) {
+        List<Long> projectIds = projectMembers.stream()
+            .map(ProjectMember::getProject)
+            .map(Project::getId)
+            .toList();
+
+        if (projectIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return videoRepository.findLatestThumbnailUrlsByProjectIds(projectIds);
+    }
+
+    private Map<Long, LocalDateTime> getPinnedAtByProjectId(Long userId, List<ProjectMember> projectMembers) {
+        List<Long> projectIds = projectMembers.stream()
+            .map(ProjectMember::getProject)
+            .map(Project::getId)
+            .toList();
+
+        if (projectIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return projectPinRepository.findAllByUserIdAndProjectIds(userId, projectIds)
+            .stream()
+            .collect(Collectors.toMap(
+                projectPin -> projectPin.getProject().getId(),
+                ProjectPin::getPinnedAt
+            ));
+    }
+
+    private LocalDateTime getProjectCursorPinnedAt(Long userId, Long cursor) {
+        if (cursor == null) {
+            return null;
+        }
+
+        return projectPinRepository.findByUserIdAndProjectId(userId, cursor)
+            .map(ProjectPin::getPinnedAt)
+            .orElse(null);
     }
 
     private LocalDateTime resolveLastActivityAt(Project project) {

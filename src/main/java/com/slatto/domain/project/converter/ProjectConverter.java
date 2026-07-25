@@ -3,9 +3,12 @@ package com.slatto.domain.project.converter;
 import com.slatto.domain.project.dto.ProjectCreateRequest;
 import com.slatto.domain.project.dto.ProjectDetailResponse;
 import com.slatto.domain.project.dto.ProjectListResponse;
+import com.slatto.domain.project.dto.ProjectPinResponse;
 import com.slatto.domain.project.dto.ProjectResponse;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
+import com.slatto.domain.project.entity.ProjectPin;
+import com.slatto.domain.project.enums.Permission;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
 import org.springframework.stereotype.Component;
@@ -44,6 +47,14 @@ public class ProjectConverter {
             .build();
     }
 
+    public ProjectPinResponse toPinResponse(Long projectId, LocalDateTime pinnedAt) {
+        return ProjectPinResponse.builder()
+            .id(projectId)
+            .isPinned(pinnedAt != null)
+            .pinnedAt(pinnedAt)
+            .build();
+    }
+
     public ProjectListResponse toListResponse(
         List<ProjectListResponse.ProjectSummary> items,
         Long nextCursor,
@@ -60,6 +71,10 @@ public class ProjectConverter {
         Project project,
         Long memberCount,
         List<String> memberPreviewImageUrls,
+        List<RoleName> roleNames,
+        String previewImageUrl,
+        LocalDateTime pinnedAt,
+        Permission myPermission,
         LocalDateTime lastActivityAt
     ) {
         return ProjectListResponse.ProjectSummary.builder()
@@ -69,12 +84,17 @@ public class ProjectConverter {
             .lengthType(project.getLengthType())
             .status(project.getStatus())
             .kind(project.getKind())
+            .roleNames(roleNames)
+            .previewImageUrl(previewImageUrl)
             .startDate(project.getStartDate())
             .endDate(project.getEndDate())
             .deadlineProgressPercent(calculateDeadlineProgressPercent(project.getStartDate(), project.getEndDate()))
             .lastActivityAt(lastActivityAt)
             .memberPreviewImageUrls(memberPreviewImageUrls)
             .memberCount(memberCount)
+            .isPinned(pinnedAt != null)
+            .pinnedAt(pinnedAt)
+            .myPermission(myPermission)
             .createdAt(project.getCreatedAt())
             .updatedAt(project.getUpdatedAt())
             .build();
@@ -84,9 +104,10 @@ public class ProjectConverter {
         Project project,
         ProjectMember currentMember,
         List<RoleName> roleNames,
+        ProjectPin projectPin,
         Long memberCount
     ) {
-        boolean admin = currentMember.isAdmin();
+        LocalDateTime pinnedAt = projectPin != null ? projectPin.getPinnedAt() : null;
 
         return ProjectDetailResponse.builder()
             .id(project.getId())
@@ -103,8 +124,8 @@ public class ProjectConverter {
             .myPermission(currentMember.getPermission())
             .roleNames(roleNames)
             .memberCount(memberCount)
-            .canEdit(admin)
-            .canDelete(admin)
+            .isPinned(pinnedAt != null)
+            .pinnedAt(pinnedAt)
             .createdAt(project.getCreatedAt())
             .updatedAt(project.getUpdatedAt())
             .build();

@@ -14,7 +14,5 @@ public class ProjectFileUpdateRequest {
 
     private String description;
 
-    private Boolean isPinned;
-
     private Boolean isFinal;
 }
