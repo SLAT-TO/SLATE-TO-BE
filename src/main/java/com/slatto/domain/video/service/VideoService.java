@@ -268,7 +268,7 @@ public class VideoService {
     private List<String> resolveProjectTags(Project project, List<RoleName> roleNames) {
         return Stream.concat(
                         Stream.of(
-                                resolveCategoryName(project.getType(), project.getCustomTypeName()),
+                                resolveCategoryName(project.getType()),
                                 resolveLengthType(project.getLengthType()),
                                 resolveKind(project.getKind())
                         ),
@@ -279,12 +279,9 @@ public class VideoService {
                 .toList();
     }
 
-    private String resolveCategoryName(CategoryName type, String customTypeName) {
+    private String resolveCategoryName(CategoryName type) {
         if (type == null) {
             return null;
-        }
-        if (type == CategoryName.ETC) {
-            return customTypeName;
         }
         return switch (type) {
             case YOUTUBE_CONTENT -> "유튜브 콘텐츠";
@@ -294,7 +291,7 @@ public class VideoService {
             case DOCUMENTARY -> "다큐멘터리";
             case FILM_DRAMA -> "영화/드라마";
             case CORPORATE_PROMO -> "기업 홍보 영상";
-            case ETC -> customTypeName;
+            case ETC -> "기타";
         };
     }
 
