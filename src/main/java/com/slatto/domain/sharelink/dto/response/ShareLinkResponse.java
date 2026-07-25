@@ -25,5 +25,18 @@ public class ShareLinkResponse {
 
             @Schema(example = "2026-07-24T14:00:00")
             LocalDateTime createdAt
+    ) {
+    }
+
+    @Schema(description = "공유 링크 진입 검증 응답")
+    public record ShareLinkEntryResDTO(
+            @Schema(example = "10")
+            Long videoId,
+
+            @Schema(example = "1차 편집본")
+            String videoTitle,
+
+            @Schema(example = "true", description = "게스트 닉네임 입력이 필요한지 여부")
+            Boolean requiresNickname
     ) { }
 }

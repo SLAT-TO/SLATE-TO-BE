@@ -33,13 +33,16 @@ public class SecurityConfig {
 					"/api/v1/auth/callback/**",
 					"/api/v1/auth/refresh"
 				).permitAll()
-				.requestMatchers(
-					HttpMethod.GET,
-					"/api/v1/health",
-					"/swagger-ui/**",
-					"/v3/api-docs/**",
-					"/api/v1/project-invitations/*"
-				).permitAll()
+					// 게스트 등록 — 로그인 없이 접근 (게스트 접근 기능)
+					.requestMatchers(HttpMethod.POST, "/api/v1/share-links/*/guests").permitAll()
+					.requestMatchers(
+							HttpMethod.GET,
+							"/api/v1/health",
+							"/swagger-ui/**",
+							"/v3/api-docs/**",
+							"/api/v1/project-invitations/*",
+							"/api/v1/share-links/*"   // 진입 검증 — 로그인 없이 접근
+					).permitAll()
 				.anyRequest().authenticated()
 			)
 			.exceptionHandling(handling -> handling.authenticationEntryPoint(jwtAuthenticationEntryPoint))

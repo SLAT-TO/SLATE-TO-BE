@@ -1,6 +1,7 @@
 package com.slatto.domain.sharelink.converter;
 
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreateResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
 import com.slatto.domain.sharelink.entity.ShareLink;
 import com.slatto.domain.video.entity.Video;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,14 @@ public class ShareLinkConverter {
                 shareLink.getIsActive(),
                 shareLink.getExpiredAt(),
                 shareLink.getCreatedAt()
+        );
+    }
+
+    public ShareLinkEntryResDTO toEntryResponse(ShareLink shareLink) {
+        return new ShareLinkEntryResDTO(
+                shareLink.getVideo().getId(),
+                shareLink.getVideo().getTitle(),
+                true   // 게스트는 항상 닉네임을 입력해야 함
         );
     }
 }

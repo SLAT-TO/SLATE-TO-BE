@@ -4,6 +4,7 @@ import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.sharelink.converter.ShareLinkConverter;
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.ShareLinkCreateReqDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreateResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
 import com.slatto.domain.sharelink.entity.ShareLink;
 import com.slatto.domain.sharelink.exception.ShareLinkErrorCode;
 import com.slatto.domain.sharelink.repository.ShareLinkRepository;
@@ -64,5 +65,20 @@ public class ShareLinkService {
         ShareLink saved = shareLinkRepository.save(shareLink);
 
         return shareLinkConverter.toCreateResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public ShareLinkEntryResDTO getShareLinkByToken(String token) {
+
+        // 1. 토큰으로 조회
+        ShareLink shareLink = shareLinkRepository.findByToken(token)
+                .orElseThrow(() -> new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND));
+
+        // 2. 비활성화되었거나 만료되었으면 410
+        if (!shareLink.isUsable()) {
+            throw new BaseException(ShareLinkErrorCode.SHARE_LINK_UNAVAILABLE);
+        }
+
+        return shareLinkConverter.toEntryResponse(shareLink);
     }
 }

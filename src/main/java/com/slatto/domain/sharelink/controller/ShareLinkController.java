@@ -2,6 +2,7 @@ package com.slatto.domain.sharelink.controller;
 
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.ShareLinkCreateReqDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreateResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
 import com.slatto.domain.sharelink.service.ShareLinkService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@Tag(name = "공유 링크 API")
+@Tag(name = "ShareLink", description = "공유 링크 API")
 public class ShareLinkController {
 
     private final ShareLinkService shareLinkService;
@@ -30,6 +31,17 @@ public class ShareLinkController {
         return ApiResponse.success(
                 CommonSuccessCode.CREATED,
                 shareLinkService.createShareLink(videoId, req)
+        );
+    }
+
+    @Operation(summary = "공유 링크 진입 검증", description = "게스트가 링크로 접근했을 때 유효성을 확인합니다. 인증이 필요 없습니다.")
+    @GetMapping("/share-links/{token}")
+    public ApiResponse<ShareLinkEntryResDTO> getShareLinkByToken(
+            @PathVariable String token
+    ) {
+        return ApiResponse.success(
+                CommonSuccessCode.OK,
+                shareLinkService.getShareLinkByToken(token)
         );
     }
 }
