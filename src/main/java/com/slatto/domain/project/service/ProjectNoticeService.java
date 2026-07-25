@@ -108,8 +108,10 @@ public class ProjectNoticeService {
         validateNoticeEditable(projectNotice, currentMember, currentUserId);
 
         projectNotice.update(request.getTitle(), request.getContent());
+        boolean isRead = projectNoticeReadRepository.findByNoticeIdAndUserId(noticeId, currentUserId)
+            .isPresent();
 
-        return toResponse(projectNotice, false);
+        return toResponse(projectNotice, isRead);
     }
 
     @Transactional
