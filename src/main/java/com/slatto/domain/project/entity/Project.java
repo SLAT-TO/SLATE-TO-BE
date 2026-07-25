@@ -40,9 +40,6 @@ public class Project extends BaseEntity {
     @Column(name = "type", nullable = false)
     private CategoryName type;
 
-    @Column(name = "custom_type_name", nullable = true, length = 100)
-    private String customTypeName;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "length_type", nullable = true)
     private LengthType lengthType;
@@ -74,7 +71,6 @@ public class Project extends BaseEntity {
         Users ownerUser,
         String title,
         CategoryName type,
-        String customTypeName,
         LengthType lengthType,
         String description,
         LocalDate endDate,
@@ -87,7 +83,6 @@ public class Project extends BaseEntity {
         this.ownerUser = ownerUser;
         this.title = title;
         this.type = type;
-        this.customTypeName = customTypeName;
         this.lengthType = lengthType;
         this.description = description;
         this.startDate = startDate;
@@ -101,7 +96,6 @@ public class Project extends BaseEntity {
         Users ownerUser,
         String title,
         CategoryName type,
-        String customTypeName,
         LengthType lengthType,
         String description,
         LocalDate endDate,
@@ -112,7 +106,6 @@ public class Project extends BaseEntity {
             ownerUser,
             title,
             type,
-            customTypeName,
             lengthType,
             description,
             endDate,
@@ -124,7 +117,6 @@ public class Project extends BaseEntity {
     public void updateInfo(
         String title,
         CategoryName type,
-        String customTypeName,
         LengthType lengthType,
         String description,
         LocalDate endDate,
@@ -135,7 +127,6 @@ public class Project extends BaseEntity {
 
         this.title = title;
         this.type = type;
-        this.customTypeName = customTypeName;
         this.lengthType = lengthType;
         this.description = description;
         this.endDate = endDate;
