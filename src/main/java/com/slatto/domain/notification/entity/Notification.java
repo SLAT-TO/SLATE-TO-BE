@@ -51,4 +51,13 @@ public class Notification extends BaseEntity {
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    public void markAsRead() {
+        if (Boolean.TRUE.equals(isRead)) {
+            return;
+        }
+
+        this.isRead = true;
+        this.readAt = LocalDateTime.now();
+    }
 }

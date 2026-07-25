@@ -66,6 +66,26 @@ public class NotificationService {
             .build();
     }
 
+    @Transactional
+    public void markNotificationAsRead(Long currentUserId, Long notificationId) {
+        validateActiveUser(currentUserId);
+
+        Notification notification = notificationRepository.findByIdAndUserIdAndDeletedAtIsNull(
+                notificationId,
+                currentUserId
+            )
+            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        notification.markAsRead();
+    }
+
+    @Transactional
+    public void markAllNotificationsAsRead(Long currentUserId) {
+        validateActiveUser(currentUserId);
+
+        notificationRepository.markAllAsReadByUserId(currentUserId, LocalDateTime.now());
+    }
+
     private void validateActiveUser(Long currentUserId) {
         if (!userRepository.existsByIdAndDeletedAtIsNull(currentUserId)) {
             throw new BaseException(CommonErrorCode.NOT_FOUND);

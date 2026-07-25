@@ -3,6 +3,7 @@ package com.slatto.domain.notification.repository;
 import com.slatto.domain.notification.entity.Notification;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -48,5 +49,21 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         Long id,
         Long userId,
         LocalDateTime createdAfter
+    );
+
+    Optional<Notification> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Notification n
+        set n.isRead = true,
+            n.readAt = :readAt
+        where n.user.id = :userId
+            and n.isRead = false
+            and n.deletedAt is null
+        """)
+    int markAllAsReadByUserId(
+        @Param("userId") Long userId,
+        @Param("readAt") LocalDateTime readAt
     );
 }
