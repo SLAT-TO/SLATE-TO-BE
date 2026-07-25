@@ -31,11 +31,12 @@ public class ShareLinkController {
     @PostMapping("/videos/{videoId}/share-links")
     public ApiResponse<ShareLinkCreateResDTO> createShareLink(
             @PathVariable Long videoId,
+            @AuthenticationPrincipal Long userId,
             @RequestBody @Valid ShareLinkCreateReqDTO req
     ) {
         return ApiResponse.success(
                 CommonSuccessCode.CREATED,
-                shareLinkService.createShareLink(videoId, req)
+                shareLinkService.createShareLink(videoId, userId, req)
         );
     }
 

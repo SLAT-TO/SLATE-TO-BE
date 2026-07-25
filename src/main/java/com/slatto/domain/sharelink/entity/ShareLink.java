@@ -24,7 +24,7 @@ public class ShareLink extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "video_id", nullable = false)
+    @JoinColumn(name = "video_id", nullable = false, unique = true)
     private Video video;
 
     @Column(name = "token", nullable = false, length = 255, unique = true)

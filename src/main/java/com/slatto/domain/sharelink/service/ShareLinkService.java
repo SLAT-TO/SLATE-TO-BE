@@ -36,7 +36,7 @@ public class ShareLinkService {
     private final GuestRepository guestRepository;
 
     @Transactional
-    public ShareLinkCreateResDTO createShareLink(Long videoId, ShareLinkCreateReqDTO req) {
+    public ShareLinkCreateResDTO createShareLink(Long videoId, Long userId, ShareLinkCreateReqDTO req) {
 
         // 1. 영상 조회
         Video video = entityManagerProvider.getObject().createQuery("""
@@ -49,9 +49,8 @@ public class ShareLinkService {
 
         // 2. 프로젝트 멤버인지 확인 (영상 → 프로젝트)
         Long projectId = video.getProject().getId();
-
         boolean isMember = projectMemberRepository
-                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, req.userId());
+                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
