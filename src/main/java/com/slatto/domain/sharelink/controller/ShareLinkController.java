@@ -6,6 +6,7 @@ import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntry
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.GuestCreateReqDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkToggleResDTO;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.slatto.domain.sharelink.service.ShareLinkService;
 import com.slatto.global.response.ApiResponse;
@@ -74,4 +75,17 @@ public class ShareLinkController {
                 shareLinkService.getShareLinkByVideo(videoId, userId)
         );
     }
+
+    @Operation(summary = "공유 링크 활성/비활성 토글", description = "공유 링크의 활성 상태를 뒤집습니다. 프로젝트 멤버만 가능합니다.")
+    @PatchMapping("/share-links/{shareLinkId}")
+    public ApiResponse<ShareLinkToggleResDTO> toggleShareLink(
+            @PathVariable Long shareLinkId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ApiResponse.success(
+                CommonSuccessCode.OK,
+                shareLinkService.toggleShareLink(shareLinkId, userId)
+        );
+    }
+
 }

@@ -74,4 +74,13 @@ public class ShareLinkResponse {
             @Schema(example = "2026-07-24T14:00:00")
             LocalDateTime createdAt
     ) { }
+
+    @Schema(description = "공유 링크 활성/비활성 토글 응답")
+    public record ShareLinkToggleResDTO(
+            @Schema(example = "5")
+            Long shareLinkId,
+
+            @Schema(example = "false", description = "토글 후의 활성 상태")
+            Boolean isActive
+    ) { }
 }

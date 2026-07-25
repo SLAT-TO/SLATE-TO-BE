@@ -6,6 +6,7 @@ import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.ShareLinkCreateR
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkToggleResDTO;
 import com.slatto.domain.sharelink.repository.GuestRepository;
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.GuestCreateReqDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
@@ -134,5 +135,28 @@ public class ShareLinkService {
                 .orElseThrow(() -> new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND));
 
         return shareLinkConverter.toInfoResponse(shareLink);
+    }
+
+    @Transactional
+    public ShareLinkToggleResDTO toggleShareLink(Long shareLinkId, Long userId) {
+
+        // 1. 링크 조회
+        ShareLink shareLink = shareLinkRepository.findById(shareLinkId)
+                .orElseThrow(() -> new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND));
+
+        // 2. 프로젝트 멤버인지 확인 (링크 → 영상 → 프로젝트)
+        Long projectId = shareLink.getVideo().getProject().getId();
+
+        boolean isMember = projectMemberRepository
+                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
+
+        if (!isMember) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        // 3. 상태 토글 (더티 체킹)
+        shareLink.toggleActive();
+
+        return shareLinkConverter.toToggleResponse(shareLink);
     }
 }
