@@ -5,6 +5,10 @@ import com.slatto.domain.sharelink.converter.ShareLinkConverter;
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.ShareLinkCreateReqDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
+import com.slatto.domain.sharelink.repository.GuestRepository;
+import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.GuestCreateReqDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
+import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.sharelink.entity.ShareLink;
 import com.slatto.domain.sharelink.exception.ShareLinkErrorCode;
 import com.slatto.domain.sharelink.repository.ShareLinkRepository;
@@ -27,6 +31,7 @@ public class ShareLinkService {
     private final ShareLinkConverter shareLinkConverter;
     private final ProjectMemberRepository projectMemberRepository;
     private final ObjectProvider<EntityManager> entityManagerProvider;
+    private final GuestRepository guestRepository;
 
     @Transactional
     public ShareLinkCreateResDTO createShareLink(Long videoId, ShareLinkCreateReqDTO req) {
@@ -80,5 +85,24 @@ public class ShareLinkService {
         }
 
         return shareLinkConverter.toEntryResponse(shareLink);
+    }
+
+    @Transactional
+    public GuestCreateResDTO registerGuest(String token, GuestCreateReqDTO req) {
+
+        // 1. 토큰으로 링크 조회
+        ShareLink shareLink = shareLinkRepository.findByToken(token)
+                .orElseThrow(() -> new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND));
+
+        // 2. 사용 가능한 링크인지 (비활성/만료면 410)
+        if (!shareLink.isUsable()) {
+            throw new BaseException(ShareLinkErrorCode.SHARE_LINK_UNAVAILABLE);
+        }
+
+        // 3. 게스트 생성
+        Guest guest = shareLinkConverter.toGuest(shareLink, req.name());
+        Guest saved = guestRepository.save(guest);
+
+        return shareLinkConverter.toGuestCreateResponse(saved);
     }
 }

@@ -25,8 +25,7 @@ public class ShareLinkResponse {
 
             @Schema(example = "2026-07-24T14:00:00")
             LocalDateTime createdAt
-    ) {
-    }
+    ) { }
 
     @Schema(description = "공유 링크 진입 검증 응답")
     public record ShareLinkEntryResDTO(
@@ -38,5 +37,20 @@ public class ShareLinkResponse {
 
             @Schema(example = "true", description = "게스트 닉네임 입력이 필요한지 여부")
             Boolean requiresNickname
+    ) { }
+
+    @Schema(description = "게스트 등록 응답")
+    public record GuestCreateResDTO(
+            @Schema(example = "20")
+            Long guestId,
+
+            @Schema(example = "5")
+            Long shareLinkId,
+
+            @Schema(example = "홍길동")
+            String name,
+
+            @Schema(example = "2026-07-24T14:00:00")
+            LocalDateTime createdAt
     ) { }
 }

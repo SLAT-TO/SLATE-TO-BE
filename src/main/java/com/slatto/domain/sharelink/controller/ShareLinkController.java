@@ -3,6 +3,8 @@ package com.slatto.domain.sharelink.controller;
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.ShareLinkCreateReqDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
+import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.GuestCreateReqDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
 import com.slatto.domain.sharelink.service.ShareLinkService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -42,6 +44,19 @@ public class ShareLinkController {
         return ApiResponse.success(
                 CommonSuccessCode.OK,
                 shareLinkService.getShareLinkByToken(token)
+        );
+    }
+
+    @Operation(summary = "게스트 등록", description = "링크로 진입한 게스트가 이름을 등록하고 guestId를 발급받습니다. 인증이 필요 없습니다.")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping("/share-links/{token}/guests")
+    public ApiResponse<GuestCreateResDTO> registerGuest(
+            @PathVariable String token,
+            @RequestBody @Valid GuestCreateReqDTO req
+    ) {
+        return ApiResponse.success(
+                CommonSuccessCode.CREATED,
+                shareLinkService.registerGuest(token, req)
         );
     }
 }

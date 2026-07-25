@@ -59,8 +59,4 @@ public class ShareLink extends BaseEntity {
         if (!this.isActive) return false;
         return this.expiredAt == null || this.expiredAt.isAfter(LocalDateTime.now());
     }
-
-    public boolean isExpired() {
-        return this.expiredAt != null && !this.expiredAt.isAfter(LocalDateTime.now());
-    }
 }
