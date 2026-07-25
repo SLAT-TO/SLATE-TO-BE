@@ -1,11 +1,13 @@
 package com.slatto.domain.video.repository;
 
 import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.user.enums.RoleName;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -44,5 +46,16 @@ public class VideoProjectAccessRepository {
                         """, Long.class)
                 .setParameter("projectId", projectId)
                 .getSingleResult() > 0;
+    }
+
+    public List<RoleName> findProjectRoleNames(Long projectId) {
+        return entityManagerProvider.getObject().createQuery("""
+                        select distinct role.roleName from ProjectUserRole role
+                        where role.projectMember.project.id = :projectId
+                          and role.projectMember.leftAt is null
+                        order by role.roleName
+                        """, RoleName.class)
+                .setParameter("projectId", projectId)
+                .getResultList();
     }
 }
