@@ -14,6 +14,7 @@ import com.slatto.domain.project.repository.ProjectNoticeReadRepository;
 import com.slatto.domain.project.repository.ProjectNoticeRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.global.exception.BaseException;
+import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -127,20 +128,13 @@ public class ProjectNoticeService {
     @Transactional
     public ProjectNoticeReadResponse readProjectNotice(Long projectId, Long noticeId, Long currentUserId) {
         projectAccessValidator.getProjectOrThrow(projectId);
-        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
-        ProjectNotice projectNotice = getActiveNoticeOrThrow(projectId, noticeId);
+        projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+        getActiveNoticeOrThrow(projectId, noticeId);
 
-        ProjectNoticeRead projectNoticeRead = projectNoticeReadRepository.findByNoticeIdAndUserId(
-                noticeId,
-                currentUserId
-            )
-            .map(existingRead -> {
-                existingRead.refreshReadAt();
-                return existingRead;
-            })
-            .orElseGet(() -> projectNoticeReadRepository.save(
-                ProjectNoticeRead.create(projectNotice, currentMember.getUser())
-            ));
+        projectNoticeReadRepository.upsertRead(noticeId, currentUserId);
+        ProjectNoticeRead projectNoticeRead = projectNoticeReadRepository
+            .findByNoticeIdAndUserId(noticeId, currentUserId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR));
 
         return toReadResponse(projectNoticeRead);
     }
