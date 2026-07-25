@@ -31,4 +31,13 @@ public class VideoBookmark extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
+
+    private VideoBookmark(Video video, Users user) {
+        this.video = video;
+        this.user = user;
+    }
+
+    public static VideoBookmark create(Video video, Users user) {
+        return new VideoBookmark(video, user);
+    }
 }

@@ -39,9 +39,9 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 
-    // AWS
-    implementation platform('software.amazon.awssdk:bom:2.25.60')
-    implementation 'software.amazon.awssdk:s3'
+	// AWS
+	implementation platform('software.amazon.awssdk:bom:2.27.21')
+	implementation 'software.amazon.awssdk:s3'
 }
 
 tasks.named('test') {

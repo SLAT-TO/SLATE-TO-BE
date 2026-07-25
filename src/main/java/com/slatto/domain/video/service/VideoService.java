@@ -1,13 +1,20 @@
 package com.slatto.domain.video.service;
 
 import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.project.enums.LengthType;
+import com.slatto.domain.user.enums.CategoryName;
+import com.slatto.domain.user.enums.Kind;
+import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.video.client.YoutubeApiClient;
 import com.slatto.domain.video.client.YoutubeApiClient.YoutubeVideoInfo;
 import com.slatto.domain.video.dto.request.VideoRequest.VideoCreateReqDTO;
+import com.slatto.domain.video.dto.request.VideoRequest.VideoBookmarkUpdateReqDTO;
 import com.slatto.domain.video.dto.request.VideoRequest.VideoUpdateReqDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.VideoBookmarkUpdateResDTO;
 import com.slatto.domain.video.dto.request.VideoRequest.YoutubeValidateReqDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoDeleteResDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.VideoDetailResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoItemResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoUpdateResDTO;
@@ -26,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -40,12 +48,57 @@ public class VideoService {
     private static final String PRIVATE_VIDEO_MESSAGE = "비공개 영상은 등록할 수 없습니다.";
     private static final String NOT_EMBEDDABLE_MESSAGE = "재생할 수 없는 영상은 등록할 수 없습니다.";
     private static final String VIDEO_DELETED_MESSAGE = "영상이 삭제되었습니다.";
+    private static final String BOOKMARK_UPDATED_MESSAGE = "북마크 상태가 변경되었습니다.";
 
     private final VideoProjectAccessRepository projectAccessRepository;
     private final VideoRepository videoRepository;
     private final VideoBookmarkRepository videoBookmarkRepository;
     private final YoutubeUrlParser youtubeUrlParser;
     private final YoutubeApiClient youtubeApiClient;
+
+    public VideoDetailResDTO getVideo(Long memberId, Long projectId, Long videoId) {
+        if (!projectAccessRepository.projectExistsById(projectId)) {
+            throw new BaseException(CommonErrorCode.NOT_FOUND);
+        }
+        if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+        boolean bookmarked = videoBookmarkRepository.findByVideoIdAndUserId(videoId, memberId).isPresent();
+        List<String> projectTags = resolveProjectTags(
+                video.getProject(),
+                projectAccessRepository.findProjectRoleNames(projectId)
+        );
+
+        return VideoDetailResDTO.from(video, bookmarked, projectTags);
+    }
+
+    @Transactional
+    public VideoBookmarkUpdateResDTO updateBookmark(
+            Long memberId,
+            Long projectId,
+            Long videoId,
+            VideoBookmarkUpdateReqDTO request
+    ) {
+        if (!projectAccessRepository.projectExistsById(projectId)) {
+            throw new BaseException(CommonErrorCode.NOT_FOUND);
+        }
+        if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+
+        Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+        if (request.bookmarked()) {
+            videoBookmarkRepository.insertIgnore(video.getId(), memberId);
+        } else {
+            videoBookmarkRepository.deleteByVideoIdAndUserId(video.getId(), memberId);
+        }
+
+        return new VideoBookmarkUpdateResDTO(videoId, request.bookmarked(), BOOKMARK_UPDATED_MESSAGE);
+    }
 
     public YoutubeValidateResDTO validateYoutubeUrl(Long memberId, YoutubeValidateReqDTO request) {
         if (projectAccessRepository.findProjectById(request.projectId()).isEmpty()) {
@@ -210,5 +263,70 @@ public class VideoService {
             return NOT_EMBEDDABLE_MESSAGE;
         }
         return VALIDATION_SUCCESS_MESSAGE;
+    }
+
+    private List<String> resolveProjectTags(Project project, List<RoleName> roleNames) {
+        return Stream.concat(
+                        Stream.of(
+                                resolveCategoryName(project.getType()),
+                                resolveLengthType(project.getLengthType()),
+                                resolveKind(project.getKind())
+                        ),
+                        roleNames.stream().map(this::resolveRoleName)
+                )
+                .filter(tag -> tag != null && !tag.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    private String resolveCategoryName(CategoryName type) {
+        if (type == null) {
+            return null;
+        }
+        return switch (type) {
+            case YOUTUBE_CONTENT -> "유튜브 콘텐츠";
+            case AD_BRAND -> "광고/브랜드 영상";
+            case MUSIC_VIDEO -> "뮤직비디오";
+            case WEDDING_EVENT -> "웨딩/이벤트 영상";
+            case DOCUMENTARY -> "다큐멘터리";
+            case FILM_DRAMA -> "영화/드라마";
+            case CORPORATE_PROMO -> "기업 홍보 영상";
+            case ETC -> "기타";
+        };
+    }
+
+    private String resolveLengthType(LengthType lengthType) {
+        if (lengthType == null) {
+            return null;
+        }
+        return switch (lengthType) {
+            case LONG_FORM -> "장편";
+            case SHORT_FORM -> "단편";
+        };
+    }
+
+    private String resolveKind(Kind kind) {
+        if (kind == null) {
+            return null;
+        }
+        return switch (kind) {
+            case PERSONAL -> "개인";
+            case EXTERNAL -> "외주";
+        };
+    }
+
+    private String resolveRoleName(RoleName roleName) {
+        return switch (roleName) {
+            case DIRECTOR -> "연출";
+            case PD -> "PD";
+            case CINEMATOGRAPHER -> "촬영";
+            case EDITOR -> "편집";
+            case ART -> "미술";
+            case SOUND -> "사운드";
+            case WRITER -> "작가";
+            case LIGHTING -> "조명";
+            case ACTOR -> "배우";
+            case ETC -> "기타";
+        };
     }
 }

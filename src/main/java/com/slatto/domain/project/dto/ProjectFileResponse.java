@@ -7,17 +7,23 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
-public class ProjectNoticeResponse {
+public class ProjectFileResponse {
 
     private Long id;
 
-    private String title;
+    private String fileName;
 
-    private String content;
+    private String description;
 
-    private WriterSummary writer;
+    private String contentType;
 
-    private Boolean isRead;
+    private Long fileSize;
+
+    private Boolean isPinned;
+
+    private Boolean isFinal;
+
+    private UploaderSummary uploader;
 
     private LocalDateTime createdAt;
 
@@ -25,7 +31,7 @@ public class ProjectNoticeResponse {
 
     @Getter
     @Builder
-    public static class WriterSummary {
+    public static class UploaderSummary {
 
         private Long id;
 

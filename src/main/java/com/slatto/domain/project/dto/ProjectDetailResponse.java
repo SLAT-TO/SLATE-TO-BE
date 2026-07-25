@@ -41,13 +41,13 @@ public class ProjectDetailResponse {
 
     private Permission myPermission;
 
-    private List<RoleName> myRoles;
+    private List<RoleName> roleNames;
 
     private Long memberCount;
 
-    private Boolean canEdit;
+    private Boolean isPinned;
 
-    private Boolean canDelete;
+    private LocalDateTime pinnedAt;
 
     private LocalDateTime createdAt;
 

@@ -2,6 +2,7 @@ package com.slatto.domain.project.controller;
 
 import com.slatto.domain.project.dto.ProjectNoticeCreateRequest;
 import com.slatto.domain.project.dto.ProjectNoticeListResponse;
+import com.slatto.domain.project.dto.ProjectNoticeReadResponse;
 import com.slatto.domain.project.dto.ProjectNoticeResponse;
 import com.slatto.domain.project.dto.ProjectNoticeUpdateRequest;
 import com.slatto.domain.project.service.ProjectNoticeService;
@@ -95,5 +96,21 @@ public class ProjectNoticeController {
         projectNoticeService.deleteProjectNotice(projectId, noticeId, currentUserId);
 
         return ApiResponse.success(CommonSuccessCode.OK, null);
+    }
+
+    @Operation(summary = "프로젝트 공지 읽음 처리")
+    @PatchMapping("/{noticeId}/read")
+    public ApiResponse<ProjectNoticeReadResponse> readProjectNotice(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long projectId,
+        @PathVariable Long noticeId
+    ) {
+        ProjectNoticeReadResponse response = projectNoticeService.readProjectNotice(
+            projectId,
+            noticeId,
+            currentUserId
+        );
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 }
