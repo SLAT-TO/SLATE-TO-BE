@@ -2,7 +2,10 @@ package com.slatto.domain.notification.service;
 
 import com.slatto.domain.notification.dto.NotificationListResponse;
 import com.slatto.domain.notification.entity.Notification;
+import com.slatto.domain.notification.enums.NotificationType;
 import com.slatto.domain.notification.repository.NotificationRepository;
+import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
@@ -13,12 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class NotificationService {
 
+    private static final String TARGET_TYPE_SCHEDULE = "SCHEDULE";
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 50;
     private static final int NOTIFICATION_RETENTION_HOURS = 24;
@@ -86,6 +91,31 @@ public class NotificationService {
         notificationRepository.markAllAsReadByUserId(currentUserId, LocalDateTime.now());
     }
 
+    @Transactional
+    public void createScheduleAssignedNotifications(
+        Project project,
+        Long scheduleId,
+        String scheduleTitle,
+        List<Users> recipients,
+        Long writerId
+    ) {
+        List<Notification> notifications = recipients.stream()
+            .filter(recipient -> !Objects.equals(recipient.getId(), writerId))
+            .map(recipient -> Notification.create(
+                recipient,
+                project,
+                NotificationType.SCHEDULE_ASSIGNED,
+                createScheduleAssignedContent(scheduleTitle),
+                TARGET_TYPE_SCHEDULE,
+                scheduleId
+            ))
+            .toList();
+
+        if (!notifications.isEmpty()) {
+            notificationRepository.saveAll(notifications);
+        }
+    }
+
     private void validateActiveUser(Long currentUserId) {
         if (!userRepository.existsByIdAndDeletedAtIsNull(currentUserId)) {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
@@ -137,6 +167,10 @@ public class NotificationService {
             .readAt(notification.getReadAt())
             .createdAt(notification.getCreatedAt())
             .build();
+    }
+
+    private String createScheduleAssignedContent(String scheduleTitle) {
+        return "'" + scheduleTitle + "' 일정 담당자로 지정되었습니다.";
     }
 
     private int normalizePageSize(int size) {
