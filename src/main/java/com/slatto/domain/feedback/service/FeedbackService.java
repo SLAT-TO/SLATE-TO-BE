@@ -48,9 +48,9 @@ public class FeedbackService {
     private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
 
     @Transactional
-    public FeedbackCreateResDTO createFeedback(Long videoId, FeedbackCreateReqDTO req) {
+    public FeedbackCreateResDTO createFeedback(Long videoId, Long userId, FeedbackCreateReqDTO req) {
 
-        // 1. 영상 조회 — videoId만으로 (EntityManager 직접, 임시)
+        // 1. 영상 조회
         Video video = entityManagerProvider.getObject().createQuery("""
                         select v from Video v where v.id = :videoId
                         """, Video.class)
@@ -59,42 +59,41 @@ public class FeedbackService {
                 .findFirst()
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        // 2. 작성자 검증 — userId/guestId 둘 중 정확히 하나만
-        validateWriter(req.userId(), req.guestId());
+        // 2. 작성자 검증 — 회원(JWT userId)/게스트(body guestId) 중 정확히 하나만
+        validateWriter(userId, req.guestId());
 
         // 3. 작성자 조회
         Users user = null;
         Guest guest = null;
 
-        if (req.userId() != null) {
-            user = userRepository.findByIdAndDeletedAtIsNull(req.userId())
+        if (userId != null) {
+            user = userRepository.findByIdAndDeletedAtIsNull(userId)
                     .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
         } else {
             guest = guestRepository.findById(req.guestId())
                     .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
         }
 
-        // 4. Converter로 엔티티 만들고 저장 (타임코드 검증은 엔티티 생성자에서)
+        // 4. 저장
         Feedback feedback = feedbackConverter.toFeedback(video, user, guest, req);
         Feedback saved = feedbackRepository.save(feedback);
 
-        // 5. 저장된 엔티티 → 응답 DTO
         return feedbackConverter.toCreateResponse(saved);
     }
 
     @Transactional
-    public FeedbackUpdateResDTO updateFeedback(Long feedbackId, FeedbackUpdateReqDTO req) {
+    public FeedbackUpdateResDTO updateFeedback(Long feedbackId, Long userId, FeedbackUpdateReqDTO req) {
 
         // 1. 피드백 조회 (삭제된 건 제외)
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .filter(f -> f.getDeletedAt() == null)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        // 2. 작성자 검증 — userId/guestId 둘 중 정확히 하나만
-        validateWriter(req.userId(), req.guestId());
+        // 2. 작성자 검증
+        validateWriter(userId, req.guestId());
 
         // 3. 본인 확인
-        if (!feedback.isWriter(req.userId(), req.guestId())) {
+        if (!feedback.isWriter(userId, req.guestId())) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
@@ -212,7 +211,7 @@ public class FeedbackService {
     }
 
     @Transactional
-    public FeedbackStatusResDTO changeFeedbackStatus(Long feedbackId, FeedbackStatusReqDTO req) {
+    public FeedbackStatusResDTO changeFeedbackStatus(Long feedbackId, Long userId, FeedbackStatusReqDTO req) {
 
         // 1. 피드백 조회
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -223,7 +222,7 @@ public class FeedbackService {
         Long projectId = feedback.getVideo().getProject().getId();
 
         boolean isMember = projectMemberRepository
-                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, req.userId());
+                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);

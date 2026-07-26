@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Reply", description = "답글 API")
@@ -30,9 +31,10 @@ public class FeedbackDetailController {
     @PostMapping("/feedbacks/{feedbackId}/replies")
     public ResponseEntity<ApiResponse<ReplyCreateResDTO>> createReply(
             @PathVariable Long feedbackId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody ReplyCreateReqDTO request
     ) {
-        ReplyCreateResDTO result = feedbackDetailService.createReply(feedbackId, request);
+        ReplyCreateResDTO result = feedbackDetailService.createReply(feedbackId, userId, request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -56,9 +58,10 @@ public class FeedbackDetailController {
     @PatchMapping("/replies/{replyId}")
     public ResponseEntity<ApiResponse<ReplyUpdateResDTO>> updateReply(
             @PathVariable Long replyId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody ReplyUpdateReqDTO request
     ) {
-        ReplyUpdateResDTO result = feedbackDetailService.updateReply(replyId, request);
+        ReplyUpdateResDTO result = feedbackDetailService.updateReply(replyId, userId, request);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
@@ -68,7 +71,7 @@ public class FeedbackDetailController {
     @DeleteMapping("/replies/{replyId}")
     public ResponseEntity<ApiResponse<Void>> deleteReply(
             @PathVariable Long replyId,
-            @RequestParam(required = false) Long userId,
+            @AuthenticationPrincipal Long userId,
             @RequestParam(required = false) Long guestId
     ) {
         feedbackDetailService.deleteReply(replyId, userId, guestId);
@@ -81,9 +84,10 @@ public class FeedbackDetailController {
     @PatchMapping("/replies/{replyId}/status")
     public ResponseEntity<ApiResponse<ReplyStatusResDTO>> changeReplyStatus(
             @PathVariable Long replyId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody ReplyStatusReqDTO request
     ) {
-        ReplyStatusResDTO result = feedbackDetailService.changeReplyStatus(replyId, request);
+        ReplyStatusResDTO result = feedbackDetailService.changeReplyStatus(replyId, userId, request);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
