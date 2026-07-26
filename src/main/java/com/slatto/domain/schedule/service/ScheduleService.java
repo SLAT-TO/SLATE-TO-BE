@@ -245,10 +245,16 @@ public class ScheduleService {
         );
 
         if (request.getParticipantIds() != null) {
-            updateParticipants(schedule, request.getParticipantIds());
+            List<Users> newParticipants = updateParticipants(schedule, request.getParticipantIds());
+            notificationService.createScheduleAssignedNotifications(
+                schedule.getProject(),
+                schedule.getId(),
+                schedule.getTitle(),
+                newParticipants,
+                currentUserId
+            );
         }
 
-        // TODO: 프로젝트 일정 수정 알림과 activity_log 연동은 알림 도메인 구현 후 연결한다.
         return scheduleConverter.toResponse(schedule);
     }
 
@@ -332,7 +338,7 @@ public class ScheduleService {
         return participants;
     }
 
-    private void updateParticipants(Schedule schedule, List<Long> participantIds) {
+    private List<Users> updateParticipants(Schedule schedule, List<Long> participantIds) {
         if (!schedule.isProjectSchedule()) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
@@ -354,12 +360,17 @@ public class ScheduleService {
             .filter(participant -> !requestedUserIds.contains(participant.getUser().getId()))
             .forEach(ScheduleParticipant::delete);
 
-        List<ScheduleParticipant> newParticipants = requestedUsers.stream()
+        List<Users> newParticipants = requestedUsers.stream()
             .filter(user -> !currentUserIds.contains(user.getId()))
+            .toList();
+
+        List<ScheduleParticipant> newScheduleParticipants = newParticipants.stream()
             .map(user -> ScheduleParticipant.create(schedule, user))
             .toList();
 
-        scheduleParticipantRepository.saveAll(newParticipants);
+        scheduleParticipantRepository.saveAll(newScheduleParticipants);
+
+        return newParticipants;
     }
 
     private List<Users> getProjectParticipantUsers(Long projectId, List<Long> participantIds) {
