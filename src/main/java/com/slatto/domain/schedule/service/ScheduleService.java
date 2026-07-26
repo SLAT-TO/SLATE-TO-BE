@@ -1,5 +1,6 @@
 package com.slatto.domain.schedule.service;
 
+import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.entity.ProjectUserRole;
@@ -54,6 +55,7 @@ public class ScheduleService {
     private final ProjectUserRoleRepository projectUserRoleRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final ScheduleConverter scheduleConverter;
+    private final NotificationService notificationService;
 
     @Transactional
     public SchedulePrivateMemoResponse upsertPrivateMemo(
@@ -203,9 +205,15 @@ public class ScheduleService {
         );
 
         Schedule savedSchedule = scheduleRepository.save(schedule);
-        saveParticipants(savedSchedule, project, request.getParticipantIds());
+        List<Users> participants = saveParticipants(savedSchedule, project, request.getParticipantIds());
+        notificationService.createScheduleAssignedNotifications(
+            project,
+            savedSchedule.getId(),
+            savedSchedule.getTitle(),
+            participants,
+            writer.getId()
+        );
 
-        // TODO: 프로젝트 일정 생성 알림과 activity_log 연동은 알림 도메인 구현 후 연결한다.
         return scheduleConverter.toResponse(savedSchedule);
     }
 
@@ -309,9 +317,9 @@ public class ScheduleService {
         return project;
     }
 
-    private void saveParticipants(Schedule schedule, Project project, List<Long> participantIds) {
+    private List<Users> saveParticipants(Schedule schedule, Project project, List<Long> participantIds) {
         if (!schedule.isProjectSchedule()) {
-            return;
+            return List.of();
         }
 
         List<Users> participants = getProjectParticipantUsers(project.getId(), participantIds);
@@ -320,6 +328,8 @@ public class ScheduleService {
             .toList();
 
         scheduleParticipantRepository.saveAll(scheduleParticipants);
+
+        return participants;
     }
 
     private void updateParticipants(Schedule schedule, List<Long> participantIds) {
