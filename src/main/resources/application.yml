@@ -79,3 +79,6 @@ app:
     same-site: Strict
     oauth-state-same-site: Lax
     oauth-state-max-age: PT5M
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
