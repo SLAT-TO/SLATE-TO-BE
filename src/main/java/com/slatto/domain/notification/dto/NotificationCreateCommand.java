@@ -1,5 +1,6 @@
 package com.slatto.domain.notification.dto;
 
+import com.slatto.domain.notification.enums.NotificationTargetType;
 import com.slatto.domain.notification.enums.NotificationType;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +15,7 @@ public class NotificationCreateCommand {
     private Long projectId;
     private NotificationType type;
     private String content;
-    private String targetType;
+    private NotificationTargetType targetType;
     private Long targetId;
     private Long excludeUserId;
 }

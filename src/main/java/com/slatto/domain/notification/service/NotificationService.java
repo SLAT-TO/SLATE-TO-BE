@@ -3,6 +3,7 @@ package com.slatto.domain.notification.service;
 import com.slatto.domain.notification.dto.NotificationCreateCommand;
 import com.slatto.domain.notification.dto.NotificationListResponse;
 import com.slatto.domain.notification.entity.Notification;
+import com.slatto.domain.notification.enums.NotificationTargetType;
 import com.slatto.domain.notification.enums.NotificationType;
 import com.slatto.domain.notification.repository.NotificationRepository;
 import com.slatto.domain.project.entity.Project;
@@ -27,7 +28,6 @@ import java.util.Set;
 @Transactional(readOnly = true)
 public class NotificationService {
 
-    private static final String TARGET_TYPE_SCHEDULE = "SCHEDULE";
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 50;
     private static final int NOTIFICATION_RETENTION_HOURS = 24;
@@ -113,7 +113,7 @@ public class NotificationService {
                 project,
                 command.getType(),
                 command.getContent(),
-                command.getTargetType(),
+                getTargetTypeName(command.getTargetType()),
                 command.getTargetId()
             ))
             .toList();
@@ -138,7 +138,7 @@ public class NotificationService {
             .projectId(project != null ? project.getId() : null)
             .type(NotificationType.SCHEDULE_ASSIGNED)
             .content(createScheduleAssignedContent(scheduleTitle))
-            .targetType(TARGET_TYPE_SCHEDULE)
+            .targetType(NotificationTargetType.SCHEDULE)
             .targetId(scheduleId)
             .excludeUserId(writerId)
             .build());
@@ -235,6 +235,10 @@ public class NotificationService {
 
     private String createScheduleAssignedContent(String scheduleTitle) {
         return "'" + scheduleTitle + "' 일정 담당자로 지정되었습니다.";
+    }
+
+    private String getTargetTypeName(NotificationTargetType targetType) {
+        return targetType != null ? targetType.name() : null;
     }
 
     private int normalizePageSize(int size) {
