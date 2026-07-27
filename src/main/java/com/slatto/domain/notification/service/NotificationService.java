@@ -1,10 +1,12 @@
 package com.slatto.domain.notification.service;
 
+import com.slatto.domain.notification.dto.NotificationCreateCommand;
 import com.slatto.domain.notification.dto.NotificationListResponse;
 import com.slatto.domain.notification.entity.Notification;
 import com.slatto.domain.notification.enums.NotificationType;
 import com.slatto.domain.notification.repository.NotificationRepository;
 import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.project.repository.ProjectRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
@@ -15,8 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +34,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
 
     public NotificationListResponse getNotifications(
         Long currentUserId,
@@ -92,6 +97,33 @@ public class NotificationService {
     }
 
     @Transactional
+    public void createNotification(NotificationCreateCommand command) {
+        createNotifications(command);
+    }
+
+    @Transactional
+    public void createNotifications(NotificationCreateCommand command) {
+        validateCreateCommand(command);
+
+        Project project = getProjectOrNull(command.getProjectId());
+        List<Notification> notifications = getRecipientIds(command).stream()
+            .map(this::getActiveUser)
+            .map(recipient -> Notification.create(
+                recipient,
+                project,
+                command.getType(),
+                command.getContent(),
+                command.getTargetType(),
+                command.getTargetId()
+            ))
+            .toList();
+
+        if (!notifications.isEmpty()) {
+            notificationRepository.saveAll(notifications);
+        }
+    }
+
+    @Transactional
     public void createScheduleAssignedNotifications(
         Project project,
         Long scheduleId,
@@ -99,21 +131,17 @@ public class NotificationService {
         List<Users> recipients,
         Long writerId
     ) {
-        List<Notification> notifications = recipients.stream()
-            .filter(recipient -> !Objects.equals(recipient.getId(), writerId))
-            .map(recipient -> Notification.create(
-                recipient,
-                project,
-                NotificationType.SCHEDULE_ASSIGNED,
-                createScheduleAssignedContent(scheduleTitle),
-                TARGET_TYPE_SCHEDULE,
-                scheduleId
-            ))
-            .toList();
-
-        if (!notifications.isEmpty()) {
-            notificationRepository.saveAll(notifications);
-        }
+        createNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipients.stream()
+                .map(Users::getId)
+                .toList())
+            .projectId(project != null ? project.getId() : null)
+            .type(NotificationType.SCHEDULE_ASSIGNED)
+            .content(createScheduleAssignedContent(scheduleTitle))
+            .targetType(TARGET_TYPE_SCHEDULE)
+            .targetId(scheduleId)
+            .excludeUserId(writerId)
+            .build());
     }
 
     private void validateActiveUser(Long currentUserId) {
@@ -137,6 +165,42 @@ public class NotificationService {
                 createdAfter
             )
             .orElseThrow(() -> new BaseException(CommonErrorCode.BAD_REQUEST));
+    }
+
+    private Project getProjectOrNull(Long projectId) {
+        if (projectId == null) {
+            return null;
+        }
+
+        return projectRepository.findByIdAndDeletedAtIsNull(projectId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+    }
+
+    private Users getActiveUser(Long userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+    }
+
+    private void validateCreateCommand(NotificationCreateCommand command) {
+        if (command == null
+            || command.getType() == null
+            || command.getContent() == null
+            || command.getContent().isBlank()
+            || command.getRecipientIds() == null
+            || command.getRecipientIds().isEmpty()) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+    }
+
+    private List<Long> getRecipientIds(NotificationCreateCommand command) {
+        Set<Long> recipientIds = new HashSet<>(command.getRecipientIds());
+        recipientIds.remove(null);
+
+        if (command.getExcludeUserId() != null) {
+            recipientIds.removeIf(recipientId -> Objects.equals(recipientId, command.getExcludeUserId()));
+        }
+
+        return recipientIds.stream().toList();
     }
 
     private Integer getReadOrder(Notification notification) {
