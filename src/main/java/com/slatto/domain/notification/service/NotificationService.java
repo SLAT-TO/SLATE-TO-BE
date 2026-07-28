@@ -111,7 +111,12 @@ public class NotificationService {
         validateCreateCommand(command);
 
         Project project = getProjectOrNull(command.getProjectId());
-        List<Notification> notifications = getRecipientIds(command).stream()
+        List<Long> recipientIds = getRecipientIds(command);
+        if (recipientIds.isEmpty()) {
+            return;
+        }
+
+        List<Notification> notifications = recipientIds.stream()
             .map(this::getActiveUser)
             .map(recipient -> Notification.create(
                 recipient,
@@ -138,7 +143,12 @@ public class NotificationService {
         validateGroupingCommand(command);
 
         Project project = getProjectOrNull(command.getProjectId());
-        List<Notification> newNotifications = getRecipientIds(command).stream()
+        List<Long> recipientIds = getRecipientIds(command);
+        if (recipientIds.isEmpty()) {
+            return;
+        }
+
+        List<Notification> newNotifications = recipientIds.stream()
             .map(this::getActiveUser)
             .map(recipient -> createOrUpdateGroupedNotification(recipient, project, command))
             .filter(Objects::nonNull)
@@ -287,8 +297,7 @@ public class NotificationService {
             || command.getType() == null
             || command.getContent() == null
             || command.getContent().isBlank()
-            || command.getRecipientIds() == null
-            || command.getRecipientIds().isEmpty()) {
+            || command.getRecipientIds() == null) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
     }
