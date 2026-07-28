@@ -308,6 +308,9 @@ public class ScheduleService {
         if (!schedule.isProjectSchedule()) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
+        if (!hasParticipants(participantIds)) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
 
         Project project = schedule.getProject();
         List<Users> requestedUsers = getProjectParticipantUsers(project.getId(), participantIds);
