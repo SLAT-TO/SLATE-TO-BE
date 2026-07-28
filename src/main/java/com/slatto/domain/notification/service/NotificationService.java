@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -32,6 +31,8 @@ public class NotificationService {
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 50;
     private static final int NOTIFICATION_RETENTION_HOURS = 24;
+    private static final int GROUPING_LOCK_STRIPE_COUNT = 64;
+    private static final Object[] GROUPING_LOCKS = createGroupingLocks();
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -149,15 +150,9 @@ public class NotificationService {
             return;
         }
 
-        List<Notification> newNotifications = recipientIds.stream()
+        recipientIds.stream()
             .map(this::getActiveUser)
-            .map(recipient -> createOrUpdateGroupedNotification(recipient, project, command))
-            .filter(Objects::nonNull)
-            .toList();
-
-        if (!newNotifications.isEmpty()) {
-            notificationRepository.saveAll(newNotifications);
-        }
+            .forEach(recipient -> createOrUpdateGroupedNotification(recipient, project, command));
     }
 
     /**
@@ -315,34 +310,42 @@ public class NotificationService {
         }
     }
 
-    private Notification createOrUpdateGroupedNotification(
+    private void createOrUpdateGroupedNotification(
         Users recipient,
         Project project,
         NotificationCreateCommand command
     ) {
-        // 읽지 않은 동일 대상 알림이 있으면 새 알림을 만들지 않고 최신 문구로 갱신한다.
         String targetType = getTargetTypeName(command.getTargetType());
-        Optional<Notification> existingNotification = notificationRepository
-            .findTopByUserIdAndTypeAndTargetTypeAndTargetIdAndIsReadFalseAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
-                recipient.getId(),
-                command.getType(),
-                targetType,
-                command.getTargetId()
-            );
-
-        if (existingNotification.isPresent()) {
-            existingNotification.get().updateContent(command.getContent());
-            return null;
-        }
-
-        return Notification.create(
-            recipient,
-            project,
+        Object groupingLock = getGroupingLock(
+            recipient.getId(),
             command.getType(),
-            command.getContent(),
             targetType,
             command.getTargetId()
         );
+
+        synchronized (groupingLock) {
+            // 먼저 기존 미읽음 그룹 알림 갱신을 시도하고, 없을 때만 새 알림을 생성한다.
+            int updatedCount = notificationRepository.updateUnreadGroupedNotificationContent(
+                recipient.getId(),
+                command.getType(),
+                targetType,
+                command.getTargetId(),
+                command.getContent(),
+                LocalDateTime.now()
+            );
+            if (updatedCount > 0) {
+                return;
+            }
+
+            notificationRepository.save(Notification.create(
+                recipient,
+                project,
+                command.getType(),
+                command.getContent(),
+                targetType,
+                command.getTargetId()
+            ));
+        }
     }
 
     private List<Long> getRecipientIds(NotificationCreateCommand command) {
@@ -393,6 +396,29 @@ public class NotificationService {
 
     private String getTargetTypeName(NotificationTargetType targetType) {
         return targetType != null ? targetType.name() : null;
+    }
+
+    private Object getGroupingLock(
+        Long recipientId,
+        NotificationType type,
+        String targetType,
+        Long targetId
+    ) {
+        int lockIndex = Math.floorMod(
+            Objects.hash(recipientId, type, targetType, targetId),
+            GROUPING_LOCK_STRIPE_COUNT
+        );
+
+        return GROUPING_LOCKS[lockIndex];
+    }
+
+    private static Object[] createGroupingLocks() {
+        Object[] locks = new Object[GROUPING_LOCK_STRIPE_COUNT];
+        for (int i = 0; i < locks.length; i++) {
+            locks[i] = new Object();
+        }
+
+        return locks;
     }
 
     private int normalizePageSize(int size) {

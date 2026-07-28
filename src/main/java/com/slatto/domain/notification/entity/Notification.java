@@ -82,8 +82,4 @@ public class Notification extends BaseEntity {
         this.isRead = true;
         this.readAt = LocalDateTime.now();
     }
-
-    public void updateContent(String content) {
-        this.content = content;
-    }
 }

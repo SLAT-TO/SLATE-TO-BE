@@ -53,13 +53,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         LocalDateTime updatedAfter
     );
 
-    Optional<Notification> findTopByUserIdAndTypeAndTargetTypeAndTargetIdAndIsReadFalseAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
-        Long userId,
-        NotificationType type,
-        String targetType,
-        Long targetId
-    );
-
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         update Notification n
@@ -73,6 +66,27 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("notificationId") Long notificationId,
         @Param("userId") Long userId,
         @Param("readAt") LocalDateTime readAt
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Notification n
+        set n.content = :content,
+            n.updatedAt = :updatedAt
+        where n.user.id = :userId
+            and n.type = :type
+            and n.targetType = :targetType
+            and n.targetId = :targetId
+            and n.isRead = false
+            and n.deletedAt is null
+        """)
+    int updateUnreadGroupedNotificationContent(
+        @Param("userId") Long userId,
+        @Param("type") NotificationType type,
+        @Param("targetType") String targetType,
+        @Param("targetId") Long targetId,
+        @Param("content") String content,
+        @Param("updatedAt") LocalDateTime updatedAt
     );
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
