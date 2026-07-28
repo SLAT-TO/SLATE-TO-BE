@@ -8,7 +8,6 @@ import com.slatto.domain.schedule.dto.ScheduleResponse;
 import com.slatto.domain.schedule.entity.Schedule;
 import com.slatto.domain.schedule.entity.ScheduleParticipant;
 import com.slatto.domain.schedule.entity.SchedulePrivateMemo;
-import com.slatto.domain.schedule.enums.ScheduleScope;
 import com.slatto.domain.user.entity.Users;
 import org.springframework.stereotype.Component;
 
@@ -18,9 +17,6 @@ import java.util.Map;
 
 @Component
 public class ScheduleConverter {
-
-    private static final String PERSONAL_SCHEDULE_COLOR = "#4F8BFF";
-    private static final String PROJECT_SCHEDULE_COLOR = "#2BB673";
 
     public ScheduleResponse toResponse(Schedule schedule) {
         Long projectId = schedule.getProject() != null
@@ -91,14 +87,7 @@ public class ScheduleConverter {
             .title(schedule.getTitle())
             .startAt(schedule.getStartAt())
             .endAt(schedule.getEndAt())
-            .color(resolveCalendarColor(schedule.getScheduleScope()))
             .build();
-    }
-
-    private String resolveCalendarColor(ScheduleScope scheduleScope) {
-        return scheduleScope == ScheduleScope.PERSONAL
-            ? PERSONAL_SCHEDULE_COLOR
-            : PROJECT_SCHEDULE_COLOR;
     }
 
     private ScheduleDailyResponse.DailySchedule toDailySchedule(

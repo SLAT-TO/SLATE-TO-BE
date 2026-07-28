@@ -42,7 +42,5 @@ public class ScheduleCalendarResponse {
         @Schema(description = "종료 일시", example = "2026-07-05T15:00:00")
         private LocalDateTime endAt;
 
-        @Schema(description = "캘린더 표시 색상", example = "#4A78FF")
-        private String color;
     }
 }
