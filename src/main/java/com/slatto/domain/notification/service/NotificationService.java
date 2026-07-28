@@ -45,15 +45,15 @@ public class NotificationService {
         validateActiveUser(currentUserId);
 
         int pageSize = normalizePageSize(size);
-        LocalDateTime createdAfter = LocalDateTime.now().minusHours(NOTIFICATION_RETENTION_HOURS);
-        Notification cursorNotification = resolveCursor(currentUserId, cursor, createdAfter);
+        LocalDateTime updatedAfter = LocalDateTime.now().minusHours(NOTIFICATION_RETENTION_HOURS);
+        Notification cursorNotification = resolveCursor(currentUserId, cursor, updatedAfter);
 
         List<Notification> notifications = notificationRepository.findRecentNotificationsByCursor(
             currentUserId,
-            createdAfter,
+            updatedAfter,
             cursor,
             getReadOrder(cursorNotification),
-            getCreatedAt(cursorNotification),
+            getUpdatedAt(cursorNotification),
             PageRequest.of(0, pageSize + 1)
         );
 
@@ -102,6 +102,10 @@ public class NotificationService {
         createNotifications(command);
     }
 
+    /**
+     * 전달받은 사용자 목록에 새 개인 알림을 생성한다.
+     * 같은 대상의 기존 미읽음 알림이 있어도 새 알림으로 저장한다.
+     */
     @Transactional
     public void createNotifications(NotificationCreateCommand command) {
         validateCreateCommand(command);
@@ -124,6 +128,10 @@ public class NotificationService {
         }
     }
 
+    /**
+     * 동일 사용자, 알림 타입, targetType, targetId 기준으로 미읽음 알림을 그룹핑한다.
+     * 기존 미읽음 알림이 있으면 content만 갱신하고, 없으면 새 알림을 생성한다.
+     */
     @Transactional
     public void createOrUpdateGroupedNotifications(NotificationCreateCommand command) {
         validateCreateCommand(command);
@@ -141,6 +149,10 @@ public class NotificationService {
         }
     }
 
+    /**
+     * 일정 담당자로 지정된 사용자에게 알림을 생성한다.
+     * 일정 작성자는 excludeUserId로 제외한다.
+     */
     @Transactional
     public void createScheduleAssignedNotifications(
         Project project,
@@ -162,6 +174,77 @@ public class NotificationService {
             .build());
     }
 
+    /**
+     * 프로젝트 초대 알림을 생성한다.
+     * 클릭 대상은 프로젝트 상세 화면이다.
+     */
+    @Transactional
+    public void createProjectInvitationNotification(
+        Long recipientId,
+        Long projectId,
+        String content
+    ) {
+        validateRequiredId(recipientId);
+        validateRequiredId(projectId);
+
+        createNotification(NotificationCreateCommand.builder()
+            .recipientIds(List.of(recipientId))
+            .projectId(projectId)
+            .type(NotificationType.PROJECT_INVITED)
+            .content(content)
+            .targetType(NotificationTargetType.PROJECT)
+            .targetId(projectId)
+            .build());
+    }
+
+    /**
+     * 영상 피드백 댓글 알림을 생성하거나 기존 미읽음 알림을 갱신한다.
+     * 동일 영상 기준으로 그룹핑하므로 targetId는 feedbackId가 아니라 videoId를 사용한다.
+     */
+    @Transactional
+    public void createVideoFeedbackCommentedNotifications(
+        Long projectId,
+        Long videoId,
+        String content,
+        List<Long> recipientIds,
+        Long actorUserId
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(videoId);
+
+        createOrUpdateGroupedNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.VIDEO_FEEDBACK_COMMENTED)
+            .content(content)
+            .targetType(NotificationTargetType.VIDEO)
+            .targetId(videoId)
+            .excludeUserId(actorUserId)
+            .build());
+    }
+
+    /**
+     * 새로운 지원자 발생 알림을 생성하거나 기존 미읽음 알림을 갱신한다.
+     * 동일 공고 기준으로 그룹핑하므로 targetId는 recruitmentId를 사용한다.
+     */
+    @Transactional
+    public void createRecruitmentAppliedNotification(
+        Long recipientId,
+        Long recruitmentId,
+        String content
+    ) {
+        validateRequiredId(recipientId);
+        validateRequiredId(recruitmentId);
+
+        createOrUpdateGroupedNotifications(NotificationCreateCommand.builder()
+            .recipientIds(List.of(recipientId))
+            .type(NotificationType.RECRUITMENT_APPLIED)
+            .content(content)
+            .targetType(NotificationTargetType.RECRUITMENT)
+            .targetId(recruitmentId)
+            .build());
+    }
+
     private void validateActiveUser(Long currentUserId) {
         if (!userRepository.existsByIdAndDeletedAtIsNull(currentUserId)) {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
@@ -171,16 +254,16 @@ public class NotificationService {
     private Notification resolveCursor(
         Long currentUserId,
         Long cursor,
-        LocalDateTime createdAfter
+        LocalDateTime updatedAfter
     ) {
         if (cursor == null) {
             return null;
         }
 
-        return notificationRepository.findByIdAndUserIdAndDeletedAtIsNullAndCreatedAtGreaterThanEqual(
+        return notificationRepository.findByIdAndUserIdAndDeletedAtIsNullAndUpdatedAtGreaterThanEqual(
                 cursor,
                 currentUserId,
-                createdAfter
+                updatedAfter
             )
             .orElseThrow(() -> new BaseException(CommonErrorCode.BAD_REQUEST));
     }
@@ -216,11 +299,18 @@ public class NotificationService {
         }
     }
 
+    private void validateRequiredId(Long id) {
+        if (id == null) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+    }
+
     private Notification createOrUpdateGroupedNotification(
         Users recipient,
         Project project,
         NotificationCreateCommand command
     ) {
+        // 읽지 않은 동일 대상 알림이 있으면 새 알림을 만들지 않고 최신 문구로 갱신한다.
         String targetType = getTargetTypeName(command.getTargetType());
         Optional<Notification> existingNotification = notificationRepository
             .findTopByUserIdAndTypeAndTargetTypeAndTargetIdAndIsReadFalseAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
@@ -246,6 +336,7 @@ public class NotificationService {
     }
 
     private List<Long> getRecipientIds(NotificationCreateCommand command) {
+        // 중복 수신자와 제외 대상 사용자를 정리해 실제 저장 대상만 남긴다.
         Set<Long> recipientIds = new HashSet<>(command.getRecipientIds());
         recipientIds.remove(null);
 
@@ -264,8 +355,8 @@ public class NotificationService {
         return Boolean.FALSE.equals(notification.getIsRead()) ? 0 : 1;
     }
 
-    private LocalDateTime getCreatedAt(Notification notification) {
-        return notification != null ? notification.getCreatedAt() : null;
+    private LocalDateTime getUpdatedAt(Notification notification) {
+        return notification != null ? notification.getUpdatedAt() : null;
     }
 
     private NotificationListResponse.NotificationSummary toSummary(Notification notification) {
