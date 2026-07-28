@@ -81,13 +81,14 @@ public class NotificationService {
     public void markNotificationAsRead(Long currentUserId, Long notificationId) {
         validateActiveUser(currentUserId);
 
-        Notification notification = notificationRepository.findByIdAndUserIdAndDeletedAtIsNull(
-                notificationId,
-                currentUserId
-            )
-            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
-
-        notification.markAsRead();
+        int updatedCount = notificationRepository.markAsReadByIdAndUserId(
+            notificationId,
+            currentUserId,
+            LocalDateTime.now()
+        );
+        if (updatedCount == 0) {
+            throw new BaseException(CommonErrorCode.NOT_FOUND);
+        }
     }
 
     @Transactional
