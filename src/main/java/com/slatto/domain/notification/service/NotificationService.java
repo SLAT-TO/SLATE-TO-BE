@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -124,6 +125,23 @@ public class NotificationService {
     }
 
     @Transactional
+    public void createOrUpdateGroupedNotifications(NotificationCreateCommand command) {
+        validateCreateCommand(command);
+        validateGroupingCommand(command);
+
+        Project project = getProjectOrNull(command.getProjectId());
+        List<Notification> newNotifications = getRecipientIds(command).stream()
+            .map(this::getActiveUser)
+            .map(recipient -> createOrUpdateGroupedNotification(recipient, project, command))
+            .filter(Objects::nonNull)
+            .toList();
+
+        if (!newNotifications.isEmpty()) {
+            notificationRepository.saveAll(newNotifications);
+        }
+    }
+
+    @Transactional
     public void createScheduleAssignedNotifications(
         Project project,
         Long scheduleId,
@@ -190,6 +208,41 @@ public class NotificationService {
             || command.getRecipientIds().isEmpty()) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
+    }
+
+    private void validateGroupingCommand(NotificationCreateCommand command) {
+        if (command.getTargetType() == null || command.getTargetId() == null) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+    }
+
+    private Notification createOrUpdateGroupedNotification(
+        Users recipient,
+        Project project,
+        NotificationCreateCommand command
+    ) {
+        String targetType = getTargetTypeName(command.getTargetType());
+        Optional<Notification> existingNotification = notificationRepository
+            .findTopByUserIdAndTypeAndTargetTypeAndTargetIdAndIsReadFalseAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
+                recipient.getId(),
+                command.getType(),
+                targetType,
+                command.getTargetId()
+            );
+
+        if (existingNotification.isPresent()) {
+            existingNotification.get().updateContent(command.getContent());
+            return null;
+        }
+
+        return Notification.create(
+            recipient,
+            project,
+            command.getType(),
+            command.getContent(),
+            targetType,
+            command.getTargetId()
+        );
     }
 
     private List<Long> getRecipientIds(NotificationCreateCommand command) {

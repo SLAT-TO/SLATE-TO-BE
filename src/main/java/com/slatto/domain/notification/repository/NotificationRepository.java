@@ -1,6 +1,7 @@
 package com.slatto.domain.notification.repository;
 
 import com.slatto.domain.notification.entity.Notification;
+import com.slatto.domain.notification.enums.NotificationType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -52,6 +53,13 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     );
 
     Optional<Notification> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
+
+    Optional<Notification> findTopByUserIdAndTypeAndTargetTypeAndTargetIdAndIsReadFalseAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(
+        Long userId,
+        NotificationType type,
+        String targetType,
+        Long targetId
+    );
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
