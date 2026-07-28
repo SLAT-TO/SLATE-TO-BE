@@ -1,6 +1,7 @@
 package com.slatto.domain.notification.repository;
 
 import com.slatto.domain.notification.entity.Notification;
+import com.slatto.domain.notification.enums.NotificationType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,45 +14,80 @@ import java.util.Optional;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
+    // 그룹핑 알림은 기존 알림의 updated_at이 갱신되므로 최신순과 보존 기간 모두 updated_at 기준으로 조회한다.
     @Query("""
         select n
         from Notification n
         left join fetch n.project p
         where n.user.id = :userId
             and n.deletedAt is null
-            and n.createdAt >= :createdAfter
+            and n.updatedAt >= :updatedAfter
             and (
                 :cursorId is null
                 or case when n.isRead = false then 0 else 1 end > :cursorReadOrder
                 or (
                     case when n.isRead = false then 0 else 1 end = :cursorReadOrder
                     and (
-                        n.createdAt < :cursorCreatedAt
-                        or (n.createdAt = :cursorCreatedAt and n.id < :cursorId)
+                        n.updatedAt < :cursorUpdatedAt
+                        or (n.updatedAt = :cursorUpdatedAt and n.id < :cursorId)
                     )
                 )
             )
         order by
             case when n.isRead = false then 0 else 1 end,
-            n.createdAt desc,
+            n.updatedAt desc,
             n.id desc
         """)
     List<Notification> findRecentNotificationsByCursor(
         @Param("userId") Long userId,
-        @Param("createdAfter") LocalDateTime createdAfter,
+        @Param("updatedAfter") LocalDateTime updatedAfter,
         @Param("cursorId") Long cursorId,
         @Param("cursorReadOrder") Integer cursorReadOrder,
-        @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+        @Param("cursorUpdatedAt") LocalDateTime cursorUpdatedAt,
         Pageable pageable
     );
 
-    Optional<Notification> findByIdAndUserIdAndDeletedAtIsNullAndCreatedAtGreaterThanEqual(
+    Optional<Notification> findByIdAndUserIdAndDeletedAtIsNullAndUpdatedAtGreaterThanEqual(
         Long id,
         Long userId,
-        LocalDateTime createdAfter
+        LocalDateTime updatedAfter
     );
 
-    Optional<Notification> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Notification n
+        set n.isRead = true,
+            n.readAt = case when n.readAt is null then :readAt else n.readAt end
+        where n.id = :notificationId
+            and n.user.id = :userId
+            and n.deletedAt is null
+        """)
+    int markAsReadByIdAndUserId(
+        @Param("notificationId") Long notificationId,
+        @Param("userId") Long userId,
+        @Param("readAt") LocalDateTime readAt
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update Notification n
+        set n.content = :content,
+            n.updatedAt = :updatedAt
+        where n.user.id = :userId
+            and n.type = :type
+            and n.targetType = :targetType
+            and n.targetId = :targetId
+            and n.isRead = false
+            and n.deletedAt is null
+        """)
+    int updateUnreadGroupedNotificationContent(
+        @Param("userId") Long userId,
+        @Param("type") NotificationType type,
+        @Param("targetType") String targetType,
+        @Param("targetId") Long targetId,
+        @Param("content") String content,
+        @Param("updatedAt") LocalDateTime updatedAt
+    );
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
