@@ -1,5 +1,7 @@
 package com.slatto.global.config;
 
+import com.slatto.global.config.properties.CorsProperties;
+import com.slatto.global.security.CookieCsrfProtectionFilter;
 import com.slatto.global.security.JwtAuthenticationEntryPoint;
 import com.slatto.global.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -18,44 +25,65 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final CookieCsrfProtectionFilter cookieCsrfProtectionFilter;
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+	private final CorsProperties corsProperties;
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http
-				.csrf(csrf -> csrf.disable())
-				.formLogin(formLogin -> formLogin.disable())
-				.httpBasic(httpBasic -> httpBasic.disable())
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.authorizeHttpRequests(auth -> auth
-						.requestMatchers(
-								"/api/v1/auth/login/**",
-								"/api/v1/auth/callback/**",
-								"/api/v1/auth/refresh"
-						).permitAll()
-								// 게스트 등록
-								.requestMatchers(HttpMethod.POST, "/api/v1/share-links/*/guests").permitAll()
+			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+			// 토큰 기반 무상태 API라 CSRF 토큰을 쓰지 않는다.
+			// 대신 쿠키만으로 인증되는 경로는 CookieCsrfProtectionFilter가 Origin/Referer로 방어한다.
+			.csrf(csrf -> csrf.disable())
+			.formLogin(formLogin -> formLogin.disable())
+			.httpBasic(httpBasic -> httpBasic.disable())
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers(
+					"/api/v1/auth/login/**",
+					"/api/v1/auth/callback/**",
+					"/api/v1/auth/refresh"
+				).permitAll()
+					// 게스트 등록
+					.requestMatchers(HttpMethod.POST, "/api/v1/share-links/*/guests").permitAll()
 
-								// 게스트 피드백/답글 참여 — 작성/수정/삭제만 (조회는 인가 검증 이슈에서 처리)
-								.requestMatchers(HttpMethod.POST, "/api/v1/videos/*/feedbacks").permitAll()
-								.requestMatchers(HttpMethod.PATCH, "/api/v1/feedbacks/*").permitAll()
-								.requestMatchers(HttpMethod.DELETE, "/api/v1/feedbacks/*").permitAll()
-								.requestMatchers(HttpMethod.POST, "/api/v1/feedbacks/*/replies").permitAll()
-								.requestMatchers(HttpMethod.PATCH, "/api/v1/replies/*").permitAll()
-								.requestMatchers(HttpMethod.DELETE, "/api/v1/replies/*").permitAll()
+					// 게스트 피드백/답글 참여 — 작성/수정/삭제만 (조회는 인가 검증 이슈에서 처리)
+					.requestMatchers(HttpMethod.POST, "/api/v1/videos/*/feedbacks").permitAll()
+					.requestMatchers(HttpMethod.PATCH, "/api/v1/feedbacks/*").permitAll()
+					.requestMatchers(HttpMethod.DELETE, "/api/v1/feedbacks/*").permitAll()
+					.requestMatchers(HttpMethod.POST, "/api/v1/feedbacks/*/replies").permitAll()
+					.requestMatchers(HttpMethod.PATCH, "/api/v1/replies/*").permitAll()
+					.requestMatchers(HttpMethod.DELETE, "/api/v1/replies/*").permitAll()
 
-						.requestMatchers(
-								HttpMethod.GET,
-								"/api/v1/health",
-								"/swagger-ui/**",
-								"/v3/api-docs/**",
-								"/api/v1/project-invitations/*",
-								"/api/v1/share-links/*"   // 진입 검증 — 로그인 없이 접근
-						).permitAll()
-						.anyRequest().authenticated()
-				)
-				.exceptionHandling(handling -> handling.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-				.build();
+					.requestMatchers(
+							HttpMethod.GET,
+							"/api/v1/health",
+							"/swagger-ui/**",
+							"/v3/api-docs/**",
+							"/api/v1/project-invitations/*",
+							"/api/v1/share-links/*"   // 진입 검증 — 로그인 없이 접근
+					).permitAll()
+				.anyRequest().authenticated()
+			)
+			.exceptionHandling(handling -> handling.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+			.addFilterBefore(cookieCsrfProtectionFilter, JwtAuthenticationFilter.class)
+			.build();
 	}
+
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(corsProperties.allowedOrigins());
+		configuration.setAllowCredentials(true);
+		configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("*"));
+		configuration.setMaxAge(3600L);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
+	}
+
 }
