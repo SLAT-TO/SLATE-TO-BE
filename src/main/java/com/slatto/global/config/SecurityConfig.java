@@ -1,6 +1,7 @@
 package com.slatto.global.config;
 
 import com.slatto.global.config.properties.CorsProperties;
+import com.slatto.global.security.CookieCsrfProtectionFilter;
 import com.slatto.global.security.JwtAuthenticationEntryPoint;
 import com.slatto.global.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.List;
 public class SecurityConfig {
 
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final CookieCsrfProtectionFilter cookieCsrfProtectionFilter;
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 	private final CorsProperties corsProperties;
 
@@ -31,6 +33,8 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http
 			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+			// 토큰 기반 무상태 API라 CSRF 토큰을 쓰지 않는다.
+			// 대신 쿠키만으로 인증되는 경로는 CookieCsrfProtectionFilter가 Origin/Referer로 방어한다.
 			.csrf(csrf -> csrf.disable())
 			.formLogin(formLogin -> formLogin.disable())
 			.httpBasic(httpBasic -> httpBasic.disable())
@@ -55,6 +59,7 @@ public class SecurityConfig {
 			)
 			.exceptionHandling(handling -> handling.authenticationEntryPoint(jwtAuthenticationEntryPoint))
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+			.addFilterBefore(cookieCsrfProtectionFilter, JwtAuthenticationFilter.class)
 			.build();
 	}
 
