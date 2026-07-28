@@ -41,7 +41,7 @@ public class ScheduleConverter {
             .toList();
 
         return ScheduleCalendarResponse.builder()
-            .schedules(calendarSchedules)
+            .items(calendarSchedules)
             .build();
     }
 
@@ -63,7 +63,7 @@ public class ScheduleConverter {
 
         return ScheduleDailyResponse.builder()
             .date(date)
-            .schedules(dailySchedules)
+            .items(dailySchedules)
             .build();
     }
 

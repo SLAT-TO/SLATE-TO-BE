@@ -14,7 +14,7 @@ import java.util.List;
 public class ScheduleCalendarResponse {
 
     @Schema(description = "캘린더에 표시할 일정 목록")
-    private List<CalendarSchedule> schedules;
+    private List<CalendarSchedule> items;
 
     @Getter
     @Builder

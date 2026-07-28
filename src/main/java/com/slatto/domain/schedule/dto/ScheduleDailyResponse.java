@@ -18,7 +18,7 @@ public class ScheduleDailyResponse {
     private LocalDate date;
 
     @Schema(description = "해당 날짜에 표시할 일정 목록")
-    private List<DailySchedule> schedules;
+    private List<DailySchedule> items;
 
     @Getter
     @Builder
