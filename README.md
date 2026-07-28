@@ -1,112 +1,227 @@
-# SLAT-TO Backend Repository
+<!-- @format -->
 
-> 슬레이투 백엔드 레포지토리입니다.
+# SLATE-TO Backend
 
-## Team Members
+<div align="center">
 
+<!-- TODO: 배너 이미지를 docs/assets/readme-banner.png 경로에 추가한 뒤 아래 주석을 해제합니다. -->
+<!-- <img width="100%" alt="SLATE-TO Backend Banner" src="./docs/assets/readme-banner.png" /> -->
+<img width="1920" height="1080" alt="Frame 2147229304" src="https://github.com/user-attachments/assets/fbe510e1-01c9-4b1a-b400-38a5297a1efa" />
 
-## 🛠️ 기술 스택 (Tech Stack)
+<h3>영상 제작 협업을 위한 프로젝트 관리 및 피드백 플랫폼</h3>
 
-- Java 21
-- Spring Boot 3.5.15
-- Gradle - Groovy
-- MySQL
-- Spring Data JPA
-- Spring Web
-- Validation
-- Lombok
-- Swagger / Springdoc OpenAPI
+</div>
 
-## 🚀 로컬 실행 방법
+---
 
-### 1. IntelliJ에서 실행
+## 프로젝트 소개
 
-1. IntelliJ IDEA에서 프로젝트를 엽니다.
-2. Project SDK를 Java 21로 설정합니다.
-3. Gradle Sync를 실행합니다.
-4. Run Configuration의 Environment variables에 DB 환경변수를 설정합니다.
-5. `SlattoApplication` main class를 실행합니다.
+SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간에서 작업물을 공유하고, 피드백을 남기며, 일정과 파일을 관리할 수 있도록 돕는 협업 서비스입니다.
 
-### 2. 필수 환경변수
+## 팀원 소개
 
-DB 접속 대상은 아직 로컬 MySQL 또는 RDS 중 확정되지 않았습니다.
-현재는 MySQL 사용을 전제로 환경변수만 열어둡니다.
+<div align="center">
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/chazy-d">
+        <img src="https://github.com/chazy-d.png" width="96" height="96" alt="chazy-d" />
+        <br />
+        <b>chazy-d</b>
+      </a>
+      <br />
+      Backend
+    </td>
+    <td align="center">
+      <a href="https://github.com/sangwon02">
+        <img src="https://github.com/sangwon02.png" width="96" height="96" alt="sangwon02" />
+        <br />
+        <b>sangwon02</b>
+      </a>
+      <br />
+      Backend
+    </td>
+    <td align="center">
+      <a href="https://github.com/young0206">
+        <img src="https://github.com/young0206.png" width="96" height="96" alt="young0206" />
+        <br />
+        <b>young0206</b>
+      </a>
+      <br />
+      Backend
+    </td>
+    <td align="center">
+      <a href="https://github.com/guingguing">
+        <img src="https://github.com/guingguing.png" width="96" height="96" alt="guingguing" />
+        <br />
+        <b>guingguing</b>
+      </a>
+      <br />
+      Backend
+    </td>
+    <td align="center">
+      <a href="https://github.com/Kohseoyoung">
+        <img src="https://github.com/Kohseoyoung.png" width="96" height="96" alt="Kohseoyoung" />
+        <br />
+        <b>Kohseoyoung</b>
+      </a>
+      <br />
+      Backend
+    </td>
+  </tr>
+</table>
+
+</div>
+
+## 주요 기능
+
+| 도메인   | 기능                                                                       |
+| -------- | -------------------------------------------------------------------------- |
+| 인증     | Google OAuth 로그인, JWT 기반 인증, 토큰 재발급                            |
+| 프로젝트 | 프로젝트 생성/수정/삭제, 목록/상세 조회, 프로젝트 고정                     |
+| 멤버     | 초대 링크 생성/조회/수락, 멤버 목록/상세 조회, 역할 수정, 멤버 삭제/나가기 |
+| 영상     | YouTube URL 기반 영상 등록, 영상 목록/상세 조회, 진행 상태 관리            |
+| 피드백   | 영상 타임코드 기반 피드백, 답글, 해결 처리                                 |
+| 파일     | 프로젝트 파일 업로드/다운로드, 검색, 수정/삭제, 파일 고정                  |
+| 공지     | 프로젝트 공지 등록/조회/수정/삭제, 읽음 처리                               |
+| 일정     | 개인 일정과 프로젝트 일정 관리                                             |
+| 알림     | 프로젝트 활동 기반 알림 조회 및 읽음 처리                                  |
+
+## 기술 스택
+
+<div align="center">
+
+### Backend
+
+<p>
+  <img src="https://img.shields.io/badge/JAVA_21-007396?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 21" />
+  <img src="https://img.shields.io/badge/SPRING_BOOT_3.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot" />
+  <img src="https://img.shields.io/badge/SPRING_SECURITY-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white" alt="Spring Security" />
+  <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JWT" />
+  <img src="https://img.shields.io/badge/SPRING_DATA_JPA-6DB33F?style=for-the-badge&logo=spring&logoColor=white" alt="Spring Data JPA" />
+</p>
+
+### Database & Storage
+
+<p>
+  <img src="https://img.shields.io/badge/MYSQL_8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
+  <img src="https://img.shields.io/badge/AWS_S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white" alt="AWS S3" />
+  <img src="https://img.shields.io/badge/H2_TEST_DB-09476B?style=for-the-badge&logo=h2database&logoColor=white" alt="H2" />
+</p>
+
+### Infra & Deploy
+
+<p>
+  <img src="https://img.shields.io/badge/AWS_EC2-FF9900?style=for-the-badge&logo=amazonec2&logoColor=white" alt="AWS EC2" />
+  <img src="https://img.shields.io/badge/GITHUB_ACTIONS-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions" />
+  <img src="https://img.shields.io/badge/GRADLE-02303A?style=for-the-badge&logo=gradle&logoColor=white" alt="Gradle" />
+</p>
+
+### API & External
+
+<p>
+  <img src="https://img.shields.io/badge/SWAGGER_UI-85EA2D?style=for-the-badge&logo=swagger&logoColor=black" alt="Swagger UI" />
+  <img src="https://img.shields.io/badge/GOOGLE_OAUTH-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google OAuth" />
+  <img src="https://img.shields.io/badge/YOUTUBE_DATA_API-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube Data API" />
+</p>
+
+</div>
+
+## 시스템 구성
+
+<img width="1309" height="1201" alt="slat_infra" src="https://github.com/user-attachments/assets/97a66797-34f1-4ce4-96a1-aea0913b504b" />
+
+## 협업 방식
+
+### 브랜치 전략
+
+| 브랜치 | 설명 |
+| --- | --- |
+| `main` | 최종 사용자에게 배포되는 가장 안정적인 버전입니다. |
+| `develop` | 다음 출시 버전을 개발하는 중심 브랜치입니다. 기능 개발이 완료된 `feature` 브랜치가 병합됩니다. |
+| `feature/*` | 기능 개발용 브랜치입니다. 최신 `develop`에서 분기하여 작업합니다. |
+
+### 브랜치 규칙 및 네이밍
+
+- 모든 기능 개발은 `feature` 브랜치에서 시작합니다.
+- 작업을 시작하기 전에는 `develop` 브랜치의 최신 내용을 반영합니다.
+- 작업이 끝나면 `develop`을 대상으로 Pull Request를 생성하고, Reviewer를 지정합니다.
+- 리뷰 후 승인된 Pull Request만 `develop`에 병합합니다.
 
 ```bash
-DB_URL=jdbc:mysql://<host>:3306/<database>?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-DB_USER=<username>
-DB_PASSWORD=<password>
-JPA_DDL_AUTO=validate
+git switch develop
+git pull origin develop
+git switch -c feature/1-login
 ```
 
-환경변수 예시는 `.env.example`을 참고합니다. Spring Boot는 `.env` 파일을 자동으로 읽지 않으므로 IntelliJ Run Configuration 또는 shell 환경변수로 값을 주입합니다.
+브랜치 이름은 아래 형식을 사용합니다.
 
-### 3. Swagger
-
-애플리케이션 실행 후 아래 주소에서 Swagger UI를 확인할 수 있습니다.
-
-```txt
-http://localhost:8080/swagger-ui
+```text
+feature/{이슈번호}-{기능명}
 ```
 
-## 🧩 초기 패키지 방향
+예시: `feature/1-login`
 
-```txt
-com.slatto
+### 커밋 컨벤션
+
+```text
+<type>: <작업 내용>
+```
+
+- `type`은 소문자만 사용합니다.
+- `subject`는 현재형 동사로 작성합니다.
+
+| type       | 설명                     |
+| ---------- | ------------------------ |
+| `feat`     | 새로운 기능 추가         |
+| `fix`      | 버그 수정                |
+| `refactor` | 기능 변경 없는 코드 개선 |
+| `docs`     | 문서 수정                |
+| `test`     | 테스트 코드 추가/수정    |
+| `chore`    | 빌드, 설정, 기타 작업    |
+
+### Pull Request
+
+- PR은 `develop` 브랜치를 기준으로 생성합니다.
+- PR 생성 시 Reviewer를 지정합니다.
+- 작업 내용, 주요 변경 파일, 검증 결과를 함께 작성합니다.
+- 기능 단위가 커질 경우 작은 커밋 단위로 나누어 리뷰 흐름을 명확하게 유지합니다.
+
+## 프로젝트 구조 및 실행
+
+### 패키지 구조
+
+```text
+src/main/java/com/slatto
+├── domain
+│   ├── auth, user, project, video, feedback
+│   ├── schedule, notification, recruitment, sharelink, inquiry
+│   └── controller, service, repository, entity, dto 중심으로 구성
 ├── global
-│   └── config
-└── domain
+│   ├── config, security, exception, response
+│   ├── storage, health
+│   └── 공통 설정과 횡단 관심사 관리
+└── SlattoApplication.java
 ```
 
-공통 응답 형식, 예외 처리 방식, Security/Auth 구조는 팀 합의 후 추가합니다.
+### 로컬 실행 및 검증
 
-### 🌐 Git-flow 전략 (Git-flow Strategy)
-
-- **`main`**: 최종적으로 사용자에게 배포되는 가장 안정적인 버전 브랜치
-- **`develop`**: 다음 출시 버전을 개발하는 중심 브랜치. 기능 개발 완료 후 `feature` 브랜치들이 병합
-- **`feature`**: 기능 개발용 브랜치. `develop`에서 분기하여 작업
-
-### 📌 브랜치 규칙 및 네이밍 (Branch Rules & Naming)
-
-1. 모든 기능 개발은 **feature** 브랜치에서 시작
-2. 작업 시작 전, 항상 최신 `develop` 내용 받아오기 (`git pull origin develop`)
-3. 작업 완료 후, `develop`으로 Pull Request(PR) 생성
-4. PR에 Reviewer(멘션) 지정
-5. 리뷰어가 PR을 보고 코드 확인 후 머지 진행
-
-**브랜치 이름 형식:**  
-feature/이슈번호-기능명
-
-- 예시: `feature/1-login`
-
-### 🎯 커밋 컨벤션 (Commit Convention)
-
-- **주의 사항:**
-- `type`은 소문자만 사용 (feat, fix, refactor, docs, style, test, chore)
-- `subject`는 **모두 현재형 동사**
-
-#### 📋 타입 목록
-
-| type                | 설명                                  |
-| :------------------ | :------------------------------------ |
-| `start`             | 새로운 프로젝트를 시작할 때           |
-| `feat`              | 새로운 기능을 추가할 때               |
-| `fix`               | 버그를 수정할 때                      |
-| `design`            | CSS 등 사용자 UI 디자인을 변경할 때   |
-| `refactor`          | 기능 변경 없이 코드를 리팩토링할 때   |
-| `settings`          | 설정 파일을 변경할 때                 |
-| `comment`           | 필요한 주석을 추가하거나 변경할 때    |
-| `dependency/Plugin` | 의존성/플러그인을 추가할 때           |
-| `docs`              | README.md 등 문서를 수정할 때         |
-| `merge`             | 브랜치를 병합할 때                    |
-| `deploy`            | 빌드 및 배포 관련 작업을 할 때        |
-| `rename`            | 파일 혹은 폴더명을 수정하거나 옮길 때 |
-| `remove`            | 파일을 삭제하는 작업만 수행했을 때    |
-| `revert`            | 이전 버전으로 롤백할 때               |
+Java 21 기준으로 실행합니다.
 
 ```bash
-#### ✨ 예시
-feat: 로그인 기능 추가
-fix: 로그인 버그 수정
-refactor: 로그인 로직 리팩토링
+./gradlew bootRun
 ```
+
+전체 테스트와 빌드는 아래 명령으로 확인합니다.
+
+```bash
+./gradlew test
+./gradlew clean build
+```
+
+---
+
+<div align="center">
+  SLATE-TO Backend
+</div>

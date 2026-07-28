@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Feedback", description = "피드백 API")
@@ -30,9 +31,10 @@ public class FeedbackController {
     @PostMapping("/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<FeedbackCreateResDTO>> createFeedback(
             @PathVariable Long videoId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody FeedbackCreateReqDTO request
     ) {
-        FeedbackCreateResDTO result = feedbackService.createFeedback(videoId, request);
+        FeedbackCreateResDTO result = feedbackService.createFeedback(videoId, userId, request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -43,9 +45,10 @@ public class FeedbackController {
     @PatchMapping("/feedbacks/{feedbackId}")
     public ResponseEntity<ApiResponse<FeedbackUpdateResDTO>> updateFeedback(
             @PathVariable Long feedbackId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody FeedbackUpdateReqDTO request
     ) {
-        FeedbackUpdateResDTO result = feedbackService.updateFeedback(feedbackId, request);
+        FeedbackUpdateResDTO result = feedbackService.updateFeedback(feedbackId, userId, request);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
@@ -55,7 +58,7 @@ public class FeedbackController {
     @DeleteMapping("/feedbacks/{feedbackId}")
     public ResponseEntity<ApiResponse<Void>> deleteFeedback(
             @PathVariable Long feedbackId,
-            @RequestParam(required = false) Long userId,
+            @AuthenticationPrincipal Long userId,
             @RequestParam(required = false) Long guestId
     ) {
         feedbackService.deleteFeedback(feedbackId, userId, guestId);
@@ -81,9 +84,10 @@ public class FeedbackController {
     @PatchMapping("/feedbacks/{feedbackId}/status")
     public ResponseEntity<ApiResponse<FeedbackStatusResDTO>> changeFeedbackStatus(
             @PathVariable Long feedbackId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody FeedbackStatusReqDTO request
     ) {
-        FeedbackStatusResDTO result = feedbackService.changeFeedbackStatus(feedbackId, request);
+        FeedbackStatusResDTO result = feedbackService.changeFeedbackStatus(feedbackId, userId, request);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));

@@ -45,8 +45,17 @@ public class SecurityConfig {
 					"/api/v1/auth/callback/**",
 					"/api/v1/auth/refresh"
 				).permitAll()
-					// 게스트 등록 — 로그인 없이 접근 (게스트 접근 기능)
+					// 게스트 등록
 					.requestMatchers(HttpMethod.POST, "/api/v1/share-links/*/guests").permitAll()
+
+					// 게스트 피드백/답글 참여 — 작성/수정/삭제만 (조회는 인가 검증 이슈에서 처리)
+					.requestMatchers(HttpMethod.POST, "/api/v1/videos/*/feedbacks").permitAll()
+					.requestMatchers(HttpMethod.PATCH, "/api/v1/feedbacks/*").permitAll()
+					.requestMatchers(HttpMethod.DELETE, "/api/v1/feedbacks/*").permitAll()
+					.requestMatchers(HttpMethod.POST, "/api/v1/feedbacks/*/replies").permitAll()
+					.requestMatchers(HttpMethod.PATCH, "/api/v1/replies/*").permitAll()
+					.requestMatchers(HttpMethod.DELETE, "/api/v1/replies/*").permitAll()
+
 					.requestMatchers(
 							HttpMethod.GET,
 							"/api/v1/health",
