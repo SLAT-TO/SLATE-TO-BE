@@ -41,7 +41,7 @@ public class FeedbackDetailService {
     private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
 
     @Transactional
-    public ReplyCreateResDTO createReply(Long feedbackId, ReplyCreateReqDTO req) {
+    public ReplyCreateResDTO createReply(Long feedbackId, Long userId, ReplyCreateReqDTO req) {
 
         // 1. 원 피드백 조회 (삭제된 건 제외)
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -49,14 +49,14 @@ public class FeedbackDetailService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 2. 작성자 검증
-        validateWriter(req.userId(), req.guestId());
+        validateWriter(userId, req.guestId());
 
         // 3. 작성자 조회
         Users user = null;
         Guest guest = null;
 
-        if (req.userId() != null) {
-            user = userRepository.findByIdAndDeletedAtIsNull(req.userId())
+        if (userId != null) {
+            user = userRepository.findByIdAndDeletedAtIsNull(userId)
                     .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
         } else {
             guest = guestRepository.findById(req.guestId())
@@ -112,7 +112,7 @@ public class FeedbackDetailService {
     }
 
     @Transactional
-    public ReplyUpdateResDTO updateReply(Long replyId, ReplyUpdateReqDTO req) {
+    public ReplyUpdateResDTO updateReply(Long replyId, Long userId, ReplyUpdateReqDTO req) {
 
         // 1. 답글 조회 (삭제된 건 제외)
         FeedbackDetail reply = feedbackDetailRepository.findById(replyId)
@@ -120,10 +120,10 @@ public class FeedbackDetailService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 2. 작성자 검증
-        validateWriter(req.userId(), req.guestId());
+        validateWriter(userId, req.guestId());
 
         // 3. 본인 확인
-        if (!reply.isWriter(req.userId(), req.guestId())) {
+        if (!reply.isWriter(userId, req.guestId())) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
@@ -157,7 +157,7 @@ public class FeedbackDetailService {
     }
 
     @Transactional
-    public ReplyStatusResDTO changeReplyStatus(Long replyId, ReplyStatusReqDTO req) {
+    public ReplyStatusResDTO changeReplyStatus(Long replyId, Long userId, ReplyStatusReqDTO req) {
 
         // 1. 답글 조회
         FeedbackDetail reply = feedbackDetailRepository.findById(replyId)
@@ -168,7 +168,7 @@ public class FeedbackDetailService {
         Long projectId = reply.getFeedback().getVideo().getProject().getId();
 
         boolean isMember = projectMemberRepository
-                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, req.userId());
+                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
