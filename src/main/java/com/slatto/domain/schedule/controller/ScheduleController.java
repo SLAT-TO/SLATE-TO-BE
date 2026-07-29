@@ -67,7 +67,7 @@ public class ScheduleController {
 
     @Operation(
         summary = "통합 캘린더 일정 조회",
-        description = "캘린더에 표시할 일정 목록을 기간 기준으로 조회합니다. projectId를 전달하면 통합 캘린더의 프로젝트 필터와 프로젝트 내부 캘린더에서 재사용할 수 있습니다."
+        description = "캘린더에 표시할 일정 목록을 기간 기준으로 조회합니다. 프로젝트 캘린더 조회 시 scope=PROJECT와 projectId를 함께 전달합니다."
     )
     @GetMapping
     public ApiResponse<ScheduleCalendarResponse> getCalendarSchedules(
@@ -76,9 +76,9 @@ public class ScheduleController {
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startAt,
         @Parameter(description = "조회 종료 일시", example = "2026-07-31T23:59:59")
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endAt,
-        @Parameter(description = "조회 범위. ALL, PERSONAL, PROJECT 중 하나를 전달합니다.", example = "ALL")
+        @Parameter(description = "조회 범위. ALL, PERSONAL, PROJECT 중 하나를 전달합니다. 프로젝트 캘린더 조회 시 PROJECT로 전달합니다.", example = "ALL")
         @RequestParam(defaultValue = "ALL") ScheduleQueryScope scope,
-        @Parameter(description = "특정 프로젝트 일정만 조회할 때 전달합니다.", example = "3")
+        @Parameter(description = "특정 프로젝트 일정만 조회할 때 전달합니다. 프로젝트 캘린더 조회 시 scope=PROJECT와 함께 전달합니다.", example = "3")
         @RequestParam(required = false) Long projectId
     ) {
         ScheduleCalendarResponse response = scheduleService.getCalendarSchedules(
@@ -109,7 +109,7 @@ public class ScheduleController {
 
     @Operation(
         summary = "일정 수정",
-        description = "일정 생성자만 일정을 수정할 수 있습니다. 전달된 항목만 부분 수정되며, 프로젝트 일정의 participantIds를 전달하면 일정 대상자 목록을 교체합니다."
+        description = "일정 생성자만 일정을 수정할 수 있습니다. 전달된 항목만 부분 수정되며, 프로젝트 일정의 participantIds를 전달하지 않으면 기존 대상자를 유지하고 빈 배열을 전달하면 모든 대상자를 제거합니다."
     )
     @PatchMapping("/{scheduleId}")
     public ApiResponse<ScheduleResponse> updateSchedule(

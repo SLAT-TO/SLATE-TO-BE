@@ -31,6 +31,6 @@ public class ScheduleUpdateRequest {
     @Schema(description = "공용 메모. 변경하지 않으면 생략하거나 null로 전달합니다.", example = "수정된 회의 메모", nullable = true)
     private String publicMemo;
 
-    @Schema(description = "프로젝트 일정 대상자 사용자 ID 목록. 전달하면 기존 대상자 목록을 요청값으로 교체합니다.", example = "[1, 3]")
+    @Schema(description = "프로젝트 일정 대상자 사용자 ID 목록. 생략하면 기존 대상자를 유지하고, 빈 배열을 전달하면 모든 대상자를 제거합니다.", example = "[1, 3]")
     private List<Long> participantIds;
 }
