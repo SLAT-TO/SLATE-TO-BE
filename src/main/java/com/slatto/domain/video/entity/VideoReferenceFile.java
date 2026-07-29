@@ -35,4 +35,22 @@ public class VideoReferenceFile extends BaseEntity {
 
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
+
+    private VideoReferenceFile(Video video, ProjectFile projectFile, Users addedBy) {
+        this.video = video;
+        this.projectFile = projectFile;
+        this.addedBy = addedBy;
+    }
+
+    public static VideoReferenceFile create(Video video, ProjectFile projectFile, Users addedBy) {
+        return new VideoReferenceFile(video, projectFile, addedBy);
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
+    }
 }

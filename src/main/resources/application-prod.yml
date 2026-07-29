@@ -8,3 +8,8 @@ springdoc:
     enabled: false
   api-docs:
     enabled: false
+
+cloud:
+  aws:
+    s3:
+      bucket: slatto-prod-files-616840711838

@@ -1,0 +1,62 @@
+package com.slatto.domain.notification.controller;
+
+import com.slatto.domain.notification.dto.NotificationListResponse;
+import com.slatto.domain.notification.service.NotificationService;
+import com.slatto.global.response.ApiResponse;
+import com.slatto.global.response.code.CommonSuccessCode;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@Tag(name = "Notification", description = "알림 API")
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/notifications")
+public class NotificationController {
+
+    private final NotificationService notificationService;
+
+    @Operation(summary = "알림 목록 조회")
+    @GetMapping
+    public ApiResponse<NotificationListResponse> getNotifications(
+        @AuthenticationPrincipal Long currentUserId,
+        @RequestParam(required = false) Long cursor,
+        @RequestParam(defaultValue = "20") int size
+    ) {
+        NotificationListResponse response = notificationService.getNotifications(
+            currentUserId,
+            cursor,
+            size
+        );
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(summary = "알림 단건 읽음 처리")
+    @PatchMapping("/{notificationId}/read")
+    public ApiResponse<Void> markNotificationAsRead(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long notificationId
+    ) {
+        notificationService.markNotificationAsRead(currentUserId, notificationId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, null);
+    }
+
+    @Operation(summary = "알림 전체 읽음 처리")
+    @PatchMapping("/read-all")
+    public ApiResponse<Void> markAllNotificationsAsRead(
+        @AuthenticationPrincipal Long currentUserId
+    ) {
+        notificationService.markAllNotificationsAsRead(currentUserId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, null);
+    }
+}

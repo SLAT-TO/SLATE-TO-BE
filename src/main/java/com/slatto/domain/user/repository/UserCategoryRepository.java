@@ -8,4 +8,6 @@ import java.util.List;
 public interface UserCategoryRepository extends JpaRepository<UserCategory, Long> {
 
     List<UserCategory> findAllByUserIdOrderByIdAsc(Long userId);
+
+    void deleteByUserId(Long userId);
 }

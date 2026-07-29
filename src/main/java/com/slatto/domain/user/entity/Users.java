@@ -76,6 +76,18 @@ public class Users extends BaseEntity{
         this.socialId = socialId;
     }
 
+    public void updateProfile(String nickname, String bio, String profileImageUrl) {
+        if (nickname != null) {
+            this.nickname = nickname;
+        }
+        if (bio != null) {
+            this.bio = bio;
+        }
+        if (profileImageUrl != null) {
+            this.profileImageUrl = profileImageUrl;
+        }
+    }
+
     public void completeOnboarding(String nickname, String bio, String profileImageUrl) {
         this.nickname = nickname;
         this.bio = bio;

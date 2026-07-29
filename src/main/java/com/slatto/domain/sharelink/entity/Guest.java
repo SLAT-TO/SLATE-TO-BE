@@ -23,4 +23,13 @@ public class Guest extends BaseEntity {
 
     @Column(name = "name", nullable = false, length = 100)
     private String name;
+
+    private Guest(ShareLink shareLink, String name) {
+        this.shareLink = shareLink;
+        this.name = name;
+    }
+
+    public static Guest create(ShareLink shareLink, String name) {
+        return new Guest(shareLink, name);
+    }
 }
