@@ -46,29 +46,4 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
         @Param("endAt") LocalDateTime endAt
     );
 
-    @Query("""
-        select distinct s
-        from Schedule s
-        left join fetch s.project p
-        where s.deletedAt is null
-            and s.scheduleScope = com.slatto.domain.schedule.enums.ScheduleScope.PROJECT
-            and p.id = :projectId
-            and s.startAt < :endAt
-            and s.endAt >= :startAt
-            and (:mineOnly = false or exists (
-                select 1
-                from ScheduleParticipant sp
-                where sp.schedule = s
-                    and sp.user.id = :userId
-                    and sp.deletedAt is null
-            ))
-        order by s.startAt asc, s.id asc
-        """)
-    List<Schedule> findProjectSchedulesBetween(
-        @Param("userId") Long userId,
-        @Param("projectId") Long projectId,
-        @Param("startAt") LocalDateTime startAt,
-        @Param("endAt") LocalDateTime endAt,
-        @Param("mineOnly") boolean mineOnly
-    );
 }
