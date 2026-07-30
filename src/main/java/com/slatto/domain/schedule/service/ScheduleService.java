@@ -3,15 +3,12 @@ package com.slatto.domain.schedule.service;
 import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
-import com.slatto.domain.project.entity.ProjectUserRole;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
-import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.project.service.ProjectAccessValidator;
 import com.slatto.domain.schedule.converter.ScheduleConverter;
 import com.slatto.domain.schedule.dto.ScheduleCalendarResponse;
 import com.slatto.domain.schedule.dto.ScheduleCreateRequest;
 import com.slatto.domain.schedule.dto.ScheduleDailyResponse;
-import com.slatto.domain.schedule.dto.ScheduleParticipantCandidateResponse;
 import com.slatto.domain.schedule.dto.SchedulePrivateMemoRequest;
 import com.slatto.domain.schedule.dto.SchedulePrivateMemoResponse;
 import com.slatto.domain.schedule.dto.ScheduleResponse;
@@ -25,7 +22,6 @@ import com.slatto.domain.schedule.repository.ScheduleParticipantRepository;
 import com.slatto.domain.schedule.repository.SchedulePrivateMemoRepository;
 import com.slatto.domain.schedule.repository.ScheduleRepository;
 import com.slatto.domain.user.entity.Users;
-import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
@@ -52,7 +48,6 @@ public class ScheduleService {
     private final SchedulePrivateMemoRepository schedulePrivateMemoRepository;
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
-    private final ProjectUserRoleRepository projectUserRoleRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final ScheduleConverter scheduleConverter;
     private final NotificationService notificationService;
@@ -272,35 +267,6 @@ public class ScheduleService {
         // TODO: 프로젝트 일정 삭제 알림과 activity_log 연동은 알림 도메인 구현 후 연결한다.
     }
 
-    public ScheduleParticipantCandidateResponse getParticipantCandidates(
-        Long currentUserId,
-        Long projectId
-    ) {
-        projectAccessValidator.getProjectOrThrow(projectId);
-        projectAccessValidator.validateProjectAccess(projectId, currentUserId);
-
-        List<ProjectMember> projectMembers = projectMemberRepository.findAllActiveMembersByProjectId(projectId);
-        Map<Long, List<RoleName>> roleNamesByMemberId = getRoleNamesByMemberId(projectMembers);
-
-        List<ScheduleParticipantCandidateResponse.Candidate> candidates = projectMembers.stream()
-            .map(projectMember -> {
-                Users user = projectMember.getUser();
-
-                return ScheduleParticipantCandidateResponse.Candidate.builder()
-                    .userId(user.getId())
-                    .nickname(user.getNickname())
-                    .profileImageUrl(user.getProfileImageUrl())
-                    .permission(projectMember.getPermission())
-                    .jobRole(roleNamesByMemberId.getOrDefault(projectMember.getId(), List.of()))
-                    .build();
-            })
-            .toList();
-
-        return ScheduleParticipantCandidateResponse.builder()
-            .candidates(candidates)
-            .build();
-    }
-
     private Project resolveProject(Long currentUserId, ScheduleCreateRequest request) {
         if (request.getScheduleScope() == ScheduleScope.PERSONAL) {
             if (request.getProjectId() != null || hasParticipants(request.getParticipantIds())) {
@@ -450,21 +416,4 @@ public class ScheduleService {
         return participantIds != null && !participantIds.isEmpty();
     }
 
-    private Map<Long, List<RoleName>> getRoleNamesByMemberId(List<ProjectMember> projectMembers) {
-        List<Long> projectMemberIds = projectMembers.stream()
-            .map(ProjectMember::getId)
-            .toList();
-
-        if (projectMemberIds.isEmpty()) {
-            return Map.of();
-        }
-
-        return projectUserRoleRepository
-            .findAllByProjectMemberIdsOrderByProjectMemberIdAscAndIdAsc(projectMemberIds)
-            .stream()
-            .collect(Collectors.groupingBy(
-                projectUserRole -> projectUserRole.getProjectMember().getId(),
-                Collectors.mapping(ProjectUserRole::getRoleName, Collectors.toList())
-            ));
-    }
 }
