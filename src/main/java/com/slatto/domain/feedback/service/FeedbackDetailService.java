@@ -110,7 +110,11 @@ public class FeedbackDetailService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 2. 게스트가 조회하는 경우 원 피드백의 영상에 접근 자격이 있는지 검증
-        if (userId == null && guestId != null) {
+        //    회원이 아니면 guestId 필수 — 익명(둘 다 null) 조회 차단
+        if (userId == null) {
+            if (guestId == null) {
+                throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
+            }
             validateGuestAccess(guestId, feedback.getVideo().getId());
         }
 
