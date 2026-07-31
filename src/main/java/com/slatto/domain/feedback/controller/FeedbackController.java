@@ -71,10 +71,12 @@ public class FeedbackController {
     @GetMapping("/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<FeedbackListResDTO>> getFeedbackList(
             @PathVariable Long videoId,
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false) Long guestId,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer size
     ) {
-        FeedbackListResDTO result = feedbackService.getFeedbackList(videoId, cursor, size);
+        FeedbackListResDTO result = feedbackService.getFeedbackList(videoId, userId, guestId, cursor, size);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));

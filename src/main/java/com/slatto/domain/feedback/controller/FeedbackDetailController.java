@@ -19,7 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Reply", description = "답글 API")
+@Tag(name = "Feedback Reply", description = "피드백 답글 API")
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -45,10 +45,12 @@ public class FeedbackDetailController {
     @GetMapping("/feedbacks/{feedbackId}/replies")
     public ResponseEntity<ApiResponse<ReplyListResDTO>> getReplyList(
             @PathVariable Long feedbackId,
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false) Long guestId,
             @RequestParam(required = false) Long cursor,
             @RequestParam(required = false) Integer size
     ) {
-        ReplyListResDTO result = feedbackDetailService.getReplyList(feedbackId, cursor, size);
+        ReplyListResDTO result = feedbackDetailService.getReplyList(feedbackId, userId, guestId, cursor, size);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));

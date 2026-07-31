@@ -12,7 +12,8 @@ public enum ShareLinkErrorCode implements BaseCode {
     SHARE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "SHARELINK404", "공유 링크를 찾을 수 없습니다."),
     SHARE_LINK_ALREADY_EXISTS(HttpStatus.CONFLICT, "SHARELINK409", "이미 이 영상의 공유 링크가 존재합니다."),
     INVALID_EXPIRED_AT(HttpStatus.BAD_REQUEST, "SHARELINK400", "만료 일시는 현재 시각보다 이후여야 합니다."),
-    SHARE_LINK_UNAVAILABLE(HttpStatus.GONE, "SHARELINK410", "비활성화되었거나 만료된 링크입니다.");
+    SHARE_LINK_UNAVAILABLE(HttpStatus.GONE, "SHARELINK410", "비활성화되었거나 만료된 링크입니다."),
+    GUEST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "SHARELINK403", "해당 영상에 접근 권한이 없는 게스트입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
