@@ -12,6 +12,7 @@ import com.slatto.domain.feedback.repository.FeedbackDetailRepository;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.slatto.domain.notification.service.NotificationService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +46,7 @@ public class FeedbackService {
     private final ObjectProvider<EntityManager> entityManagerProvider;
     private final ProjectMemberRepository projectMemberRepository;
     private final FeedbackDetailRepository feedbackDetailRepository;
+    private final NotificationService notificationService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
@@ -80,7 +82,31 @@ public class FeedbackService {
         Feedback feedback = feedbackConverter.toFeedback(video, user, guest, req);
         Feedback saved = feedbackRepository.save(feedback);
 
+        // 5. 프로젝트 멤버에게 피드백 알림 발송 (작성자 본인은 actorUserId로 제외)
+        sendFeedbackNotification(video, userId);
+
         return feedbackConverter.toCreateResponse(saved);
+    }
+
+    // 피드백/답글 생성 시 프로젝트 멤버에게 알림을 보낸다.
+    // 저장/그룹핑/작성자 제외는 알림 도메인이 처리하므로 값만 준비해 호출한다.
+    private void sendFeedbackNotification(Video video, Long actorUserId) {
+        Long projectId = video.getProject().getId();
+
+        // 프로젝트 활성 멤버 전체를 수신자로 (작성자 제외는 actorUserId로 알림 도메인이 처리)
+        List<Long> recipientIds = projectMemberRepository
+                .findAllActiveMembersByProjectId(projectId)
+                .stream()
+                .map(pm -> pm.getUser().getId())
+                .toList();
+
+        notificationService.createVideoFeedbackCommentedNotifications(
+                projectId,
+                video.getId(),
+                "새 피드백이 등록되었습니다.",   // TODO: PM 확정 문구로 교체
+                recipientIds,
+                actorUserId                      // 게스트면 null → 제외 대상 없음
+        );
     }
 
     @Transactional
@@ -278,4 +304,5 @@ public class FeedbackService {
 
         return feedbackConverter.toStatusResponse(feedback);
     }
+
 }

@@ -20,6 +20,8 @@ import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.sharelink.entity.ShareLink;
 import com.slatto.domain.sharelink.exception.ShareLinkErrorCode;
 import com.slatto.domain.sharelink.repository.GuestRepository;
+import com.slatto.domain.notification.service.NotificationService;
+import com.slatto.domain.video.entity.Video;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
@@ -38,6 +40,7 @@ public class FeedbackDetailService {
     private final GuestRepository guestRepository;
     private final FeedbackDetailConverter feedbackDetailConverter;
     private final ProjectMemberRepository projectMemberRepository;
+    private final NotificationService notificationService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
@@ -69,7 +72,30 @@ public class FeedbackDetailService {
         FeedbackDetail reply = feedbackDetailConverter.toFeedbackDetail(feedback, user, guest, req);
         FeedbackDetail saved = feedbackDetailRepository.save(reply);
 
+        // 5. 프로젝트 멤버에게 답글 알림 발송 (작성자 본인은 actorUserId로 제외)
+        sendReplyNotification(feedback.getVideo(), userId);
+
         return feedbackDetailConverter.toCreateResponse(saved);
+    }
+
+    // 답글 생성 시 프로젝트 멤버에게 알림 발송
+    private void sendReplyNotification(Video video, Long actorUserId) {
+        Long projectId = video.getProject().getId();
+
+        // 프로젝트 활성 멤버 전체를 수신자로 (작성자 제외는 actorUserId로 알림 도메인이 처리)
+        List<Long> recipientIds = projectMemberRepository
+                .findAllActiveMembersByProjectId(projectId)
+                .stream()
+                .map(pm -> pm.getUser().getId())
+                .toList();
+
+        notificationService.createVideoFeedbackCommentedNotifications(
+                projectId,
+                video.getId(),
+                "새 답글이 등록되었습니다.",   // TODO: PM 확정 문구로 교체
+                recipientIds,
+                actorUserId                    // 게스트면 null → 제외 대상 없음
+        );
     }
 
     private void validateWriter(Long userId, Long guestId) {
