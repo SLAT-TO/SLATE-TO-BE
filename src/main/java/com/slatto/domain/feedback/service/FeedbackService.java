@@ -20,6 +20,8 @@ import java.util.Map;
 import com.slatto.domain.feedback.entity.Feedback;
 import com.slatto.domain.feedback.repository.FeedbackRepository;
 import com.slatto.domain.sharelink.entity.Guest;
+import com.slatto.domain.sharelink.entity.ShareLink;
+import com.slatto.domain.sharelink.exception.ShareLinkErrorCode;
 import com.slatto.domain.sharelink.repository.GuestRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
@@ -70,8 +72,8 @@ public class FeedbackService {
             user = userRepository.findByIdAndDeletedAtIsNull(userId)
                     .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
         } else {
-            guest = guestRepository.findById(req.guestId())
-                    .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+            // 게스트: 이 영상에 접근할 자격이 있는지 검증 후 Guest 확보
+            guest = validateGuestAccess(req.guestId(), videoId);
         }
 
         // 4. 저장
@@ -92,15 +94,20 @@ public class FeedbackService {
         // 2. 작성자 검증
         validateWriter(userId, req.guestId());
 
-        // 3. 본인 확인
+        // 3. 게스트면 이 피드백의 영상에 접근 자격이 있는지 검증
+        if (userId == null) {
+            validateGuestAccess(req.guestId(), feedback.getVideo().getId());
+        }
+
+        // 4. 본인 확인
         if (!feedback.isWriter(userId, req.guestId())) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        // 4. 수정 (status 전달 안 함 — 해결 상태는 전용 API에서만 변경)
+        // 5. 수정 (status 전달 안 함 — 해결 상태는 전용 API에서만 변경)
         feedback.update(req.content(), req.startTime(), req.endTime());
 
-        // 5. updatedAt 갱신을 응답에 반영하기 위해 flush
+        // 6. updatedAt 갱신을 응답에 반영하기 위해 flush
         feedbackRepository.flush();
 
         return feedbackConverter.toUpdateResponse(feedback);
@@ -115,6 +122,27 @@ public class FeedbackService {
         }
     }
 
+    // 게스트가 해당 영상에 접근할 자격이 있는지 검증하고, 검증된 Guest를 반환
+    // Guest → ShareLink → Video 체인으로 소유 여부 확인
+    private Guest validateGuestAccess(Long guestId, Long videoId) {
+        Guest guest = guestRepository.findById(guestId)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        ShareLink shareLink = guest.getShareLink();
+
+        // 1. 링크가 살아있는지 (활성 + 미만료)
+        if (!shareLink.isUsable()) {
+            throw new BaseException(ShareLinkErrorCode.SHARE_LINK_UNAVAILABLE);
+        }
+
+        // 2. 게스트의 링크 영상 == 요청 영상인지
+        if (!shareLink.getVideo().getId().equals(videoId)) {
+            throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
+        }
+
+        return guest;
+    }
+
     @Transactional
     public void deleteFeedback(Long feedbackId, Long userId, Long guestId) {
 
@@ -126,17 +154,22 @@ public class FeedbackService {
         // 2. 작성자 검증
         validateWriter(userId, guestId);
 
-        // 3. 본인 확인
+        // 3. 게스트면 이 피드백의 영상에 접근 자격이 있는지 검증
+        if (userId == null) {
+            validateGuestAccess(guestId, feedback.getVideo().getId());
+        }
+
+        // 4. 본인 확인
         if (!feedback.isWriter(userId, guestId)) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        // 4. soft delete (더티 체킹으로 자동 반영)
+        // 5. soft delete (더티 체킹으로 자동 반영)
         feedback.softDelete();
     }
 
     @Transactional(readOnly = true)
-    public FeedbackListResDTO getFeedbackList(Long videoId, String cursor, Integer size) {
+    public FeedbackListResDTO getFeedbackList(Long videoId, Long userId, Long guestId, String cursor, Integer size) {
 
         // 1. 영상 존재 확인
         boolean videoExists = entityManagerProvider.getObject().createQuery("""
@@ -149,13 +182,22 @@ public class FeedbackService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
 
-        // 2. size 기본값 + 상한 처리
+        // 2. 게스트가 조회하는 경우 이 영상에 접근 자격이 있는지 검증
+        //    회원이 아니면 guestId 필수 — 익명(둘 다 null) 조회 차단
+        if (userId == null) {
+            if (guestId == null) {
+                throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
+            }
+            validateGuestAccess(guestId, videoId);
+        }
+
+        // 3. size 기본값 + 상한 처리
         int pageSize = (size == null || size <= 0)
                 ? DEFAULT_PAGE_SIZE
                 : Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(0, pageSize + 1);   // hasNext 판단용으로 1개 더
 
-        // 3. 커서에 따라 조회
+        // 4. 커서에 따라 조회
         List<Feedback> feedbacks;
 
         if (cursor == null || cursor.isBlank()) {
@@ -180,13 +222,13 @@ public class FeedbackService {
             }
         }
 
-        // 4. hasNext 판단 + 초과분 제거
+        // 5. hasNext 판단 + 초과분 제거
         boolean hasNext = feedbacks.size() > pageSize;
         if (hasNext) {
             feedbacks = feedbacks.subList(0, pageSize);
         }
 
-        // 5. nextCursor 조립
+        // 6. nextCursor 조립
         String nextCursor = null;
         if (hasNext && !feedbacks.isEmpty()) {
             Feedback last = feedbacks.getLast();
@@ -194,7 +236,7 @@ public class FeedbackService {
             nextCursor = timePart + "_" + last.getId();
         }
 
-        // 6. 답글 개수 한 번에 조회
+        // 7. 답글 개수 한 번에 조회
         Map<Long, Long> replyCountMap = new HashMap<>();
 
         if (!feedbacks.isEmpty()) {

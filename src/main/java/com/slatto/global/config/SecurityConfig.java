@@ -48,11 +48,13 @@ public class SecurityConfig {
 					// 게스트 등록
 					.requestMatchers(HttpMethod.POST, "/api/v1/share-links/*/guests").permitAll()
 
-					// 게스트 피드백/답글 참여 — 작성/수정/삭제만 (조회는 인가 검증 이슈에서 처리)
+					// 게스트 피드백/답글 참여 (조회 포함 — 게스트 소유 검증은 서비스단에서 처리)
 					.requestMatchers(HttpMethod.POST, "/api/v1/videos/*/feedbacks").permitAll()
+					.requestMatchers(HttpMethod.GET,  "/api/v1/videos/*/feedbacks").permitAll()
 					.requestMatchers(HttpMethod.PATCH, "/api/v1/feedbacks/*").permitAll()
 					.requestMatchers(HttpMethod.DELETE, "/api/v1/feedbacks/*").permitAll()
 					.requestMatchers(HttpMethod.POST, "/api/v1/feedbacks/*/replies").permitAll()
+					.requestMatchers(HttpMethod.GET,  "/api/v1/feedbacks/*/replies").permitAll()
 					.requestMatchers(HttpMethod.PATCH, "/api/v1/replies/*").permitAll()
 					.requestMatchers(HttpMethod.DELETE, "/api/v1/replies/*").permitAll()
 
