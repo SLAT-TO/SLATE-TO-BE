@@ -382,6 +382,7 @@ public class NotificationService {
             .projectId(projectId)
             .type(notification.getType())
             .content(notification.getContent())
+            .groupCount(notification.getGroupCount())
             .targetType(notification.getTargetType())
             .targetId(notification.getTargetId())
             .isRead(notification.getIsRead())
