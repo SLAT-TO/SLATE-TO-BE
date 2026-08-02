@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.IntFunction;
 
 @Service
 @RequiredArgsConstructor
@@ -198,7 +199,10 @@ public class NotificationService {
     /**
      * 프로젝트 초대 알림을 생성한다.
      * 클릭 대상은 프로젝트 상세 화면이다.
+     *
+     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 projectTitle을 받는 메서드를 사용한다.
      */
+    @Deprecated
     @Transactional
     public void createProjectInvitationNotification(
         Long recipientId,
@@ -219,9 +223,37 @@ public class NotificationService {
     }
 
     /**
+     * 프로젝트 초대 알림 문구를 정책에 맞춰 생성한다.
+     */
+    @Transactional
+    public void createProjectInvitationNotification(
+        Long recipientId,
+        Long projectId,
+        String projectTitle,
+        String inviterName
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(recipientId);
+        validateRequiredText(projectTitle);
+        validateRequiredText(inviterName);
+
+        createNotification(NotificationCreateCommand.builder()
+            .recipientIds(List.of(recipientId))
+            .projectId(projectId)
+            .type(NotificationType.PROJECT_INVITED)
+            .content(createProjectInvitationContent(projectTitle, inviterName))
+            .targetType(NotificationTargetType.PROJECT)
+            .targetId(projectId)
+            .build());
+    }
+
+    /**
      * 영상 피드백 댓글 알림을 생성하거나 기존 미읽음 알림을 갱신한다.
      * 동일 영상 기준으로 그룹핑하므로 targetId는 feedbackId가 아니라 videoId를 사용한다.
+     *
+     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 videoTitle과 commenterName을 받는 메서드를 사용한다.
      */
+    @Deprecated
     @Transactional
     public void createVideoFeedbackCommentedNotifications(
         Long projectId,
@@ -245,9 +277,45 @@ public class NotificationService {
     }
 
     /**
+     * 영상 피드백 알림 문구를 정책에 맞춰 생성하고, 동일 영상 기준으로 그룹핑한다.
+     */
+    @Transactional
+    public void createVideoFeedbackCommentedNotifications(
+        Long projectId,
+        Long videoId,
+        String videoTitle,
+        String commenterName,
+        List<Long> recipientIds,
+        Long actorUserId
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(videoId);
+        validateRequiredText(videoTitle);
+        validateRequiredText(commenterName);
+
+        NotificationCreateCommand command = NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.VIDEO_FEEDBACK_COMMENTED)
+            .content(createVideoFeedbackCommentedContent(videoTitle, commenterName, 1))
+            .targetType(NotificationTargetType.VIDEO)
+            .targetId(videoId)
+            .excludeUserId(actorUserId)
+            .build();
+
+        createOrUpdateGroupedNotifications(
+            command,
+            groupCount -> createVideoFeedbackCommentedContent(videoTitle, commenterName, groupCount)
+        );
+    }
+
+    /**
      * 새로운 지원자 발생 알림을 생성하거나 기존 미읽음 알림을 갱신한다.
      * 동일 공고 기준으로 그룹핑하므로 targetId는 recruitmentId를 사용한다.
+     *
+     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 recruitmentTitle과 applicantName을 받는 메서드를 사용한다.
      */
+    @Deprecated
     @Transactional
     public void createRecruitmentAppliedNotification(
         Long recipientId,
@@ -264,6 +332,35 @@ public class NotificationService {
             .targetType(NotificationTargetType.RECRUITMENT)
             .targetId(recruitmentId)
             .build());
+    }
+
+    /**
+     * 지원자 알림 문구를 정책에 맞춰 생성하고, 동일 공고 기준으로 그룹핑한다.
+     */
+    @Transactional
+    public void createRecruitmentAppliedNotification(
+        Long recipientId,
+        Long recruitmentId,
+        String recruitmentTitle,
+        String applicantName
+    ) {
+        validateRequiredId(recipientId);
+        validateRequiredId(recruitmentId);
+        validateRequiredText(recruitmentTitle);
+        validateRequiredText(applicantName);
+
+        NotificationCreateCommand command = NotificationCreateCommand.builder()
+            .recipientIds(List.of(recipientId))
+            .type(NotificationType.RECRUITMENT_APPLIED)
+            .content(createRecruitmentAppliedContent(recruitmentTitle, applicantName, 1))
+            .targetType(NotificationTargetType.RECRUITMENT)
+            .targetId(recruitmentId)
+            .build();
+
+        createOrUpdateGroupedNotifications(
+            command,
+            groupCount -> createRecruitmentAppliedContent(recruitmentTitle, applicantName, groupCount)
+        );
     }
 
     private void validateActiveUser(Long currentUserId) {
@@ -325,10 +422,30 @@ public class NotificationService {
         }
     }
 
+    private void validateRequiredText(String text) {
+        if (text == null || text.isBlank()) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+    }
+
     private void createOrUpdateGroupedNotification(
         Users recipient,
         Project project,
         NotificationCreateCommand command
+    ) {
+        createOrUpdateGroupedNotification(
+            recipient,
+            project,
+            command,
+            groupCount -> command.getContent()
+        );
+    }
+
+    private void createOrUpdateGroupedNotification(
+        Users recipient,
+        Project project,
+        NotificationCreateCommand command,
+        IntFunction<String> contentFactory
     ) {
         String targetType = getTargetTypeName(command.getTargetType());
         Object groupingLock = getGroupingLock(
@@ -339,13 +456,21 @@ public class NotificationService {
         );
 
         synchronized (groupingLock) {
+            int currentGroupCount = notificationRepository.findUnreadGroupedNotificationCount(
+                recipient.getId(),
+                command.getType(),
+                targetType,
+                command.getTargetId()
+            );
+            String content = contentFactory.apply(currentGroupCount + 1);
+
             // 먼저 기존 미읽음 그룹 알림 갱신을 시도하고, 없을 때만 새 알림을 생성한다.
             int updatedCount = notificationRepository.incrementUnreadGroupedNotification(
                 recipient.getId(),
                 command.getType(),
                 targetType,
                 command.getTargetId(),
-                command.getContent(),
+                content,
                 LocalDateTime.now()
             );
             if (updatedCount > 0) {
@@ -356,11 +481,29 @@ public class NotificationService {
                 recipient,
                 project,
                 command.getType(),
-                command.getContent(),
+                content,
                 targetType,
                 command.getTargetId()
             ));
         }
+    }
+
+    private void createOrUpdateGroupedNotifications(
+        NotificationCreateCommand command,
+        IntFunction<String> contentFactory
+    ) {
+        validateCreateCommand(command);
+        validateGroupingCommand(command);
+
+        Project project = getProjectOrNull(command.getProjectId());
+        List<Long> recipientIds = getRecipientIds(command);
+        if (recipientIds.isEmpty()) {
+            return;
+        }
+
+        recipientIds.stream()
+            .map(this::getActiveUser)
+            .forEach(recipient -> createOrUpdateGroupedNotification(recipient, project, command, contentFactory));
     }
 
     private List<Long> getRecipientIds(NotificationCreateCommand command) {
@@ -408,6 +551,34 @@ public class NotificationService {
 
     private String createScheduleAssignedContent(String scheduleTitle) {
         return "'" + scheduleTitle + "' 일정 담당자로 지정되었습니다.";
+    }
+
+    private String createProjectInvitationContent(String projectTitle, String inviterName) {
+        return inviterName + "님이 [" + projectTitle + "] 프로젝트에 초대했어요";
+    }
+
+    private String createVideoFeedbackCommentedContent(
+        String videoTitle,
+        String commenterName,
+        int groupCount
+    ) {
+        if (groupCount <= 1) {
+            return commenterName + "님이 [" + videoTitle + "]에 새로운 피드백을 남겼어요";
+        }
+
+        return "[" + videoTitle + "]에 새로운 피드백 " + groupCount + "건이 등록되었어요";
+    }
+
+    private String createRecruitmentAppliedContent(
+        String recruitmentTitle,
+        String applicantName,
+        int groupCount
+    ) {
+        if (groupCount <= 1) {
+            return applicantName + "님이 [" + recruitmentTitle + "]에 지원했어요";
+        }
+
+        return "[" + recruitmentTitle + "]에 새로운 지원자 " + groupCount + "명이 지원했어요";
     }
 
     private String getTargetTypeName(NotificationTargetType targetType) {
