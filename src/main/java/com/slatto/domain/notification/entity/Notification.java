@@ -46,6 +46,7 @@ public class Notification extends BaseEntity {
     @Column(name = "target_id", nullable = true)
     private Long targetId;
 
+    // 그룹핑 알림에서 누적된 이벤트 개수를 저장한다. 일반 알림은 기본값 1을 사용한다.
     @Column(name = "group_count", nullable = false)
     private Integer groupCount = DEFAULT_GROUP_COUNT;
 

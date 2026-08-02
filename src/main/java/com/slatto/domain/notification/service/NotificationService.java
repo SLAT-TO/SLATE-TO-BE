@@ -99,6 +99,9 @@ public class NotificationService {
         notificationRepository.markAllAsReadByUserId(currentUserId, LocalDateTime.now());
     }
 
+    /**
+     * 영상 카드의 미읽은 피드백 개수에 사용할 그룹 알림 누적 개수를 조회한다.
+     */
     public int getUnreadVideoFeedbackCount(Long currentUserId, Long videoId) {
         validateActiveUser(currentUserId);
         validateRequiredId(videoId);

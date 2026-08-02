@@ -68,6 +68,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("readAt") LocalDateTime readAt
     );
 
+    // 동일 대상의 미읽음 그룹 알림이 있으면 누적 개수와 문구를 함께 갱신한다.
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         update Notification n
@@ -90,6 +91,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("updatedAt") LocalDateTime updatedAt
     );
 
+    // 미읽음 그룹 알림이 없으면 영상 카드에 표시할 개수는 0이다.
     @Query("""
         select coalesce(max(n.groupCount), 0)
         from Notification n
