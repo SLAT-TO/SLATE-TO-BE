@@ -154,7 +154,7 @@ public class NotificationService {
 
     /**
      * 동일 사용자, 알림 타입, targetType, targetId 기준으로 미읽음 알림을 그룹핑한다.
-     * 기존 미읽음 알림이 있으면 content만 갱신하고, 없으면 새 알림을 생성한다.
+     * 기존 미읽음 알림이 있으면 제목, 문구, 누적 개수를 갱신하고, 없으면 새 알림을 생성한다.
      */
     @Transactional
     public void createOrUpdateGroupedNotifications(NotificationCreateCommand command) {
@@ -479,6 +479,7 @@ public class NotificationService {
                 command.getType(),
                 targetType,
                 command.getTargetId(),
+                command.getTitle(),
                 content,
                 LocalDateTime.now()
             );
