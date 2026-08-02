@@ -27,6 +27,8 @@ public class NotificationListResponse {
 
         private NotificationType type;
 
+        private String title;
+
         private String content;
 
         private Integer groupCount;

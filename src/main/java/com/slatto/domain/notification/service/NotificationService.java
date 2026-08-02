@@ -140,6 +140,7 @@ public class NotificationService {
                 recipient,
                 project,
                 command.getType(),
+                command.getTitle(),
                 command.getContent(),
                 getTargetTypeName(command.getTargetType()),
                 command.getTargetId()
@@ -189,6 +190,7 @@ public class NotificationService {
                 .toList())
             .projectId(project != null ? project.getId() : null)
             .type(NotificationType.SCHEDULE_ASSIGNED)
+            .title(createScheduleAssignedTitle(project != null ? project.getTitle() : null))
             .content(createScheduleAssignedContent(scheduleTitle))
             .targetType(NotificationTargetType.SCHEDULE)
             .targetId(scheduleId)
@@ -216,6 +218,7 @@ public class NotificationService {
             .recipientIds(List.of(recipientId))
             .projectId(projectId)
             .type(NotificationType.PROJECT_INVITED)
+            .title(createFallbackTitle(NotificationType.PROJECT_INVITED))
             .content(content)
             .targetType(NotificationTargetType.PROJECT)
             .targetId(projectId)
@@ -241,6 +244,7 @@ public class NotificationService {
             .recipientIds(List.of(recipientId))
             .projectId(projectId)
             .type(NotificationType.PROJECT_INVITED)
+            .title(createProjectInvitationTitle(projectTitle))
             .content(createProjectInvitationContent(projectTitle, inviterName))
             .targetType(NotificationTargetType.PROJECT)
             .targetId(projectId)
@@ -269,6 +273,7 @@ public class NotificationService {
             .recipientIds(recipientIds)
             .projectId(projectId)
             .type(NotificationType.VIDEO_FEEDBACK_COMMENTED)
+            .title(createFallbackTitle(NotificationType.VIDEO_FEEDBACK_COMMENTED))
             .content(content)
             .targetType(NotificationTargetType.VIDEO)
             .targetId(videoId)
@@ -292,11 +297,13 @@ public class NotificationService {
         validateRequiredId(videoId);
         validateRequiredText(videoTitle);
         validateRequiredText(commenterName);
+        Project project = getProjectOrNull(projectId);
 
         NotificationCreateCommand command = NotificationCreateCommand.builder()
             .recipientIds(recipientIds)
             .projectId(projectId)
             .type(NotificationType.VIDEO_FEEDBACK_COMMENTED)
+            .title(createVideoFeedbackCommentedTitle(getProjectTitle(project)))
             .content(createVideoFeedbackCommentedContent(videoTitle, commenterName, 1))
             .targetType(NotificationTargetType.VIDEO)
             .targetId(videoId)
@@ -328,6 +335,7 @@ public class NotificationService {
         createOrUpdateGroupedNotifications(NotificationCreateCommand.builder()
             .recipientIds(List.of(recipientId))
             .type(NotificationType.RECRUITMENT_APPLIED)
+            .title(createFallbackTitle(NotificationType.RECRUITMENT_APPLIED))
             .content(content)
             .targetType(NotificationTargetType.RECRUITMENT)
             .targetId(recruitmentId)
@@ -352,6 +360,7 @@ public class NotificationService {
         NotificationCreateCommand command = NotificationCreateCommand.builder()
             .recipientIds(List.of(recipientId))
             .type(NotificationType.RECRUITMENT_APPLIED)
+            .title(createRecruitmentAppliedTitle(recruitmentTitle))
             .content(createRecruitmentAppliedContent(recruitmentTitle, applicantName, 1))
             .targetType(NotificationTargetType.RECRUITMENT)
             .targetId(recruitmentId)
@@ -481,6 +490,7 @@ public class NotificationService {
                 recipient,
                 project,
                 command.getType(),
+                command.getTitle(),
                 content,
                 targetType,
                 command.getTargetId()
@@ -539,6 +549,7 @@ public class NotificationService {
             .notificationId(notification.getId())
             .projectId(projectId)
             .type(notification.getType())
+            .title(notification.getTitle())
             .content(notification.getContent())
             .groupCount(notification.getGroupCount())
             .targetType(notification.getTargetType())
@@ -553,8 +564,20 @@ public class NotificationService {
         return "'" + scheduleTitle + "' 일정 담당자로 지정되었습니다.";
     }
 
+    private String createScheduleAssignedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "일정 담당자 지정");
+    }
+
+    private String createProjectInvitationTitle(String projectTitle) {
+        return joinTitle(projectTitle, "프로젝트 초대");
+    }
+
     private String createProjectInvitationContent(String projectTitle, String inviterName) {
         return inviterName + "님이 [" + projectTitle + "] 프로젝트에 초대했어요";
+    }
+
+    private String createVideoFeedbackCommentedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새로운 피드백");
     }
 
     private String createVideoFeedbackCommentedContent(
@@ -569,6 +592,10 @@ public class NotificationService {
         return "[" + videoTitle + "]에 새로운 피드백 " + groupCount + "건이 등록되었어요";
     }
 
+    private String createRecruitmentAppliedTitle(String recruitmentTitle) {
+        return joinTitle(recruitmentTitle, "새로운 지원자");
+    }
+
     private String createRecruitmentAppliedContent(
         String recruitmentTitle,
         String applicantName,
@@ -579,6 +606,28 @@ public class NotificationService {
         }
 
         return "[" + recruitmentTitle + "]에 새로운 지원자 " + groupCount + "명이 지원했어요";
+    }
+
+    private String createFallbackTitle(NotificationType type) {
+        return switch (type) {
+            case SCHEDULE_ASSIGNED -> "일정 담당자 지정";
+            case PROJECT_INVITED -> "프로젝트 초대";
+            case VIDEO_FEEDBACK_COMMENTED -> "새로운 피드백";
+            case RECRUITMENT_APPLIED -> "새로운 지원자";
+            case DEADLINE_REMINDER -> "마감 알림";
+        };
+    }
+
+    private String joinTitle(String prefix, String suffix) {
+        if (prefix == null || prefix.isBlank()) {
+            return suffix;
+        }
+
+        return prefix + " · " + suffix;
+    }
+
+    private String getProjectTitle(Project project) {
+        return project != null ? project.getTitle() : null;
     }
 
     private String getTargetTypeName(NotificationTargetType targetType) {

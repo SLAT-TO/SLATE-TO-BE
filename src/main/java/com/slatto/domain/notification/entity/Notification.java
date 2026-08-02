@@ -37,6 +37,9 @@ public class Notification extends BaseEntity {
     @Column(name = "type", nullable = false)
     private NotificationType type;
 
+    @Column(name = "title", nullable = true, length = 255)
+    private String title;
+
     @Column(name = "content", nullable = false, length = 500)
     private String content;
 
@@ -63,6 +66,7 @@ public class Notification extends BaseEntity {
         Users user,
         Project project,
         NotificationType type,
+        String title,
         String content,
         String targetType,
         Long targetId
@@ -71,6 +75,7 @@ public class Notification extends BaseEntity {
         notification.user = user;
         notification.project = project;
         notification.type = type;
+        notification.title = title;
         notification.content = content;
         notification.targetType = targetType;
         notification.targetId = targetId;
