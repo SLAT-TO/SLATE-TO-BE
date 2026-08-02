@@ -72,6 +72,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("""
         update Notification n
         set n.content = :content,
+            n.groupCount = n.groupCount + 1,
             n.updatedAt = :updatedAt
         where n.user.id = :userId
             and n.type = :type
@@ -80,7 +81,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             and n.isRead = false
             and n.deletedAt is null
         """)
-    int updateUnreadGroupedNotificationContent(
+    int incrementUnreadGroupedNotification(
         @Param("userId") Long userId,
         @Param("type") NotificationType type,
         @Param("targetType") String targetType,

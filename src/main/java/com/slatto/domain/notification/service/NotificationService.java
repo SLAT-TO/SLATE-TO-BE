@@ -325,7 +325,7 @@ public class NotificationService {
 
         synchronized (groupingLock) {
             // 먼저 기존 미읽음 그룹 알림 갱신을 시도하고, 없을 때만 새 알림을 생성한다.
-            int updatedCount = notificationRepository.updateUnreadGroupedNotificationContent(
+            int updatedCount = notificationRepository.incrementUnreadGroupedNotification(
                 recipient.getId(),
                 command.getType(),
                 targetType,
