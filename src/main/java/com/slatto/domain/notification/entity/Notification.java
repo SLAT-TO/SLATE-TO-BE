@@ -93,4 +93,10 @@ public class Notification extends BaseEntity {
         this.isRead = true;
         this.readAt = LocalDateTime.now();
     }
+
+    public void updateGroupedNotification(String title, String content) {
+        this.title = title;
+        this.content = content;
+        this.groupCount += 1;
+    }
 }

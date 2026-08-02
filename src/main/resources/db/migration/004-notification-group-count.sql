@@ -3,3 +3,6 @@
 ALTER TABLE notification
     ADD COLUMN title VARCHAR(255) NULL,
     ADD COLUMN group_count INT NOT NULL DEFAULT 1;
+
+CREATE INDEX idx_notification_group_lookup
+    ON notification (user_id, type, target_type, target_id, is_read);

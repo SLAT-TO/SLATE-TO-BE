@@ -465,28 +465,22 @@ public class NotificationService {
         );
 
         synchronized (groupingLock) {
-            int currentGroupCount = notificationRepository.findUnreadGroupedNotificationCount(
-                recipient.getId(),
-                command.getType(),
-                targetType,
-                command.getTargetId()
-            );
-            String content = contentFactory.apply(currentGroupCount + 1);
-
-            // 먼저 기존 미읽음 그룹 알림 갱신을 시도하고, 없을 때만 새 알림을 생성한다.
-            int updatedCount = notificationRepository.incrementUnreadGroupedNotification(
+            List<Notification> existingNotifications = notificationRepository.findUnreadGroupedNotificationsForUpdate(
                 recipient.getId(),
                 command.getType(),
                 targetType,
                 command.getTargetId(),
-                command.getTitle(),
-                content,
-                LocalDateTime.now()
+                PageRequest.of(0, 1)
             );
-            if (updatedCount > 0) {
+
+            if (!existingNotifications.isEmpty()) {
+                Notification existingNotification = existingNotifications.get(0);
+                String content = contentFactory.apply(existingNotification.getGroupCount() + 1);
+                existingNotification.updateGroupedNotification(command.getTitle(), content);
                 return;
             }
 
+            String content = contentFactory.apply(1);
             notificationRepository.save(Notification.create(
                 recipient,
                 project,
