@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 public class Notification extends BaseEntity {
 
     private static final boolean DEFAULT_READ_STATUS = false;
+    private static final int DEFAULT_GROUP_COUNT = 1;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,6 +46,9 @@ public class Notification extends BaseEntity {
     @Column(name = "target_id", nullable = true)
     private Long targetId;
 
+    @Column(name = "group_count", nullable = false)
+    private Integer groupCount = DEFAULT_GROUP_COUNT;
+
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
 
@@ -69,6 +73,7 @@ public class Notification extends BaseEntity {
         notification.content = content;
         notification.targetType = targetType;
         notification.targetId = targetId;
+        notification.groupCount = DEFAULT_GROUP_COUNT;
         notification.isRead = DEFAULT_READ_STATUS;
 
         return notification;
