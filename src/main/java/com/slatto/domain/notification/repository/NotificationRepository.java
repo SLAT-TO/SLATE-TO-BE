@@ -90,6 +90,23 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("updatedAt") LocalDateTime updatedAt
     );
 
+    @Query("""
+        select coalesce(max(n.groupCount), 0)
+        from Notification n
+        where n.user.id = :userId
+            and n.type = :type
+            and n.targetType = :targetType
+            and n.targetId = :targetId
+            and n.isRead = false
+            and n.deletedAt is null
+        """)
+    int findUnreadGroupedNotificationCount(
+        @Param("userId") Long userId,
+        @Param("type") NotificationType type,
+        @Param("targetType") String targetType,
+        @Param("targetId") Long targetId
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         update Notification n

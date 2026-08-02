@@ -99,6 +99,18 @@ public class NotificationService {
         notificationRepository.markAllAsReadByUserId(currentUserId, LocalDateTime.now());
     }
 
+    public int getUnreadVideoFeedbackCount(Long currentUserId, Long videoId) {
+        validateActiveUser(currentUserId);
+        validateRequiredId(videoId);
+
+        return notificationRepository.findUnreadGroupedNotificationCount(
+            currentUserId,
+            NotificationType.VIDEO_FEEDBACK_COMMENTED,
+            NotificationTargetType.VIDEO.name(),
+            videoId
+        );
+    }
+
     @Transactional
     public void createNotification(NotificationCreateCommand command) {
         createNotifications(command);
