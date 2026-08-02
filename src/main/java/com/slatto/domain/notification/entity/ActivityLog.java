@@ -49,4 +49,48 @@ public class ActivityLog extends BaseEntity {
 
     @Column(name = "group_key", nullable = true, length = 255)
     private String groupKey;
+
+    private ActivityLog(
+        Project project,
+        Long actorUserId,
+        Long actorGuestId,
+        ActorType actorType,
+        ActivityLogType type,
+        String content,
+        String targetType,
+        Long targetId,
+        String groupKey
+    ) {
+        this.project = project;
+        this.actorUserId = actorUserId;
+        this.actorGuestId = actorGuestId;
+        this.actorType = actorType;
+        this.type = type;
+        this.content = content;
+        this.targetType = targetType;
+        this.targetId = targetId;
+        this.groupKey = groupKey;
+    }
+
+    public static ActivityLog create(
+        Project project,
+        Long actorUserId,
+        ActorType actorType,
+        ActivityLogType type,
+        String content,
+        String targetType,
+        Long targetId
+    ) {
+        return new ActivityLog(
+            project,
+            actorUserId,
+            null,
+            actorType,
+            type,
+            content,
+            targetType,
+            targetId,
+            null
+        );
+    }
 }
