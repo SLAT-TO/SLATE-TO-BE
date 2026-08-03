@@ -3,7 +3,7 @@ package com.slatto.domain.notification.entity;
 import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.notification.enums.ActorType;
-import com.slatto.domain.user.enums.RoleName;
+import com.slatto.domain.notification.enums.ActivityLogType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,7 +36,7 @@ public class ActivityLog extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
-    private RoleName type;
+    private ActivityLogType type;
 
     @Column(name = "content", nullable = false, length = 500)
     private String content;
@@ -49,4 +49,48 @@ public class ActivityLog extends BaseEntity {
 
     @Column(name = "group_key", nullable = true, length = 255)
     private String groupKey;
+
+    private ActivityLog(
+        Project project,
+        Long actorUserId,
+        Long actorGuestId,
+        ActorType actorType,
+        ActivityLogType type,
+        String content,
+        String targetType,
+        Long targetId,
+        String groupKey
+    ) {
+        this.project = project;
+        this.actorUserId = actorUserId;
+        this.actorGuestId = actorGuestId;
+        this.actorType = actorType;
+        this.type = type;
+        this.content = content;
+        this.targetType = targetType;
+        this.targetId = targetId;
+        this.groupKey = groupKey;
+    }
+
+    public static ActivityLog create(
+        Project project,
+        Long actorUserId,
+        ActorType actorType,
+        ActivityLogType type,
+        String content,
+        String targetType,
+        Long targetId
+    ) {
+        return new ActivityLog(
+            project,
+            actorUserId,
+            null,
+            actorType,
+            type,
+            content,
+            targetType,
+            targetId,
+            null
+        );
+    }
 }
