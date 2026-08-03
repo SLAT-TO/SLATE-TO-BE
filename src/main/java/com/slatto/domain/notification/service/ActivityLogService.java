@@ -3,7 +3,7 @@ package com.slatto.domain.notification.service;
 import com.slatto.domain.notification.entity.ActivityLog;
 import com.slatto.domain.notification.enums.ActivityLogTargetType;
 import com.slatto.domain.notification.enums.ActivityLogType;
-import com.slatto.domain.notification.enums.ActorType;
+import com.slatto.domain.notification.model.ActivityActor;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.repository.ProjectRepository;
@@ -213,11 +213,10 @@ public class ActivityLogService {
 
         activityLogRepository.save(ActivityLog.create(
             project,
-            actor.getId(),
-            ActorType.USER,
+            ActivityActor.user(actor.getId(), actor.getNickname()),
             type,
             content,
-            getTargetTypeName(targetType),
+            targetType,
             targetId
         ));
     }
@@ -248,7 +247,4 @@ public class ActivityLogService {
         }
     }
 
-    private String getTargetTypeName(ActivityLogTargetType targetType) {
-        return targetType != null ? targetType.name() : null;
-    }
 }
