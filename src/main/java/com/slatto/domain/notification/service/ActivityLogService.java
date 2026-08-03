@@ -7,6 +7,7 @@ import com.slatto.domain.notification.model.ActivityActor;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.repository.ProjectRepository;
+import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
@@ -201,9 +202,52 @@ public class ActivityLogService {
         );
     }
 
+    /**
+     * 공유 링크 게스트가 영상 피드백을 남겼을 때 최근활동을 저장한다.
+     * 피드백 도메인의 실제 호출 연결은 후속 작업에서 추가한다.
+     */
+    @Transactional
+    public void createGuestVideoFeedbackCommentedLog(
+        Long projectId,
+        Guest guest,
+        Long videoId,
+        String videoTitle
+    ) {
+        validateRequiredGuest(guest);
+        validateRequiredId(videoId);
+        validateRequiredText(videoTitle);
+
+        createActivityLog(
+            projectId,
+            ActivityActor.clientReviewer(guest.getId(), guest.getName()),
+            ActivityLogType.VIDEO_FEEDBACK_COMMENTED,
+            activityMessageFactory.videoFeedbackCommented(guest.getName(), videoTitle),
+            ActivityLogTargetType.VIDEO,
+            videoId
+        );
+    }
+
     private void createUserActivityLog(
         Long projectId,
         Users actor,
+        ActivityLogType type,
+        String content,
+        ActivityLogTargetType targetType,
+        Long targetId
+    ) {
+        createActivityLog(
+            projectId,
+            ActivityActor.user(actor.getId(), actor.getNickname()),
+            type,
+            content,
+            targetType,
+            targetId
+        );
+    }
+
+    private void createActivityLog(
+        Long projectId,
+        ActivityActor actor,
         ActivityLogType type,
         String content,
         ActivityLogTargetType targetType,
@@ -213,7 +257,7 @@ public class ActivityLogService {
 
         activityLogRepository.save(ActivityLog.create(
             project,
-            ActivityActor.user(actor.getId(), actor.getNickname()),
+            actor,
             type,
             content,
             targetType,
@@ -243,6 +287,12 @@ public class ActivityLogService {
 
     private void validateRequiredText(String text) {
         if (text == null || text.isBlank()) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+    }
+
+    private void validateRequiredGuest(Guest guest) {
+        if (guest == null) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
     }
