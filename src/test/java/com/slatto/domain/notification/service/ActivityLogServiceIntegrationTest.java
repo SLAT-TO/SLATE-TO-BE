@@ -44,7 +44,7 @@ class ActivityLogServiceIntegrationTest {
     @Test
     void 회원_파일_등록_활동을_실제_최근활동_테이블에_저장한다() {
         // 서비스, 메시지 팩토리, JPA 엔티티를 함께 통과해 기존 회원 활동의 저장값 회귀를 확인한다.
-        Users user = saveUser("member@example.com", "김수민");
+        Users user = saveUser("green@example.com", "그린");
         Project project = saveProject(user);
 
         activityLogService.createFileUploadedLog(project.getId(), user.getId(), 101L, "촬영계획서.pdf");
@@ -54,7 +54,7 @@ class ActivityLogServiceIntegrationTest {
         assertThat(activityLog.getActorUserId()).isEqualTo(user.getId());
         assertThat(activityLog.getActorGuestId()).isNull();
         assertThat(activityLog.getType()).isEqualTo(ActivityLogType.FILE_UPLOADED);
-        assertThat(activityLog.getContent()).isEqualTo("김수민님이 [촬영계획서.pdf] 파일을 등록했어요");
+        assertThat(activityLog.getContent()).isEqualTo("그린님이 [촬영계획서.pdf] 파일을 등록했어요");
         assertThat(activityLog.getTargetType()).isEqualTo(ActivityLogTargetType.FILE.name());
         assertThat(activityLog.getTargetId()).isEqualTo(101L);
     }
@@ -62,11 +62,11 @@ class ActivityLogServiceIntegrationTest {
     @Test
     void 게스트_피드백_활동을_게스트_행위자로_저장한다() {
         // 공유 링크 게스트는 user ID 없이 guest ID와 CLIENT_REVIEWER 타입으로 저장돼야 한다.
-        Users owner = saveUser("owner@example.com", "프로젝트 생성자");
+        Users owner = saveUser("chataehun@example.com", "차태훈");
         Project project = saveProject(owner);
         Guest guest = mock(Guest.class);
         given(guest.getId()).willReturn(202L);
-        given(guest.getName()).willReturn("클라이언트");
+        given(guest.getName()).willReturn("차태훈");
 
         activityLogService.createGuestVideoFeedbackCommentedLog(project.getId(), guest, 303L, "버전 1");
 
@@ -75,7 +75,7 @@ class ActivityLogServiceIntegrationTest {
         assertThat(activityLog.getActorUserId()).isNull();
         assertThat(activityLog.getActorGuestId()).isEqualTo(202L);
         assertThat(activityLog.getType()).isEqualTo(ActivityLogType.VIDEO_FEEDBACK_COMMENTED);
-        assertThat(activityLog.getContent()).isEqualTo("클라이언트님이 [버전 1]에 피드백을 남겼어요");
+        assertThat(activityLog.getContent()).isEqualTo("차태훈님이 [버전 1]에 피드백을 남겼어요");
         assertThat(activityLog.getTargetType()).isEqualTo(ActivityLogTargetType.VIDEO.name());
         assertThat(activityLog.getTargetId()).isEqualTo(303L);
     }
