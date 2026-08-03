@@ -2,8 +2,10 @@ package com.slatto.domain.notification.repository;
 
 import com.slatto.domain.notification.entity.Notification;
 import com.slatto.domain.notification.enums.NotificationType;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -68,11 +70,31 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("readAt") LocalDateTime readAt
     );
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    // 동일 대상의 미읽음 그룹 알림을 잠금 조회해 누적 개수와 문구를 같은 엔티티 상태 기준으로 갱신한다.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-        update Notification n
-        set n.content = :content,
-            n.updatedAt = :updatedAt
+        select n
+        from Notification n
+        where n.user.id = :userId
+            and n.type = :type
+            and n.targetType = :targetType
+            and n.targetId = :targetId
+            and n.isRead = false
+            and n.deletedAt is null
+        order by n.updatedAt desc, n.id desc
+        """)
+    List<Notification> findUnreadGroupedNotificationsForUpdate(
+        @Param("userId") Long userId,
+        @Param("type") NotificationType type,
+        @Param("targetType") String targetType,
+        @Param("targetId") Long targetId,
+        Pageable pageable
+    );
+
+    // 미읽음 그룹 알림이 없으면 누적 개수는 0이다.
+    @Query("""
+        select coalesce(max(n.groupCount), 0)
+        from Notification n
         where n.user.id = :userId
             and n.type = :type
             and n.targetType = :targetType
@@ -80,13 +102,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             and n.isRead = false
             and n.deletedAt is null
         """)
-    int updateUnreadGroupedNotificationContent(
+    int findUnreadGroupedNotificationCount(
         @Param("userId") Long userId,
         @Param("type") NotificationType type,
         @Param("targetType") String targetType,
-        @Param("targetId") Long targetId,
-        @Param("content") String content,
-        @Param("updatedAt") LocalDateTime updatedAt
+        @Param("targetId") Long targetId
     );
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

@@ -20,6 +20,9 @@ public class NotificationCreateCommand {
     /** 알림센터에서 구분할 알림 종류 */
     private NotificationType type;
 
+    /** 알림센터에 표시할 제목 */
+    private String title;
+
     /** 알림센터에 표시할 문구 */
     private String content;
 
