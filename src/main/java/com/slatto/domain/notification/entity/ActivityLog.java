@@ -1,9 +1,11 @@
 package com.slatto.domain.notification.entity;
 
 import com.slatto.domain.common.entity.BaseEntity;
-import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.notification.enums.ActorType;
+import com.slatto.domain.notification.enums.ActivityLogTargetType;
 import com.slatto.domain.notification.enums.ActivityLogType;
+import com.slatto.domain.notification.model.ActivityActor;
+import com.slatto.domain.project.entity.Project;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -52,26 +54,48 @@ public class ActivityLog extends BaseEntity {
 
     private ActivityLog(
         Project project,
-        Long actorUserId,
-        Long actorGuestId,
-        ActorType actorType,
+        ActivityActor actor,
         ActivityLogType type,
         String content,
-        String targetType,
+        ActivityLogTargetType targetType,
         Long targetId,
         String groupKey
     ) {
         this.project = project;
-        this.actorUserId = actorUserId;
-        this.actorGuestId = actorGuestId;
-        this.actorType = actorType;
+        this.actorUserId = actor.actorUserId();
+        this.actorGuestId = actor.actorGuestId();
+        this.actorType = actor.actorType();
         this.type = type;
         this.content = content;
-        this.targetType = targetType;
+        this.targetType = targetType != null ? targetType.name() : null;
         this.targetId = targetId;
         this.groupKey = groupKey;
     }
 
+    public static ActivityLog create(
+        Project project,
+        ActivityActor actor,
+        ActivityLogType type,
+        String content,
+        ActivityLogTargetType targetType,
+        Long targetId
+    ) {
+        return new ActivityLog(
+            project,
+            actor,
+            type,
+            content,
+            targetType,
+            targetId,
+            null
+        );
+    }
+
+    /**
+     * 최근활동 저장 경로를 {@link ActivityActor} 기반으로 전환하는 동안 기존 회원 활동 호출을 지원합니다.
+     * 다음 커밋에서 ActivityLogService가 새 생성 메서드를 사용하면 제거합니다.
+     */
+    @Deprecated(forRemoval = true)
     public static ActivityLog create(
         Project project,
         Long actorUserId,
@@ -92,5 +116,27 @@ public class ActivityLog extends BaseEntity {
             targetId,
             null
         );
+    }
+
+    private ActivityLog(
+        Project project,
+        Long actorUserId,
+        Long actorGuestId,
+        ActorType actorType,
+        ActivityLogType type,
+        String content,
+        String targetType,
+        Long targetId,
+        String groupKey
+    ) {
+        this.project = project;
+        this.actorUserId = actorUserId;
+        this.actorGuestId = actorGuestId;
+        this.actorType = actorType;
+        this.type = type;
+        this.content = content;
+        this.targetType = targetType;
+        this.targetId = targetId;
+        this.groupKey = groupKey;
     }
 }
