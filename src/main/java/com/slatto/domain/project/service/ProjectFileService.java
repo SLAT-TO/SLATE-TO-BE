@@ -1,5 +1,6 @@
 package com.slatto.domain.project.service;
 
+import com.slatto.domain.activity.service.ActivityLogService;
 import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
 import com.slatto.domain.project.dto.ProjectFileResponse;
 import com.slatto.domain.project.dto.ProjectFileListResponse;
@@ -53,6 +54,7 @@ public class ProjectFileService {
     private final ProjectFileRepository projectFileRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final StorageService storageService;
+    private final ActivityLogService activityLogService;
 
     public ProjectFileListResponse getProjectFiles(
         Long projectId,
@@ -120,6 +122,7 @@ public class ProjectFileService {
         );
 
         ProjectFile savedFile = projectFileRepository.save(projectFile);
+        activityLogService.createFileUploadedLog(projectId, currentUserId, savedFile.getId(), savedFile.getFileName());
 
         return toResponse(savedFile);
     }
