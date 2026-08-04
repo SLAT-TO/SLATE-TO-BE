@@ -19,6 +19,8 @@ public interface RecruitmentRepository extends JpaRepository<Recruitment, Long> 
 
     Optional<Recruitment> findByIdAndDeletedAtIsNull(Long id);
 
+    boolean existsByIdAndDeletedAtIsNull(Long id);
+
     @Query("""
         select r
         from Recruitment r
