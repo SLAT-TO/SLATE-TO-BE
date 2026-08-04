@@ -1,0 +1,12 @@
+services:
+  slatto:
+    image: ghcr.io/slat-to/slat-to-be:${IMAGE_TAG}
+    container_name: slatto-prod
+
+    env_file:
+      - /home/ubuntu/SLAT-TO-BE/.env.prod
+
+    ports:
+      - "8081:8080"
+
+    restart: unless-stopped

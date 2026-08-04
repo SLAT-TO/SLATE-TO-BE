@@ -14,6 +14,7 @@ import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectInvitationRepository;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.project.repository.ProjectUserRoleRepository;
+import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.UserRepository;
@@ -48,6 +49,7 @@ public class ProjectInvitationService {
     private final UserRepository userRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final ProjectInvitationProperties projectInvitationProperties;
+    private final ActivityLogService activityLogService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -114,6 +116,7 @@ public class ProjectInvitationService {
             .toList();
         saveProjectRoles(projectMember, roleNames);
         projectInvitation.accept(accepter);
+        activityLogService.createProjectMemberJoinedLog(project.getId(), accepter.getId());
 
         return ProjectInvitationAcceptResponse.builder()
             .projectId(project.getId())
