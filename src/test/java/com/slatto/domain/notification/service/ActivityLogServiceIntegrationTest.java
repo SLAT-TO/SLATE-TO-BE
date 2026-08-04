@@ -20,6 +20,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -78,6 +79,27 @@ class ActivityLogServiceIntegrationTest {
         assertThat(activityLog.getContent()).isEqualTo("차태훈님이 [버전 1]에 피드백을 남겼어요");
         assertThat(activityLog.getTargetType()).isEqualTo(ActivityLogTargetType.VIDEO.name());
         assertThat(activityLog.getTargetId()).isEqualTo(303L);
+    }
+
+    @Test
+    void 프로젝트_수정과_상태_변경_활동을_각각_저장한다() {
+        // 프로젝트 서비스가 두 이벤트를 연속 호출했을 때, 최근활동 저장소에는 유형과 대상이 보존돼야 한다.
+        Users user = saveUser("green@example.com", "그린");
+        Project project = saveProject(user);
+
+        activityLogService.createProjectUpdatedLog(project.getId(), user.getId());
+        activityLogService.createProjectStatusChangedLog(project.getId(), user.getId(), "준비중", "편집중");
+
+        List<ActivityLog> activityLogs = activityLogRepository.findAll();
+        assertThat(activityLogs)
+            .extracting(ActivityLog::getType)
+            .containsExactlyInAnyOrder(
+                ActivityLogType.PROJECT_UPDATED,
+                ActivityLogType.PROJECT_STATUS_CHANGED
+            );
+        assertThat(activityLogs)
+            .extracting(ActivityLog::getContent)
+            .contains("그린님이 프로젝트 정보를 수정했어요", "그린님이 프로젝트 단계를 '준비중'에서 '편집중'으로 변경했어요");
     }
 
     private Users saveUser(String email, String nickname) {
