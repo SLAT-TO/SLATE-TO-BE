@@ -79,6 +79,15 @@ public class RecentActivityService {
         currentMember.markActivitiesReadAt(activityLog.getCreatedAt());
     }
 
+    @Transactional
+    public void markAllActivitiesAsRead(Long projectId, Long currentUserId) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+
+        activityLogRepository.findFirstByProjectIdOrderByCreatedAtDescIdDesc(projectId)
+            .ifPresent(activityLog -> currentMember.markActivitiesReadAt(activityLog.getCreatedAt()));
+    }
+
     private ActivityLogListResponse.ActivityLogItem toItem(
         ActivityLog activityLog,
         LocalDateTime lastActivityReadAt
