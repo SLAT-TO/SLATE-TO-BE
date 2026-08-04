@@ -9,8 +9,13 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: docker-image-main
+  cancel-in-progress: false
+
 jobs:
   docker:
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
 
     steps:
@@ -32,4 +37,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/slat-to/slat-to-be:latest
+          tags: |
+            ghcr.io/slat-to/slat-to-be:${{ github.sha }}
+            ghcr.io/slat-to/slat-to-be:latest

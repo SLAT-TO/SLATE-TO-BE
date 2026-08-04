@@ -1,10 +1,10 @@
 services:
   slatto:
-    image: ghcr.io/slat-to/slat-to-be:latest
+    image: ghcr.io/slat-to/slat-to-be:${IMAGE_TAG}
     container_name: slatto-prod
 
     env_file:
-      - .env.prod
+      - /home/ubuntu/SLAT-TO-BE/.env.prod
 
     ports:
       - "8081:8081"
