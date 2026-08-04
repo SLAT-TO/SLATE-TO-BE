@@ -17,6 +17,7 @@ import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.project.repository.ProjectPinRepository;
 import com.slatto.domain.project.repository.ProjectRepository;
 import com.slatto.domain.project.repository.ProjectUserRoleRepository;
+import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.UserRepository;
@@ -52,6 +53,7 @@ public class ProjectService {
     private final VideoRepository videoRepository;
     private final ProjectConverter projectConverter;
     private final ProjectAccessValidator projectAccessValidator;
+    private final ActivityLogService activityLogService;
 
     @Transactional
     public ProjectResponse createProject(Long ownerUserId, ProjectCreateRequest request) {
@@ -167,6 +169,7 @@ public class ProjectService {
     ) {
         Project project = projectAccessValidator.getProjectOrThrow(projectId);
         projectAccessValidator.getCurrentAdminOrThrow(projectId, currentUserId);
+        ProjectStatus previousStatus = project.getStatus();
 
         project.updateInfo(
             request.getTitle(),
@@ -180,6 +183,17 @@ public class ProjectService {
 
         if (request.getStatus() != null) {
             project.changeStatus(request.getStatus());
+        }
+
+        activityLogService.createProjectUpdatedLog(projectId, currentUserId);
+
+        if (request.getStatus() != null && previousStatus != request.getStatus()) {
+            activityLogService.createProjectStatusChangedLog(
+                projectId,
+                currentUserId,
+                getProjectStatusLabel(previousStatus),
+                getProjectStatusLabel(request.getStatus())
+            );
         }
 
         return projectConverter.toResponse(project);
@@ -209,6 +223,15 @@ public class ProjectService {
         if (projectCount >= FREE_PROJECT_LIMIT) {
             throw new BaseException(ProjectErrorCode.PROJECT_LIMIT_EXCEEDED);
         }
+    }
+
+    private String getProjectStatusLabel(ProjectStatus status) {
+        return switch (status) {
+            case PREPARING -> "준비중";
+            case EDITING -> "편집중";
+            case REVIEWING -> "검토중";
+            case COMPLETED -> "완료";
+        };
     }
 
     private void saveProjectRoles(ProjectMember projectMember, List<RoleName> roleNames) {
