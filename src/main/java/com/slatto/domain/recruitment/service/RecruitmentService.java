@@ -2,6 +2,7 @@ package com.slatto.domain.recruitment.service;
 
 import com.slatto.domain.project.enums.LengthType;
 import com.slatto.domain.recruitment.converter.RecruitmentConverter;
+import com.slatto.domain.recruitment.dto.MyRecruitmentListResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentCreateRequest;
 import com.slatto.domain.recruitment.dto.RecruitmentDetailResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentListResponse;
@@ -35,7 +36,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -212,6 +215,66 @@ public class RecruitmentService {
             .toList();
 
         return recruitmentConverter.toRecommendationResponse(items);
+    }
+
+    public MyRecruitmentListResponse getMyRecruitments(
+        Long currentUserId,
+        RecruitmentStatus status,
+        Long cursor,
+        int size
+    ) {
+        int pageSize = normalizePageSize(size);
+        LocalDate today = recruitmentConverter.currentDate();
+
+        List<Recruitment> recruitments = recruitmentRepository.findMyRecruitmentsByCursor(
+            currentUserId,
+            toOpenOnly(status),
+            today,
+            cursor,
+            PageRequest.of(0, pageSize + 1)
+        );
+
+        boolean hasNext = recruitments.size() > pageSize;
+        List<Recruitment> currentPage = recruitments.stream()
+            .limit(pageSize)
+            .toList();
+
+        Set<Long> bookmarkedIds = getBookmarkedRecruitmentIds(currentUserId, currentPage);
+        Map<Long, Long> applicantCountById = getApplicantCountByRecruitmentId(currentPage);
+
+        List<MyRecruitmentListResponse.MyRecruitmentSummary> items = currentPage.stream()
+            .map(recruitment -> recruitmentConverter.toMyRecruitmentSummary(
+                recruitment,
+                currentUserId,
+                bookmarkedIds.contains(recruitment.getId()),
+                applicantCountById.getOrDefault(recruitment.getId(), 0L),
+                today
+            ))
+            .toList();
+
+        Long nextCursor = hasNext && !currentPage.isEmpty()
+            ? currentPage.get(currentPage.size() - 1).getId()
+            : null;
+
+        return recruitmentConverter.toMyRecruitmentListResponse(items, nextCursor, hasNext);
+    }
+
+    // group by 는 지원자 0명인 공고를 결과에서 누락시키므로 호출부에서 getOrDefault 로 채운다.
+    private Map<Long, Long> getApplicantCountByRecruitmentId(List<Recruitment> recruitments) {
+        List<Long> recruitmentIds = recruitments.stream()
+            .map(Recruitment::getId)
+            .toList();
+
+        if (recruitmentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return recruitmentApplicationRepository.countDistinctApplicantsByRecruitmentIds(recruitmentIds)
+            .stream()
+            .collect(Collectors.toMap(
+                row -> (Long) row[0],
+                row -> (Long) row[1]
+            ));
     }
 
     // 커서 행이 그 사이 soft delete 돼도 정렬키(closedManually/deadline/viewCount)는 유효하다.

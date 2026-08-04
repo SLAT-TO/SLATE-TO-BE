@@ -1,6 +1,7 @@
 package com.slatto.domain.recruitment.service;
 
 import com.slatto.domain.recruitment.converter.RecruitmentConverter;
+import com.slatto.domain.recruitment.dto.MyApplicationListResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicantListResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationCreateRequest;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationResponse;
@@ -11,6 +12,7 @@ import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
 import com.slatto.domain.recruitment.enums.RecruitmentStatus;
 import com.slatto.domain.recruitment.exception.RecruitmentErrorCode;
 import com.slatto.domain.recruitment.repository.RecruitmentApplicationRepository;
+import com.slatto.domain.recruitment.repository.RecruitmentBookmarkRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RegionName;
@@ -26,9 +28,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +45,7 @@ public class RecruitmentApplicationService {
 
     private final RecruitmentRepository recruitmentRepository;
     private final RecruitmentApplicationRepository recruitmentApplicationRepository;
+    private final RecruitmentBookmarkRepository recruitmentBookmarkRepository;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final LocationRepository locationRepository;
@@ -157,6 +162,51 @@ public class RecruitmentApplicationService {
         }
 
         application.changeStatus(request.getStatus());
+    }
+
+    public MyApplicationListResponse getMyApplications(
+        Long currentUserId,
+        RecruitmentApplicationStatus status,
+        Long cursor,
+        int size
+    ) {
+        int pageSize = normalizePageSize(size);
+        LocalDate today = recruitmentConverter.currentDate();
+
+        List<RecruitmentApplication> applications = recruitmentApplicationRepository.findMyApplicationsByCursor(
+            currentUserId,
+            status,
+            cursor,
+            PageRequest.of(0, pageSize + 1)
+        );
+
+        boolean hasNext = applications.size() > pageSize;
+        List<RecruitmentApplication> currentPage = applications.stream()
+            .limit(pageSize)
+            .toList();
+
+        List<Long> recruitmentIds = currentPage.stream()
+            .map(application -> application.getRecruitment().getId())
+            .toList();
+        Set<Long> bookmarkedIds = recruitmentIds.isEmpty()
+            ? Set.of()
+            : Set.copyOf(recruitmentBookmarkRepository.findBookmarkedRecruitmentIds(currentUserId, recruitmentIds));
+
+        List<MyApplicationListResponse.MyApplicationSummary> items = currentPage.stream()
+            .map(application -> recruitmentConverter.toMyApplicationSummary(
+                application,
+                currentUserId,
+                bookmarkedIds.contains(application.getRecruitment().getId()),
+                today
+            ))
+            .toList();
+
+        // 커서는 공고 id 가 아니라 지원 id 다.
+        Long nextCursor = hasNext && !currentPage.isEmpty()
+            ? currentPage.get(currentPage.size() - 1).getId()
+            : null;
+
+        return recruitmentConverter.toMyApplicationListResponse(items, nextCursor, hasNext);
     }
 
     // 마감 판정은 상세 배지/목록 필터와 같은 정의를 써야 한다.
