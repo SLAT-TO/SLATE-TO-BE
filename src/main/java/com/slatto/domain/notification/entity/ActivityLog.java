@@ -1,9 +1,11 @@
 package com.slatto.domain.notification.entity;
 
 import com.slatto.domain.common.entity.BaseEntity;
-import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.notification.enums.ActorType;
+import com.slatto.domain.notification.enums.ActivityLogTargetType;
 import com.slatto.domain.notification.enums.ActivityLogType;
+import com.slatto.domain.notification.model.ActivityActor;
+import com.slatto.domain.project.entity.Project;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -52,40 +54,35 @@ public class ActivityLog extends BaseEntity {
 
     private ActivityLog(
         Project project,
-        Long actorUserId,
-        Long actorGuestId,
-        ActorType actorType,
+        ActivityActor actor,
         ActivityLogType type,
         String content,
-        String targetType,
+        ActivityLogTargetType targetType,
         Long targetId,
         String groupKey
     ) {
         this.project = project;
-        this.actorUserId = actorUserId;
-        this.actorGuestId = actorGuestId;
-        this.actorType = actorType;
+        this.actorUserId = actor.actorUserId();
+        this.actorGuestId = actor.actorGuestId();
+        this.actorType = actor.actorType();
         this.type = type;
         this.content = content;
-        this.targetType = targetType;
+        this.targetType = targetType != null ? targetType.name() : null;
         this.targetId = targetId;
         this.groupKey = groupKey;
     }
 
     public static ActivityLog create(
         Project project,
-        Long actorUserId,
-        ActorType actorType,
+        ActivityActor actor,
         ActivityLogType type,
         String content,
-        String targetType,
+        ActivityLogTargetType targetType,
         Long targetId
     ) {
         return new ActivityLog(
             project,
-            actorUserId,
-            null,
-            actorType,
+            actor,
             type,
             content,
             targetType,
@@ -93,4 +90,5 @@ public class ActivityLog extends BaseEntity {
             null
         );
     }
+
 }
