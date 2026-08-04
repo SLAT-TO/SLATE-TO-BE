@@ -1,18 +1,25 @@
 package com.slatto.domain.recruitment.service;
 
+import com.slatto.domain.project.enums.LengthType;
 import com.slatto.domain.recruitment.converter.RecruitmentConverter;
 import com.slatto.domain.recruitment.dto.RecruitmentCreateRequest;
 import com.slatto.domain.recruitment.dto.RecruitmentDetailResponse;
+import com.slatto.domain.recruitment.dto.RecruitmentListResponse;
+import com.slatto.domain.recruitment.dto.RecruitmentRecommendationResponse;
+import com.slatto.domain.recruitment.dto.RecruitmentSummary;
 import com.slatto.domain.recruitment.dto.RecruitmentUpdateRequest;
 import com.slatto.domain.recruitment.entity.Recruitment;
 import com.slatto.domain.recruitment.entity.RecruitmentApplication;
 import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
+import com.slatto.domain.recruitment.enums.RecruitmentSortType;
+import com.slatto.domain.recruitment.enums.RecruitmentStatus;
 import com.slatto.domain.recruitment.repository.RecruitmentApplicationRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentBookmarkRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentRepository;
 import com.slatto.domain.user.entity.Location;
 import com.slatto.domain.user.entity.UserRole;
 import com.slatto.domain.user.entity.Users;
+import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.RegionName;
 import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.LocationRepository;
@@ -21,15 +28,24 @@ import com.slatto.domain.user.repository.UserRoleRepository;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class RecruitmentService {
+
+    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int MAX_PAGE_SIZE = 50;
+    private static final int DEFAULT_RECOMMENDATION_SIZE = 10;
+    private static final int MAX_RECOMMENDATION_SIZE = 20;
 
     private final RecruitmentRepository recruitmentRepository;
     private final RecruitmentApplicationRepository recruitmentApplicationRepository;
@@ -108,6 +124,160 @@ public class RecruitmentService {
         validateWriter(recruitment, currentUserId);
 
         recruitment.softDelete();
+    }
+
+    public RecruitmentListResponse getRecruitments(
+        Long currentUserId,
+        String keyword,
+        CategoryName category,
+        LengthType lengthType,
+        RoleName recruitPart,
+        RegionName location,
+        RecruitmentStatus status,
+        RecruitmentSortType sort,
+        Long cursor,
+        int size
+    ) {
+        int pageSize = normalizePageSize(size);
+        // 필터 바인딩과 표시 계산이 같은 날짜를 써야 목록 결과와 status 배지가 어긋나지 않는다.
+        LocalDate today = recruitmentConverter.currentDate();
+        String normalizedKeyword = normalizeKeyword(keyword);
+        Boolean openOnly = toOpenOnly(status);
+        RecruitmentSortType sortType = sort == null ? RecruitmentSortType.LATEST : sort;
+        Pageable pageable = PageRequest.of(0, pageSize + 1);
+
+        List<Recruitment> recruitments = switch (sortType) {
+            case LATEST -> recruitmentRepository.findPageOrderByLatest(
+                normalizedKeyword, category, lengthType, recruitPart, location, openOnly, today, cursor, pageable
+            );
+            case DEADLINE -> {
+                Recruitment cursorRecruitment = resolveCursorRecruitment(cursor);
+                yield recruitmentRepository.findPageOrderByDeadline(
+                    normalizedKeyword, category, lengthType, recruitPart, location, openOnly, today, cursor,
+                    getCursorClosed(cursorRecruitment, today),
+                    cursorRecruitment == null ? null : cursorRecruitment.getDeadline(),
+                    pageable
+                );
+            }
+            case POPULAR -> {
+                Recruitment cursorRecruitment = resolveCursorRecruitment(cursor);
+                yield recruitmentRepository.findPageOrderByPopular(
+                    normalizedKeyword, category, lengthType, recruitPart, location, openOnly, today, cursor,
+                    cursorRecruitment == null ? null : cursorRecruitment.getViewCount(),
+                    pageable
+                );
+            }
+        };
+
+        boolean hasNext = recruitments.size() > pageSize;
+        List<Recruitment> currentPage = recruitments.stream()
+            .limit(pageSize)
+            .toList();
+        Set<Long> bookmarkedIds = getBookmarkedRecruitmentIds(currentUserId, currentPage);
+
+        List<RecruitmentSummary> items = currentPage.stream()
+            .map(recruitment -> recruitmentConverter.toSummary(
+                recruitment,
+                currentUserId,
+                bookmarkedIds.contains(recruitment.getId()),
+                today
+            ))
+            .toList();
+
+        Long nextCursor = hasNext && !currentPage.isEmpty()
+            ? currentPage.get(currentPage.size() - 1).getId()
+            : null;
+
+        return recruitmentConverter.toListResponse(items, nextCursor, hasNext);
+    }
+
+    // 매칭 가중치는 쿼리가 계산한다. 온보딩 미완료 유저는 전 조건이 0점이라 최신순으로 자동 폴백된다.
+    public RecruitmentRecommendationResponse getRecommendedRecruitments(Long currentUserId, int size) {
+        LocalDate today = recruitmentConverter.currentDate();
+        List<Recruitment> recruitments = recruitmentRepository.findRecommended(
+            currentUserId,
+            today,
+            PageRequest.of(0, normalizeRecommendationSize(size))
+        );
+
+        Set<Long> bookmarkedIds = getBookmarkedRecruitmentIds(currentUserId, recruitments);
+
+        List<RecruitmentSummary> items = recruitments.stream()
+            .map(recruitment -> recruitmentConverter.toSummary(
+                recruitment,
+                currentUserId,
+                bookmarkedIds.contains(recruitment.getId()),
+                today
+            ))
+            .toList();
+
+        return recruitmentConverter.toRecommendationResponse(items);
+    }
+
+    // 커서 행이 그 사이 soft delete 돼도 정렬키(closedManually/deadline/viewCount)는 유효하다.
+    // deletedAt 조건을 걸면 삭제 레이스에서 정상 요청이 400 이 된다. 의도적으로 findById 를 쓴다.
+    private Recruitment resolveCursorRecruitment(Long cursor) {
+        if (cursor == null) {
+            return null;
+        }
+
+        return recruitmentRepository.findById(cursor)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.BAD_REQUEST));
+    }
+
+    private Boolean getCursorClosed(Recruitment cursorRecruitment, LocalDate today) {
+        if (cursorRecruitment == null) {
+            return null;
+        }
+
+        return recruitmentConverter.resolveStatus(
+            cursorRecruitment.getClosedManually(),
+            cursorRecruitment.getDeadline(),
+            today
+        ) == RecruitmentStatus.CLOSED;
+    }
+
+    // status 는 파생값이라 컬럼 비교가 불가능하다. 쿼리가 closed_manually 와 deadline 으로 전개한다.
+    private Boolean toOpenOnly(RecruitmentStatus status) {
+        return status == null ? null : status == RecruitmentStatus.RECRUITING;
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
+
+        return keyword.trim();
+    }
+
+    private Set<Long> getBookmarkedRecruitmentIds(Long currentUserId, List<Recruitment> recruitments) {
+        List<Long> recruitmentIds = recruitments.stream()
+            .map(Recruitment::getId)
+            .toList();
+
+        if (recruitmentIds.isEmpty()) {
+            return Set.of();
+        }
+
+        return Set.copyOf(
+            recruitmentBookmarkRepository.findBookmarkedRecruitmentIds(currentUserId, recruitmentIds)
+        );
+    }
+
+    private int normalizePageSize(int size) {
+        if (size <= 0) {
+            return DEFAULT_PAGE_SIZE;
+        }
+
+        return Math.min(size, MAX_PAGE_SIZE);
+    }
+
+    private int normalizeRecommendationSize(int size) {
+        if (size <= 0) {
+            return DEFAULT_RECOMMENDATION_SIZE;
+        }
+
+        return Math.min(size, MAX_RECOMMENDATION_SIZE);
     }
 
     private RecruitmentDetailResponse buildDetailResponse(Recruitment recruitment, Long currentUserId) {
