@@ -23,6 +23,7 @@ import com.slatto.domain.user.repository.UserRoleRepository;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -231,12 +233,23 @@ public class RecruitmentApplicationService {
             return;
         }
 
-        recruitmentNotificationDispatcher.dispatchApplied(
-            writer.getId(),
-            recruitment.getId(),
-            recruitment.getTitle(),
-            applicant.getNickname()
-        );
+        // 트랜잭션 커밋이 디스패처 프록시에서 일어나므로 예외를 여기서 잡아야 한다.
+        // 디스패처가 REQUIRES_NEW 라 실패해도 지원 트랜잭션은 rollback-only 로 마킹되지 않는다.
+        try {
+            recruitmentNotificationDispatcher.dispatchApplied(
+                writer.getId(),
+                recruitment.getId(),
+                recruitment.getTitle(),
+                applicant.getNickname()
+            );
+        } catch (Exception exception) {
+            log.error(
+                "[Recruitment] 지원 알림 생성 실패. recruitmentId={}, writerId={}",
+                recruitment.getId(),
+                writer.getId(),
+                exception
+            );
+        }
     }
 
     private void validateWriter(Recruitment recruitment, Long currentUserId) {

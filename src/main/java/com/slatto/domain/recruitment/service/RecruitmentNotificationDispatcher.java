@@ -2,12 +2,10 @@ package com.slatto.domain.recruitment.service;
 
 import com.slatto.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RecruitmentNotificationDispatcher {
@@ -19,9 +17,11 @@ public class RecruitmentNotificationDispatcher {
 
     /**
      * 알림 실패가 지원 트랜잭션을 롤백시키지 않도록 별도 트랜잭션으로 격리한다.
-     * NotificationService 는 REQUIRED 라 같은 트랜잭션에 참여하는데, 그 안에서 예외가 나면
-     * 트랜잭션이 rollback-only 로 마킹돼 호출부에서 catch 해도 커밋 시점에 실패한다.
-     * 그룹핑 경로는 더티 체킹이라 SQL 이 커밋 때 나가므로 try 블록으로도 잡히지 않는다.
+     * NotificationService 는 REQUIRED 라 그대로 호출하면 지원 트랜잭션에 참여하고,
+     * 그 안에서 예외가 나면 rollback-only 로 마킹돼 지원까지 함께 롤백된다.
+     *
+     * 여기서 예외를 잡지 않는다. 트랜잭션 커밋은 이 메서드가 리턴한 뒤 프록시에서 일어나므로
+     * 메서드 안의 try/catch 로는 커밋 시점 예외를 잡을 수 없다. 호출부에서 잡아야 한다.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void dispatchApplied(
@@ -30,21 +30,12 @@ public class RecruitmentNotificationDispatcher {
         String recruitmentTitle,
         String applicantName
     ) {
-        try {
-            notificationService.createRecruitmentAppliedNotification(
-                writerId,
-                recruitmentId,
-                truncateTitle(recruitmentTitle),
-                applicantName
-            );
-        } catch (Exception exception) {
-            log.error(
-                "[Recruitment] 지원 알림 생성 실패. recruitmentId={}, writerId={}",
-                recruitmentId,
-                writerId,
-                exception
-            );
-        }
+        notificationService.createRecruitmentAppliedNotification(
+            writerId,
+            recruitmentId,
+            truncateTitle(recruitmentTitle),
+            applicantName
+        );
     }
 
     private String truncateTitle(String title) {
