@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 public enum TodayBriefingType {
 
     TODAY_SCHEDULE(1),
-    SCHEDULE_DEADLINE(2),
+    SCHEDULE_START_REMINDER(2),
     RECRUITMENT_APPLIED(3),
     SCHEDULE_CREATED(4),
     NOTICE_CREATED(5),
