@@ -1,6 +1,6 @@
 package com.slatto.domain.schedule.service;
 
-import com.slatto.domain.activity.service.ActivityLogService;
+import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;

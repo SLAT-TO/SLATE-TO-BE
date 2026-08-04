@@ -1,6 +1,6 @@
 package com.slatto.domain.project.service;
 
-import com.slatto.domain.activity.service.ActivityLogService;
+import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
 import com.slatto.domain.project.dto.ProjectFileResponse;
 import com.slatto.domain.project.dto.ProjectFileListResponse;
