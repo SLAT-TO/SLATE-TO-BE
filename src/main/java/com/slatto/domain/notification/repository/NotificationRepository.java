@@ -49,6 +49,24 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         Pageable pageable
     );
 
+    // 오늘의 브리핑에서 사용할 최근 주요 알림 후보를 조회한다.
+    @Query("""
+        select n
+        from Notification n
+        left join fetch n.project p
+        where n.user.id = :userId
+            and n.deletedAt is null
+            and n.updatedAt >= :updatedAfter
+            and n.type in :types
+        order by n.updatedAt desc, n.id desc
+        """)
+    List<Notification> findRecentBriefingCandidates(
+        @Param("userId") Long userId,
+        @Param("updatedAfter") LocalDateTime updatedAfter,
+        @Param("types") List<NotificationType> types,
+        Pageable pageable
+    );
+
     Optional<Notification> findByIdAndUserIdAndDeletedAtIsNullAndUpdatedAtGreaterThanEqual(
         Long id,
         Long userId,
