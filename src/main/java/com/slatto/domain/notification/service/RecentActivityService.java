@@ -69,6 +69,16 @@ public class RecentActivityService {
             .build();
     }
 
+    @Transactional
+    public void markActivityAsRead(Long projectId, Long activityId, Long currentUserId) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
+        ActivityLog activityLog = activityLogRepository.findByIdAndProjectId(activityId, projectId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        currentMember.markActivitiesReadAt(activityLog.getCreatedAt());
+    }
+
     private ActivityLogListResponse.ActivityLogItem toItem(
         ActivityLog activityLog,
         LocalDateTime lastActivityReadAt
