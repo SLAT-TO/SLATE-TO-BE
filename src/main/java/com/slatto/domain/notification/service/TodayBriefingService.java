@@ -31,7 +31,6 @@ import java.util.List;
 public class TodayBriefingService {
 
     private static final int BRIEFING_LIMIT = 3;
-    private static final int RECENT_NOTIFICATION_LOOKUP_SIZE = 20;
     private static final int BRIEFING_RETENTION_HOURS = 24;
     private static final List<Integer> START_REMINDER_DAY_OFFSETS = List.of(1, 3);
     private static final List<NotificationType> BRIEFING_NOTIFICATION_TYPES = List.of(
@@ -115,7 +114,9 @@ public class TodayBriefingService {
             currentUserId,
             recentAfter,
             BRIEFING_NOTIFICATION_TYPES,
-            PageRequest.of(0, RECENT_NOTIFICATION_LOOKUP_SIZE)
+            NotificationType.RECRUITMENT_APPLIED,
+            NotificationType.VIDEO_FEEDBACK_COMMENTED,
+            PageRequest.of(0, BRIEFING_LIMIT)
         );
 
         notifications.stream()

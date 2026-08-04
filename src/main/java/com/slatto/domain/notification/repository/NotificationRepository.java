@@ -49,7 +49,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         Pageable pageable
     );
 
-    // 오늘의 브리핑에서 사용할 최근 주요 알림 후보를 조회한다.
+    // 브리핑 우선순위를 먼저 적용한 뒤 필요한 후보만 조회한다.
     @Query("""
         select n
         from Notification n
@@ -58,12 +58,21 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             and n.deletedAt is null
             and n.updatedAt >= :updatedAfter
             and n.type in :types
-        order by n.updatedAt desc, n.id desc
+        order by
+            case
+                when n.type = :recruitmentAppliedType then 3
+                when n.type = :videoFeedbackCommentedType then 7
+                else 999
+            end,
+            n.updatedAt desc,
+            n.id desc
         """)
     List<Notification> findRecentBriefingCandidates(
         @Param("userId") Long userId,
         @Param("updatedAfter") LocalDateTime updatedAfter,
         @Param("types") List<NotificationType> types,
+        @Param("recruitmentAppliedType") NotificationType recruitmentAppliedType,
+        @Param("videoFeedbackCommentedType") NotificationType videoFeedbackCommentedType,
         Pageable pageable
     );
 
