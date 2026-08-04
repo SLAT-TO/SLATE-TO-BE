@@ -1,5 +1,6 @@
 package com.slatto.domain.schedule.service;
 
+import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
@@ -51,6 +52,7 @@ public class ScheduleService {
     private final ProjectAccessValidator projectAccessValidator;
     private final ScheduleConverter scheduleConverter;
     private final NotificationService notificationService;
+    private final ActivityLogService activityLogService;
 
     @Transactional
     public SchedulePrivateMemoResponse upsertPrivateMemo(
@@ -208,6 +210,14 @@ public class ScheduleService {
             participants,
             writer.getId()
         );
+        if (savedSchedule.isProjectSchedule()) {
+            activityLogService.createScheduleCreatedLog(
+                project.getId(),
+                currentUserId,
+                savedSchedule.getId(),
+                savedSchedule.getTitle()
+            );
+        }
 
         return scheduleConverter.toResponse(savedSchedule);
     }
@@ -247,6 +257,14 @@ public class ScheduleService {
                 schedule.getTitle(),
                 newParticipants,
                 currentUserId
+            );
+        }
+        if (schedule.isProjectSchedule()) {
+            activityLogService.createScheduleUpdatedLog(
+                schedule.getProject().getId(),
+                currentUserId,
+                schedule.getId(),
+                schedule.getTitle()
             );
         }
 

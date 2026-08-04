@@ -7,6 +7,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListR
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
+import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyStatusReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyStatusResDTO;
 import org.springframework.data.domain.PageRequest;
@@ -38,6 +39,7 @@ public class FeedbackDetailService {
     private final GuestRepository guestRepository;
     private final FeedbackDetailConverter feedbackDetailConverter;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ActivityLogService activityLogService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
@@ -68,6 +70,22 @@ public class FeedbackDetailService {
         // 4. 저장
         FeedbackDetail reply = feedbackDetailConverter.toFeedbackDetail(feedback, user, guest, req);
         FeedbackDetail saved = feedbackDetailRepository.save(reply);
+
+        if (user != null) {
+            activityLogService.createVideoFeedbackCommentedLog(
+                    feedback.getVideo().getProject().getId(),
+                    user.getId(),
+                    feedback.getVideo().getId(),
+                    feedback.getVideo().getTitle()
+            );
+        } else {
+            activityLogService.createGuestVideoFeedbackCommentedLog(
+                    feedback.getVideo().getProject().getId(),
+                    guest,
+                    feedback.getVideo().getId(),
+                    feedback.getVideo().getTitle()
+            );
+        }
 
         return feedbackDetailConverter.toCreateResponse(saved);
     }
