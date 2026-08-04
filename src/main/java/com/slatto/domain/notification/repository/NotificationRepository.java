@@ -61,6 +61,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         order by
             case
                 when n.type = :recruitmentAppliedType then 3
+                when n.type = :scheduleCreatedType then 4
+                when n.type = :noticeCreatedType then 5
+                when n.type = :fileUploadedType then 6
                 when n.type = :videoFeedbackCommentedType then 7
                 else 999
             end,
@@ -72,6 +75,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("updatedAfter") LocalDateTime updatedAfter,
         @Param("types") List<NotificationType> types,
         @Param("recruitmentAppliedType") NotificationType recruitmentAppliedType,
+        @Param("scheduleCreatedType") NotificationType scheduleCreatedType,
+        @Param("noticeCreatedType") NotificationType noticeCreatedType,
+        @Param("fileUploadedType") NotificationType fileUploadedType,
         @Param("videoFeedbackCommentedType") NotificationType videoFeedbackCommentedType,
         Pageable pageable
     );

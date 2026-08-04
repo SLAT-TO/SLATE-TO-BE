@@ -609,6 +609,9 @@ public class NotificationService {
             case PROJECT_INVITED -> "프로젝트 초대";
             case VIDEO_FEEDBACK_COMMENTED -> "새로운 피드백";
             case RECRUITMENT_APPLIED -> "새로운 지원자";
+            case SCHEDULE_CREATED -> "새 일정";
+            case NOTICE_CREATED -> "새 공지";
+            case FILE_UPLOADED -> "새 파일";
             case DEADLINE_REMINDER -> "마감 알림";
         };
     }

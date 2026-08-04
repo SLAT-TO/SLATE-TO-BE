@@ -35,6 +35,9 @@ public class TodayBriefingService {
     private static final List<Integer> START_REMINDER_DAY_OFFSETS = List.of(1, 3);
     private static final List<NotificationType> BRIEFING_NOTIFICATION_TYPES = List.of(
         NotificationType.RECRUITMENT_APPLIED,
+        NotificationType.SCHEDULE_CREATED,
+        NotificationType.NOTICE_CREATED,
+        NotificationType.FILE_UPLOADED,
         NotificationType.VIDEO_FEEDBACK_COMMENTED
     );
 
@@ -115,6 +118,9 @@ public class TodayBriefingService {
             recentAfter,
             BRIEFING_NOTIFICATION_TYPES,
             NotificationType.RECRUITMENT_APPLIED,
+            NotificationType.SCHEDULE_CREATED,
+            NotificationType.NOTICE_CREATED,
+            NotificationType.FILE_UPLOADED,
             NotificationType.VIDEO_FEEDBACK_COMMENTED,
             PageRequest.of(0, BRIEFING_LIMIT)
         );
@@ -149,6 +155,9 @@ public class TodayBriefingService {
     private BriefingCandidate toNotificationCandidate(Notification notification) {
         TodayBriefingType type = switch (notification.getType()) {
             case RECRUITMENT_APPLIED -> TodayBriefingType.RECRUITMENT_APPLIED;
+            case SCHEDULE_CREATED -> TodayBriefingType.SCHEDULE_CREATED;
+            case NOTICE_CREATED -> TodayBriefingType.NOTICE_CREATED;
+            case FILE_UPLOADED -> TodayBriefingType.FILE_UPLOADED;
             case VIDEO_FEEDBACK_COMMENTED -> TodayBriefingType.VIDEO_FEEDBACK_COMMENTED;
             default -> throw new BaseException(CommonErrorCode.BAD_REQUEST);
         };
