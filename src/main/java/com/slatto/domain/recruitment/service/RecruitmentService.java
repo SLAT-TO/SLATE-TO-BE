@@ -5,6 +5,8 @@ import com.slatto.domain.recruitment.dto.RecruitmentCreateRequest;
 import com.slatto.domain.recruitment.dto.RecruitmentDetailResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentUpdateRequest;
 import com.slatto.domain.recruitment.entity.Recruitment;
+import com.slatto.domain.recruitment.entity.RecruitmentApplication;
+import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
 import com.slatto.domain.recruitment.repository.RecruitmentApplicationRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentBookmarkRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentRepository;
@@ -44,13 +46,13 @@ public class RecruitmentService {
 
         Recruitment saved = recruitmentRepository.save(recruitmentConverter.toRecruitment(writer, request));
 
-        // 생성 직후라 지원자 수 0, 관심 등록 false, 지원 여부 false 가 확정이다. 집계 쿼리를 쏘지 않는다.
+        // 생성 직후라 지원자 수 0, 관심 등록 false, 내 지원 없음(null)이 확정이다. 집계 쿼리를 쏘지 않는다.
         return recruitmentConverter.toDetailResponse(
             saved,
             currentUserId,
             0L,
             false,
-            false,
+            null,
             getPrimaryRole(currentUserId),
             getUserRegion(currentUserId)
         );
@@ -117,10 +119,18 @@ public class RecruitmentService {
             currentUserId,
             recruitmentApplicationRepository.countDistinctApplicants(recruitmentId),
             recruitmentBookmarkRepository.existsByRecruitmentIdAndUserId(recruitmentId, currentUserId),
-            recruitmentApplicationRepository.existsByRecruitmentIdAndUserIdAndDeletedAtIsNull(recruitmentId, currentUserId),
+            getMyApplicationStatus(recruitmentId, currentUserId),
             getPrimaryRole(writerId),
             getUserRegion(writerId)
         );
+    }
+
+    // hasApplied 와 myApplicationStatus 를 한 번의 조회로 채운다. 미지원이면 null 이다.
+    private RecruitmentApplicationStatus getMyApplicationStatus(Long recruitmentId, Long currentUserId) {
+        return recruitmentApplicationRepository
+            .findFirstByRecruitmentIdAndUserIdAndDeletedAtIsNullOrderByIdDesc(recruitmentId, currentUserId)
+            .map(RecruitmentApplication::getStatus)
+            .orElse(null);
     }
 
     private void validateWriter(Recruitment recruitment, Long currentUserId) {
