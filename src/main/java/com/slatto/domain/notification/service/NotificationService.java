@@ -252,6 +252,63 @@ public class NotificationService {
     }
 
     /**
+     * 프로젝트 합류 알림을 프로젝트 참여자에게 생성한다.
+     * 합류자 본인도 수신 대상에 포함할 수 있다.
+     */
+    @Transactional
+    public void createProjectJoinedNotifications(
+        Long projectId,
+        String projectTitle,
+        String joinerName,
+        List<Long> recipientIds
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredText(projectTitle);
+        validateRequiredText(joinerName);
+
+        createNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.PROJECT_JOINED)
+            .title(createProjectJoinedTitle(projectTitle))
+            .content(createProjectJoinedContent(joinerName))
+            .targetType(NotificationTargetType.PROJECT)
+            .targetId(projectId)
+            .build());
+    }
+
+    /**
+     * 프로젝트에 새 일정이 등록되었을 때 프로젝트 참여자에게 알림을 생성한다.
+     */
+    @Transactional
+    public void createScheduleCreatedNotifications(
+        Long projectId,
+        Long scheduleId,
+        String projectTitle,
+        String scheduleTitle,
+        String creatorName,
+        List<Long> recipientIds,
+        Long actorUserId
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(scheduleId);
+        validateRequiredText(projectTitle);
+        validateRequiredText(scheduleTitle);
+        validateRequiredText(creatorName);
+
+        createNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.SCHEDULE_CREATED)
+            .title(createScheduleCreatedTitle(projectTitle))
+            .content(createScheduleCreatedContent(scheduleTitle, creatorName))
+            .targetType(NotificationTargetType.SCHEDULE)
+            .targetId(scheduleId)
+            .excludeUserId(actorUserId)
+            .build());
+    }
+
+    /**
      * 영상 피드백 댓글 알림을 생성하거나 기존 미읽음 알림을 갱신한다.
      * 동일 영상 기준으로 그룹핑하므로 targetId는 feedbackId가 아니라 videoId를 사용한다.
      *
@@ -372,6 +429,71 @@ public class NotificationService {
         );
     }
 
+    /**
+     * 프로젝트 공지가 등록되었을 때 프로젝트 참여자에게 알림을 생성한다.
+     */
+    @Transactional
+    public void createNoticeCreatedNotifications(
+        Long projectId,
+        Long noticeId,
+        String projectTitle,
+        String noticeTitle,
+        String creatorName,
+        List<Long> recipientIds,
+        Long actorUserId
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(noticeId);
+        validateRequiredText(projectTitle);
+        validateRequiredText(noticeTitle);
+        validateRequiredText(creatorName);
+
+        createNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.NOTICE_CREATED)
+            .title(createNoticeCreatedTitle(projectTitle))
+            .content(createNoticeCreatedContent(noticeTitle, creatorName))
+            .targetType(NotificationTargetType.NOTICE)
+            .targetId(noticeId)
+            .excludeUserId(actorUserId)
+            .build());
+    }
+
+    /**
+     * 프로젝트 파일 등록 알림을 생성한다.
+     * 여러 파일을 한 번에 업로드한 경우 fileCount 기준으로 문구를 만든다.
+     */
+    @Transactional
+    public void createFileUploadedNotifications(
+        Long projectId,
+        String projectTitle,
+        String fileName,
+        int fileCount,
+        String uploaderName,
+        List<Long> recipientIds,
+        Long actorUserId
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredText(projectTitle);
+        validateRequiredText(uploaderName);
+        validatePositiveCount(fileCount);
+        if (fileCount == 1) {
+            validateRequiredText(fileName);
+        }
+
+        createNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.FILE_UPLOADED)
+            .title(createFileUploadedTitle(projectTitle))
+            .content(createFileUploadedContent(fileName, fileCount, uploaderName))
+            .targetType(NotificationTargetType.PROJECT_FILE)
+            .targetId(projectId)
+            .excludeUserId(actorUserId)
+            .build());
+    }
+
     private void validateActiveUser(Long currentUserId) {
         if (!userRepository.existsByIdAndDeletedAtIsNull(currentUserId)) {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
@@ -433,6 +555,12 @@ public class NotificationService {
 
     private void validateRequiredText(String text) {
         if (text == null || text.isBlank()) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+    }
+
+    private void validatePositiveCount(int count) {
+        if (count <= 0) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
     }
@@ -571,6 +699,22 @@ public class NotificationService {
         return inviterName + "님이 [" + projectTitle + "] 프로젝트에 초대했어요";
     }
 
+    private String createProjectJoinedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "합류");
+    }
+
+    private String createProjectJoinedContent(String joinerName) {
+        return joinerName + "님이 프로젝트에 합류했어요";
+    }
+
+    private String createScheduleCreatedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새 일정");
+    }
+
+    private String createScheduleCreatedContent(String scheduleTitle, String creatorName) {
+        return creatorName + "님이 [" + scheduleTitle + "] 일정을 등록했어요";
+    }
+
     private String createVideoFeedbackCommentedTitle(String projectTitle) {
         return joinTitle(projectTitle, "새로운 피드백");
     }
@@ -601,6 +745,26 @@ public class NotificationService {
         }
 
         return "[" + recruitmentTitle + "]에 새로운 지원자 " + groupCount + "명이 지원했어요";
+    }
+
+    private String createNoticeCreatedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새 공지");
+    }
+
+    private String createNoticeCreatedContent(String noticeTitle, String creatorName) {
+        return creatorName + "님이 새 공지를 등록했어요: " + noticeTitle;
+    }
+
+    private String createFileUploadedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새 파일");
+    }
+
+    private String createFileUploadedContent(String fileName, int fileCount, String uploaderName) {
+        if (fileCount == 1) {
+            return uploaderName + "님이 [" + fileName + "] 파일을 등록했어요";
+        }
+
+        return uploaderName + "님이 파일 " + fileCount + "개를 등록했어요";
     }
 
     private String createFallbackTitle(NotificationType type) {
