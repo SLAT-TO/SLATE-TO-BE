@@ -171,7 +171,11 @@ class RecentActivityServiceIntegrationTest {
 
         assertThatThrownBy(() -> recentActivityService.markActivityAsRead(
             fixture.project().getId(), otherProjectActivity.getId(), fixture.user().getId()
-        )).isInstanceOf(BaseException.class);
+        ))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(CommonErrorCode.NOT_FOUND);
+        assertThat(projectActivityReadRepository.findAll()).isEmpty();
     }
 
     @Test

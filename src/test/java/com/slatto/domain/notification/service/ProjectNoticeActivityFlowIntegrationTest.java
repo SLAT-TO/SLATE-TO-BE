@@ -28,6 +28,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -101,7 +102,7 @@ class ProjectNoticeActivityFlowIntegrationTest {
         try {
             // 실제 Controller의 JSON 역직렬화와 같은 방식으로 protected DTO 생성 경로를 통과한다.
             return objectMapper.readValue(
-                "{\"title\":\"" + title + "\",\"content\":\"" + content + "\"}",
+                objectMapper.writeValueAsString(Map.of("title", title, "content", content)),
                 ProjectNoticeCreateRequest.class
             );
         } catch (Exception exception) {

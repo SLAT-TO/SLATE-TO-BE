@@ -166,6 +166,7 @@ class RecentActivityControllerIntegrationTest {
             .andExpect(jsonPath("$.result.items[?(@.activityId == " + second.getId() + ")].isNew").value(true));
 
         assertThat(projectActivityReadRepository.findAll())
+            .hasSize(2)
             .extracting(ProjectActivityRead::getProjectMember)
             .allMatch(member -> member.getUser().getId().equals(fixture.chaTaehoon().getId()));
     }
