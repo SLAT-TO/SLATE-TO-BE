@@ -607,6 +607,7 @@ public class NotificationService {
         return switch (type) {
             case SCHEDULE_ASSIGNED -> "일정 담당자 지정";
             case PROJECT_INVITED -> "프로젝트 초대";
+            case PROJECT_JOINED -> "합류";
             case VIDEO_FEEDBACK_COMMENTED -> "새로운 피드백";
             case RECRUITMENT_APPLIED -> "새로운 지원자";
             case SCHEDULE_CREATED -> "새 일정";
