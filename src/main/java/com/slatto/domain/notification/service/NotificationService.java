@@ -392,6 +392,26 @@ public class NotificationService {
     }
 
     /**
+     * 공고 프로젝트명을 알 수 없는 기존 호출부에서 사용하는 지원자 알림 생성 메서드다.
+     * 프로젝트명을 전달할 수 있는 경우에는 5개 인자 메서드를 사용한다.
+     */
+    @Transactional
+    public void createRecruitmentAppliedNotification(
+        Long recipientId,
+        Long recruitmentId,
+        String recruitmentTitle,
+        String applicantName
+    ) {
+        createRecruitmentAppliedNotification(
+            recipientId,
+            recruitmentId,
+            recruitmentTitle,
+            recruitmentTitle,
+            applicantName
+        );
+    }
+
+    /**
      * 프로젝트 공지가 등록되었을 때 프로젝트 참여자에게 알림을 생성한다.
      */
     @Transactional
