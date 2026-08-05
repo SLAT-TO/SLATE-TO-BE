@@ -32,5 +32,5 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
 
     Optional<ActivityLog> findByIdAndProjectId(Long activityId, Long projectId);
 
-    Optional<ActivityLog> findFirstByProjectIdOrderByCreatedAtDescIdDesc(Long projectId);
+    List<ActivityLog> findAllByProjectId(Long projectId);
 }

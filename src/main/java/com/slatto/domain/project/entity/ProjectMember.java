@@ -38,9 +38,6 @@ public class ProjectMember {
     @Column(name = "left_at", nullable = true)
     private LocalDateTime leftAt;
 
-    @Column(name = "last_activity_read_at", nullable = true)
-    private LocalDateTime lastActivityReadAt;
-
     private ProjectMember(Project project, Users user, Permission permission) {
         this.project = project;
         this.user = user;
@@ -68,13 +65,4 @@ public class ProjectMember {
         this.leftAt = LocalDateTime.now();
     }
 
-    public void markActivitiesReadAt(LocalDateTime readAt) {
-        if (readAt == null) {
-            return;
-        }
-
-        if (lastActivityReadAt == null || readAt.isAfter(lastActivityReadAt)) {
-            this.lastActivityReadAt = readAt;
-        }
-    }
 }

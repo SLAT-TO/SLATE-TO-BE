@@ -3,7 +3,9 @@ package com.slatto.domain.notification.service;
 import com.slatto.domain.notification.dto.ActivityLogCursor;
 import com.slatto.domain.notification.dto.ActivityLogListResponse;
 import com.slatto.domain.notification.entity.ActivityLog;
+import com.slatto.domain.notification.entity.ProjectActivityRead;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
+import com.slatto.domain.notification.repository.ProjectActivityReadRepository;
 import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.service.ProjectAccessValidator;
 import com.slatto.global.exception.BaseException;
@@ -14,7 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +29,7 @@ public class RecentActivityService {
     private static final int MAX_PAGE_SIZE = 50;
 
     private final ActivityLogRepository activityLogRepository;
+    private final ProjectActivityReadRepository projectActivityReadRepository;
     private final ProjectAccessValidator projectAccessValidator;
 
     public ActivityLogListResponse getRecentActivities(
@@ -50,9 +55,9 @@ public class RecentActivityService {
             .limit(pageSize)
             .toList();
 
-        LocalDateTime lastActivityReadAt = currentMember.getLastActivityReadAt();
+        Set<Long> readActivityLogIds = findReadActivityLogIds(currentMember.getId(), currentPageActivities);
         List<ActivityLogListResponse.ActivityLogItem> items = currentPageActivities.stream()
-            .map(activityLog -> toItem(activityLog, lastActivityReadAt))
+            .map(activityLog -> toItem(activityLog, readActivityLogIds))
             .toList();
 
         String nextCursor = hasNext && !currentPageActivities.isEmpty()
@@ -76,7 +81,12 @@ public class RecentActivityService {
         ActivityLog activityLog = activityLogRepository.findByIdAndProjectId(activityId, projectId)
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        currentMember.markActivitiesReadAt(activityLog.getCreatedAt());
+        if (!projectActivityReadRepository.existsByProjectMemberIdAndActivityLogId(
+            currentMember.getId(),
+            activityLog.getId()
+        )) {
+            projectActivityReadRepository.save(ProjectActivityRead.create(currentMember, activityLog));
+        }
     }
 
     @Transactional
@@ -84,13 +94,20 @@ public class RecentActivityService {
         projectAccessValidator.getProjectOrThrow(projectId);
         ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
 
-        activityLogRepository.findFirstByProjectIdOrderByCreatedAtDescIdDesc(projectId)
-            .ifPresent(activityLog -> currentMember.markActivitiesReadAt(activityLog.getCreatedAt()));
+        List<ActivityLog> activityLogs = activityLogRepository.findAllByProjectId(projectId);
+        Set<Long> readActivityLogIds = findReadActivityLogIds(currentMember.getId(), activityLogs);
+
+        List<ProjectActivityRead> unreadActivityReads = activityLogs.stream()
+            .filter(activityLog -> !readActivityLogIds.contains(activityLog.getId()))
+            .map(activityLog -> ProjectActivityRead.create(currentMember, activityLog))
+            .toList();
+
+        projectActivityReadRepository.saveAll(unreadActivityReads);
     }
 
     private ActivityLogListResponse.ActivityLogItem toItem(
         ActivityLog activityLog,
-        LocalDateTime lastActivityReadAt
+        Set<Long> readActivityLogIds
     ) {
         return ActivityLogListResponse.ActivityLogItem.builder()
             .activityId(activityLog.getId())
@@ -99,8 +116,19 @@ public class RecentActivityService {
             .targetType(activityLog.getTargetType())
             .targetId(activityLog.getTargetId())
             .createdAt(activityLog.getCreatedAt())
-            .isNew(lastActivityReadAt == null || activityLog.getCreatedAt().isAfter(lastActivityReadAt))
+            .isNew(!readActivityLogIds.contains(activityLog.getId()))
             .build();
+    }
+
+    private Set<Long> findReadActivityLogIds(Long projectMemberId, Collection<ActivityLog> activityLogs) {
+        if (activityLogs.isEmpty()) {
+            return Set.of();
+        }
+
+        return projectActivityReadRepository.findReadActivityLogIds(
+            projectMemberId,
+            activityLogs.stream().map(ActivityLog::getId).toList()
+        );
     }
 
     private ActivityLogCursor parseCursor(String cursor) {
