@@ -390,7 +390,7 @@ public class NotificationService {
      * 새로운 지원자 발생 알림을 생성하거나 기존 미읽음 알림을 갱신한다.
      * 동일 공고 기준으로 그룹핑하므로 targetId는 recruitmentId를 사용한다.
      *
-     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 recruitmentTitle과 applicantName을 받는 메서드를 사용한다.
+     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 projectTitle, recruitmentTitle, applicantName을 받는 메서드를 사용한다.
      */
     @Deprecated
     @Transactional
@@ -419,18 +419,20 @@ public class NotificationService {
     public void createRecruitmentAppliedNotification(
         Long recipientId,
         Long recruitmentId,
+        String projectTitle,
         String recruitmentTitle,
         String applicantName
     ) {
         validateRequiredId(recipientId);
         validateRequiredId(recruitmentId);
+        validateRequiredText(projectTitle);
         validateRequiredText(recruitmentTitle);
         validateRequiredText(applicantName);
 
         NotificationCreateCommand command = NotificationCreateCommand.builder()
             .recipientIds(List.of(recipientId))
             .type(NotificationType.RECRUITMENT_APPLIED)
-            .title(createRecruitmentAppliedTitle(recruitmentTitle))
+            .title(createRecruitmentAppliedTitle(projectTitle))
             .content(createRecruitmentAppliedContent(recruitmentTitle, applicantName, 1))
             .targetType(NotificationTargetType.RECRUITMENT)
             .targetId(recruitmentId)
@@ -744,8 +746,8 @@ public class NotificationService {
         return "[" + videoTitle + "]에 새로운 피드백 " + groupCount + "건이 등록되었어요";
     }
 
-    private String createRecruitmentAppliedTitle(String recruitmentTitle) {
-        return joinTitle(recruitmentTitle, "새로운 지원자");
+    private String createRecruitmentAppliedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새로운 지원자");
     }
 
     private String createRecruitmentAppliedContent(
