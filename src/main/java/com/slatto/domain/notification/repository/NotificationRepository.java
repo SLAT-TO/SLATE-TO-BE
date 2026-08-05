@@ -125,7 +125,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     );
 
     @Query("""
-        select coalesce(max(n.groupCount), 0)
+        select n.targetId, coalesce(max(n.groupCount), 0)
         from Notification n
         where n.user.id = :userId
             and n.type = :type
