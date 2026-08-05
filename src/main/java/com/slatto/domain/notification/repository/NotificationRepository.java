@@ -124,22 +124,22 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         Pageable pageable
     );
 
-    // 미읽음 그룹 알림이 없으면 누적 개수는 0이다.
     @Query("""
         select coalesce(max(n.groupCount), 0)
         from Notification n
         where n.user.id = :userId
             and n.type = :type
             and n.targetType = :targetType
-            and n.targetId = :targetId
+            and n.targetId in :targetIds
             and n.isRead = false
             and n.deletedAt is null
+        group by n.targetId
         """)
-    int findUnreadGroupedNotificationCount(
+    List<Object[]> findUnreadGroupedNotificationCounts(
         @Param("userId") Long userId,
         @Param("type") NotificationType type,
         @Param("targetType") String targetType,
-        @Param("targetId") Long targetId
+        @Param("targetIds") List<Long> targetIds
     );
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

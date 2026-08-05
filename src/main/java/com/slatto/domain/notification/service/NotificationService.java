@@ -20,8 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.function.IntFunction;
 
 @Service
@@ -101,18 +103,24 @@ public class NotificationService {
     }
 
     /**
-     * 영상 카드의 미읽은 피드백 개수에 사용할 그룹 알림 누적 개수를 조회한다.
+     * 영상 목록의 미읽은 피드백 누적 개수를 한 번에 조회한다.
      */
-    public int getUnreadVideoFeedbackCount(Long currentUserId, Long videoId) {
+    public Map<Long, Integer> getUnreadVideoFeedbackCounts(Long currentUserId, List<Long> videoIds) {
         validateActiveUser(currentUserId);
-        validateRequiredId(videoId);
+        if (videoIds.isEmpty()) {
+            return Map.of();
+        }
 
-        return notificationRepository.findUnreadGroupedNotificationCount(
-            currentUserId,
-            NotificationType.VIDEO_FEEDBACK_COMMENTED,
-            NotificationTargetType.VIDEO.name(),
-            videoId
-        );
+        return notificationRepository.findUnreadGroupedNotificationCounts(
+                currentUserId,
+                NotificationType.VIDEO_FEEDBACK_COMMENTED,
+                NotificationTargetType.VIDEO.name(),
+                videoIds
+            ).stream()
+            .collect(Collectors.toMap(
+                row -> (Long) row[0],
+                row -> ((Number) row[1]).intValue()
+            ));
     }
 
     @Transactional
