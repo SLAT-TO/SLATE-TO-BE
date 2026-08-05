@@ -1,5 +1,6 @@
 package com.slatto.domain.project.service;
 
+import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.project.dto.ProjectNoticeCreateRequest;
 import com.slatto.domain.project.dto.ProjectNoticeListResponse;
 import com.slatto.domain.project.dto.ProjectNoticeReadResponse;
@@ -35,6 +36,7 @@ public class ProjectNoticeService {
     private final ProjectNoticeRepository projectNoticeRepository;
     private final ProjectNoticeReadRepository projectNoticeReadRepository;
     private final ProjectAccessValidator projectAccessValidator;
+    private final ActivityLogService activityLogService;
 
     public ProjectNoticeListResponse getProjectNotices(
         Long projectId,
@@ -92,6 +94,7 @@ public class ProjectNoticeService {
             request.getContent()
         );
         ProjectNotice savedNotice = projectNoticeRepository.save(projectNotice);
+        activityLogService.createNoticeCreatedLog(projectId, currentUserId, savedNotice.getId());
 
         return toResponse(savedNotice, false);
     }

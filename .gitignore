@@ -39,6 +39,7 @@ out/
 ### Local Environment ###
 .env
 .env.*
+.env.docker
 !.env.example
 application-local.yml
 application-dev.yml

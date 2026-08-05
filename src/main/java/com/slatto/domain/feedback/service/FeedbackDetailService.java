@@ -7,6 +7,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListR
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
+import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyStatusReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyStatusResDTO;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +42,7 @@ public class FeedbackDetailService {
     private final FeedbackDetailConverter feedbackDetailConverter;
     private final ProjectMemberRepository projectMemberRepository;
     private final NotificationService notificationService;
+    private final ActivityLogService activityLogService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
@@ -75,10 +77,28 @@ public class FeedbackDetailService {
         // 5. 프로젝트 멤버에게 답글 알림 발송 (작성자 본인은 actorUserId로 제외)
         sendReplyNotification(feedback.getVideo(), userId);
 
+        // 6. 최근 활동 로그 기록 (회원/게스트 구분)
+        if (user != null) {
+            activityLogService.createVideoFeedbackCommentedLog(
+                    feedback.getVideo().getProject().getId(),
+                    user.getId(),
+                    feedback.getVideo().getId(),
+                    feedback.getVideo().getTitle()
+            );
+        } else {
+            activityLogService.createGuestVideoFeedbackCommentedLog(
+                    feedback.getVideo().getProject().getId(),
+                    guest,
+                    feedback.getVideo().getId(),
+                    feedback.getVideo().getTitle()
+            );
+        }
+
         return feedbackDetailConverter.toCreateResponse(saved);
     }
 
     // 답글 생성 시 프로젝트 멤버에게 알림 발송
+    // 원 피드백의 영상 기준으로 그룹핑되므로 targetId는 videoId가 사용된다.
     private void sendReplyNotification(Video video, Long actorUserId) {
         Long projectId = video.getProject().getId();
 

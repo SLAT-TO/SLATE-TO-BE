@@ -9,6 +9,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResD
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
 import com.slatto.domain.feedback.repository.FeedbackDetailRepository;
+import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,6 +48,7 @@ public class FeedbackService {
     private final ProjectMemberRepository projectMemberRepository;
     private final FeedbackDetailRepository feedbackDetailRepository;
     private final NotificationService notificationService;
+    private final ActivityLogService activityLogService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
@@ -84,6 +86,23 @@ public class FeedbackService {
 
         // 5. 프로젝트 멤버에게 피드백 알림 발송 (작성자 본인은 actorUserId로 제외)
         sendFeedbackNotification(video, userId);
+
+        // 6. 최근 활동 로그 기록 (회원/게스트 구분)
+        if (user != null) {
+            activityLogService.createVideoFeedbackCommentedLog(
+                    video.getProject().getId(),
+                    user.getId(),
+                    video.getId(),
+                    video.getTitle()
+            );
+        } else {
+            activityLogService.createGuestVideoFeedbackCommentedLog(
+                    video.getProject().getId(),
+                    guest,
+                    video.getId(),
+                    video.getTitle()
+            );
+        }
 
         return feedbackConverter.toCreateResponse(saved);
     }

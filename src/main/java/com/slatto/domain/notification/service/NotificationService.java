@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.IntFunction;
 
 @Service
 @RequiredArgsConstructor
@@ -99,6 +100,21 @@ public class NotificationService {
         notificationRepository.markAllAsReadByUserId(currentUserId, LocalDateTime.now());
     }
 
+    /**
+     * 영상 카드의 미읽은 피드백 개수에 사용할 그룹 알림 누적 개수를 조회한다.
+     */
+    public int getUnreadVideoFeedbackCount(Long currentUserId, Long videoId) {
+        validateActiveUser(currentUserId);
+        validateRequiredId(videoId);
+
+        return notificationRepository.findUnreadGroupedNotificationCount(
+            currentUserId,
+            NotificationType.VIDEO_FEEDBACK_COMMENTED,
+            NotificationTargetType.VIDEO.name(),
+            videoId
+        );
+    }
+
     @Transactional
     public void createNotification(NotificationCreateCommand command) {
         createNotifications(command);
@@ -124,6 +140,7 @@ public class NotificationService {
                 recipient,
                 project,
                 command.getType(),
+                command.getTitle(),
                 command.getContent(),
                 getTargetTypeName(command.getTargetType()),
                 command.getTargetId()
@@ -137,7 +154,7 @@ public class NotificationService {
 
     /**
      * 동일 사용자, 알림 타입, targetType, targetId 기준으로 미읽음 알림을 그룹핑한다.
-     * 기존 미읽음 알림이 있으면 content만 갱신하고, 없으면 새 알림을 생성한다.
+     * 기존 미읽음 알림이 있으면 제목, 문구, 누적 개수를 갱신하고, 없으면 새 알림을 생성한다.
      */
     @Transactional
     public void createOrUpdateGroupedNotifications(NotificationCreateCommand command) {
@@ -173,6 +190,7 @@ public class NotificationService {
                 .toList())
             .projectId(project != null ? project.getId() : null)
             .type(NotificationType.SCHEDULE_ASSIGNED)
+            .title(createScheduleAssignedTitle(project != null ? project.getTitle() : null))
             .content(createScheduleAssignedContent(scheduleTitle))
             .targetType(NotificationTargetType.SCHEDULE)
             .targetId(scheduleId)
@@ -183,7 +201,10 @@ public class NotificationService {
     /**
      * 프로젝트 초대 알림을 생성한다.
      * 클릭 대상은 프로젝트 상세 화면이다.
+     *
+     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 projectTitle을 받는 메서드를 사용한다.
      */
+    @Deprecated
     @Transactional
     public void createProjectInvitationNotification(
         Long recipientId,
@@ -197,7 +218,34 @@ public class NotificationService {
             .recipientIds(List.of(recipientId))
             .projectId(projectId)
             .type(NotificationType.PROJECT_INVITED)
+            .title(createFallbackTitle(NotificationType.PROJECT_INVITED))
             .content(content)
+            .targetType(NotificationTargetType.PROJECT)
+            .targetId(projectId)
+            .build());
+    }
+
+    /**
+     * 프로젝트 초대 알림 문구를 정책에 맞춰 생성한다.
+     */
+    @Transactional
+    public void createProjectInvitationNotification(
+        Long recipientId,
+        Long projectId,
+        String projectTitle,
+        String inviterName
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(recipientId);
+        validateRequiredText(projectTitle);
+        validateRequiredText(inviterName);
+
+        createNotification(NotificationCreateCommand.builder()
+            .recipientIds(List.of(recipientId))
+            .projectId(projectId)
+            .type(NotificationType.PROJECT_INVITED)
+            .title(createProjectInvitationTitle(projectTitle))
+            .content(createProjectInvitationContent(projectTitle, inviterName))
             .targetType(NotificationTargetType.PROJECT)
             .targetId(projectId)
             .build());
@@ -206,7 +254,10 @@ public class NotificationService {
     /**
      * 영상 피드백 댓글 알림을 생성하거나 기존 미읽음 알림을 갱신한다.
      * 동일 영상 기준으로 그룹핑하므로 targetId는 feedbackId가 아니라 videoId를 사용한다.
+     *
+     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 videoTitle과 commenterName을 받는 메서드를 사용한다.
      */
+    @Deprecated
     @Transactional
     public void createVideoFeedbackCommentedNotifications(
         Long projectId,
@@ -222,6 +273,7 @@ public class NotificationService {
             .recipientIds(recipientIds)
             .projectId(projectId)
             .type(NotificationType.VIDEO_FEEDBACK_COMMENTED)
+            .title(createFallbackTitle(NotificationType.VIDEO_FEEDBACK_COMMENTED))
             .content(content)
             .targetType(NotificationTargetType.VIDEO)
             .targetId(videoId)
@@ -230,9 +282,47 @@ public class NotificationService {
     }
 
     /**
+     * 영상 피드백 알림 문구를 정책에 맞춰 생성하고, 동일 영상 기준으로 그룹핑한다.
+     */
+    @Transactional
+    public void createVideoFeedbackCommentedNotifications(
+        Long projectId,
+        Long videoId,
+        String videoTitle,
+        String commenterName,
+        List<Long> recipientIds,
+        Long actorUserId
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(videoId);
+        validateRequiredText(videoTitle);
+        validateRequiredText(commenterName);
+        Project project = getProjectOrNull(projectId);
+
+        NotificationCreateCommand command = NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.VIDEO_FEEDBACK_COMMENTED)
+            .title(createVideoFeedbackCommentedTitle(getProjectTitle(project)))
+            .content(createVideoFeedbackCommentedContent(videoTitle, commenterName, 1))
+            .targetType(NotificationTargetType.VIDEO)
+            .targetId(videoId)
+            .excludeUserId(actorUserId)
+            .build();
+
+        createOrUpdateGroupedNotifications(
+            command,
+            groupCount -> createVideoFeedbackCommentedContent(videoTitle, commenterName, groupCount)
+        );
+    }
+
+    /**
      * 새로운 지원자 발생 알림을 생성하거나 기존 미읽음 알림을 갱신한다.
      * 동일 공고 기준으로 그룹핑하므로 targetId는 recruitmentId를 사용한다.
+     *
+     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 recruitmentTitle과 applicantName을 받는 메서드를 사용한다.
      */
+    @Deprecated
     @Transactional
     public void createRecruitmentAppliedNotification(
         Long recipientId,
@@ -245,10 +335,41 @@ public class NotificationService {
         createOrUpdateGroupedNotifications(NotificationCreateCommand.builder()
             .recipientIds(List.of(recipientId))
             .type(NotificationType.RECRUITMENT_APPLIED)
+            .title(createFallbackTitle(NotificationType.RECRUITMENT_APPLIED))
             .content(content)
             .targetType(NotificationTargetType.RECRUITMENT)
             .targetId(recruitmentId)
             .build());
+    }
+
+    /**
+     * 지원자 알림 문구를 정책에 맞춰 생성하고, 동일 공고 기준으로 그룹핑한다.
+     */
+    @Transactional
+    public void createRecruitmentAppliedNotification(
+        Long recipientId,
+        Long recruitmentId,
+        String recruitmentTitle,
+        String applicantName
+    ) {
+        validateRequiredId(recipientId);
+        validateRequiredId(recruitmentId);
+        validateRequiredText(recruitmentTitle);
+        validateRequiredText(applicantName);
+
+        NotificationCreateCommand command = NotificationCreateCommand.builder()
+            .recipientIds(List.of(recipientId))
+            .type(NotificationType.RECRUITMENT_APPLIED)
+            .title(createRecruitmentAppliedTitle(recruitmentTitle))
+            .content(createRecruitmentAppliedContent(recruitmentTitle, applicantName, 1))
+            .targetType(NotificationTargetType.RECRUITMENT)
+            .targetId(recruitmentId)
+            .build();
+
+        createOrUpdateGroupedNotifications(
+            command,
+            groupCount -> createRecruitmentAppliedContent(recruitmentTitle, applicantName, groupCount)
+        );
     }
 
     private void validateActiveUser(Long currentUserId) {
@@ -310,10 +431,30 @@ public class NotificationService {
         }
     }
 
+    private void validateRequiredText(String text) {
+        if (text == null || text.isBlank()) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+    }
+
     private void createOrUpdateGroupedNotification(
         Users recipient,
         Project project,
         NotificationCreateCommand command
+    ) {
+        createOrUpdateGroupedNotification(
+            recipient,
+            project,
+            command,
+            groupCount -> command.getContent()
+        );
+    }
+
+    private void createOrUpdateGroupedNotification(
+        Users recipient,
+        Project project,
+        NotificationCreateCommand command,
+        IntFunction<String> contentFactory
     ) {
         String targetType = getTargetTypeName(command.getTargetType());
         Object groupingLock = getGroupingLock(
@@ -324,28 +465,50 @@ public class NotificationService {
         );
 
         synchronized (groupingLock) {
-            // 먼저 기존 미읽음 그룹 알림 갱신을 시도하고, 없을 때만 새 알림을 생성한다.
-            int updatedCount = notificationRepository.updateUnreadGroupedNotificationContent(
+            List<Notification> existingNotifications = notificationRepository.findUnreadGroupedNotificationsForUpdate(
                 recipient.getId(),
                 command.getType(),
                 targetType,
                 command.getTargetId(),
-                command.getContent(),
-                LocalDateTime.now()
+                PageRequest.of(0, 1)
             );
-            if (updatedCount > 0) {
+
+            if (!existingNotifications.isEmpty()) {
+                Notification existingNotification = existingNotifications.get(0);
+                String content = contentFactory.apply(existingNotification.getGroupCount() + 1);
+                existingNotification.updateGroupedNotification(command.getTitle(), content);
                 return;
             }
 
+            String content = contentFactory.apply(1);
             notificationRepository.save(Notification.create(
                 recipient,
                 project,
                 command.getType(),
-                command.getContent(),
+                command.getTitle(),
+                content,
                 targetType,
                 command.getTargetId()
             ));
         }
+    }
+
+    private void createOrUpdateGroupedNotifications(
+        NotificationCreateCommand command,
+        IntFunction<String> contentFactory
+    ) {
+        validateCreateCommand(command);
+        validateGroupingCommand(command);
+
+        Project project = getProjectOrNull(command.getProjectId());
+        List<Long> recipientIds = getRecipientIds(command);
+        if (recipientIds.isEmpty()) {
+            return;
+        }
+
+        recipientIds.stream()
+            .map(this::getActiveUser)
+            .forEach(recipient -> createOrUpdateGroupedNotification(recipient, project, command, contentFactory));
     }
 
     private List<Long> getRecipientIds(NotificationCreateCommand command) {
@@ -381,7 +544,9 @@ public class NotificationService {
             .notificationId(notification.getId())
             .projectId(projectId)
             .type(notification.getType())
+            .title(notification.getTitle())
             .content(notification.getContent())
+            .groupCount(notification.getGroupCount())
             .targetType(notification.getTargetType())
             .targetId(notification.getTargetId())
             .isRead(notification.getIsRead())
@@ -392,6 +557,75 @@ public class NotificationService {
 
     private String createScheduleAssignedContent(String scheduleTitle) {
         return "'" + scheduleTitle + "' 일정 담당자로 지정되었습니다.";
+    }
+
+    private String createScheduleAssignedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "일정 담당자 지정");
+    }
+
+    private String createProjectInvitationTitle(String projectTitle) {
+        return joinTitle(projectTitle, "프로젝트 초대");
+    }
+
+    private String createProjectInvitationContent(String projectTitle, String inviterName) {
+        return inviterName + "님이 [" + projectTitle + "] 프로젝트에 초대했어요";
+    }
+
+    private String createVideoFeedbackCommentedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새로운 피드백");
+    }
+
+    private String createVideoFeedbackCommentedContent(
+        String videoTitle,
+        String commenterName,
+        int groupCount
+    ) {
+        if (groupCount <= 1) {
+            return commenterName + "님이 [" + videoTitle + "]에 새로운 피드백을 남겼어요";
+        }
+
+        return "[" + videoTitle + "]에 새로운 피드백 " + groupCount + "건이 등록되었어요";
+    }
+
+    private String createRecruitmentAppliedTitle(String recruitmentTitle) {
+        return joinTitle(recruitmentTitle, "새로운 지원자");
+    }
+
+    private String createRecruitmentAppliedContent(
+        String recruitmentTitle,
+        String applicantName,
+        int groupCount
+    ) {
+        if (groupCount <= 1) {
+            return applicantName + "님이 [" + recruitmentTitle + "]에 지원했어요";
+        }
+
+        return "[" + recruitmentTitle + "]에 새로운 지원자 " + groupCount + "명이 지원했어요";
+    }
+
+    private String createFallbackTitle(NotificationType type) {
+        return switch (type) {
+            case SCHEDULE_ASSIGNED -> "일정 담당자 지정";
+            case PROJECT_INVITED -> "프로젝트 초대";
+            case VIDEO_FEEDBACK_COMMENTED -> "새로운 피드백";
+            case RECRUITMENT_APPLIED -> "새로운 지원자";
+            case SCHEDULE_CREATED -> "새 일정";
+            case NOTICE_CREATED -> "새 공지";
+            case FILE_UPLOADED -> "새 파일";
+            case DEADLINE_REMINDER -> "마감 알림";
+        };
+    }
+
+    private String joinTitle(String prefix, String suffix) {
+        if (prefix == null || prefix.isBlank()) {
+            return suffix;
+        }
+
+        return prefix + " · " + suffix;
+    }
+
+    private String getProjectTitle(Project project) {
+        return project != null ? project.getTitle() : null;
     }
 
     private String getTargetTypeName(NotificationTargetType targetType) {
