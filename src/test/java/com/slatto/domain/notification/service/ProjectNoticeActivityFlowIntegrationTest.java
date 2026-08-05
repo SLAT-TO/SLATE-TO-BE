@@ -6,6 +6,7 @@ import com.slatto.domain.notification.entity.ActivityLog;
 import com.slatto.domain.notification.enums.ActivityLogTargetType;
 import com.slatto.domain.notification.enums.ActivityLogType;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
+import com.slatto.domain.notification.repository.ProjectActivityReadCommandRepository;
 import com.slatto.domain.notification.repository.ProjectActivityReadRepository;
 import com.slatto.domain.project.dto.ProjectNoticeCreateRequest;
 import com.slatto.domain.project.entity.Project;
@@ -38,7 +39,8 @@ import static org.assertj.core.api.Assertions.assertThat;
     ProjectAccessValidator.class,
     ActivityLogService.class,
     ActivityMessageFactory.class,
-    RecentActivityService.class
+    RecentActivityService.class,
+    ProjectActivityReadCommandRepository.class
 })
 class ProjectNoticeActivityFlowIntegrationTest {
 
