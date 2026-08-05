@@ -3,7 +3,6 @@ package com.slatto.domain.notification.service;
 import com.slatto.domain.notification.dto.ActivityLogCursor;
 import com.slatto.domain.notification.dto.ActivityLogListResponse;
 import com.slatto.domain.notification.entity.ActivityLog;
-import com.slatto.domain.notification.entity.ProjectActivityRead;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
 import com.slatto.domain.notification.repository.ProjectActivityReadRepository;
 import com.slatto.domain.project.entity.ProjectMember;
@@ -81,12 +80,10 @@ public class RecentActivityService {
         ActivityLog activityLog = activityLogRepository.findByIdAndProjectId(activityId, projectId)
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        if (!projectActivityReadRepository.existsByProjectMemberIdAndActivityLogId(
+        projectActivityReadRepository.insertIfAbsent(
             currentMember.getId(),
             activityLog.getId()
-        )) {
-            projectActivityReadRepository.save(ProjectActivityRead.create(currentMember, activityLog));
-        }
+        );
     }
 
     @Transactional

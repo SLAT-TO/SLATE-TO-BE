@@ -11,7 +11,23 @@ import java.util.Set;
 
 public interface ProjectActivityReadRepository extends JpaRepository<ProjectActivityRead, Long> {
 
-    boolean existsByProjectMemberIdAndActivityLogId(Long projectMemberId, Long activityLogId);
+    @Modifying
+    @Query(value = """
+        INSERT IGNORE INTO project_activity_read (
+            project_member_id,
+            activity_log_id,
+            read_at
+        )
+        VALUES (
+            :projectMemberId,
+            :activityLogId,
+            CURRENT_TIMESTAMP
+        )
+        """, nativeQuery = true)
+    int insertIfAbsent(
+        @Param("projectMemberId") Long projectMemberId,
+        @Param("activityLogId") Long activityLogId
+    );
 
     @Modifying
     @Query(value = """
