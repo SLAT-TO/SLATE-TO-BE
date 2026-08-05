@@ -477,32 +477,27 @@ public class NotificationService {
 
     /**
      * 프로젝트 파일 등록 알림을 생성한다.
-     * 여러 파일을 한 번에 업로드한 경우 fileCount 기준으로 문구를 만든다.
      */
     @Transactional
     public void createFileUploadedNotifications(
         Long projectId,
         String projectTitle,
         String fileName,
-        int fileCount,
         String uploaderName,
         List<Long> recipientIds,
         Long actorUserId
     ) {
         validateRequiredId(projectId);
         validateRequiredText(projectTitle);
+        validateRequiredText(fileName);
         validateRequiredText(uploaderName);
-        validatePositiveCount(fileCount);
-        if (fileCount == 1) {
-            validateRequiredText(fileName);
-        }
 
         createNotifications(NotificationCreateCommand.builder()
             .recipientIds(recipientIds)
             .projectId(projectId)
             .type(NotificationType.FILE_UPLOADED)
             .title(createFileUploadedTitle(projectTitle))
-            .content(createFileUploadedContent(fileName, fileCount, uploaderName))
+            .content(createFileUploadedContent(fileName, uploaderName))
             .targetType(NotificationTargetType.PROJECT_FILE)
             .targetId(projectId)
             .excludeUserId(actorUserId)
@@ -570,12 +565,6 @@ public class NotificationService {
 
     private void validateRequiredText(String text) {
         if (text == null || text.isBlank()) {
-            throw new BaseException(CommonErrorCode.BAD_REQUEST);
-        }
-    }
-
-    private void validatePositiveCount(int count) {
-        if (count <= 0) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
     }
@@ -774,12 +763,8 @@ public class NotificationService {
         return joinTitle(projectTitle, "새 파일");
     }
 
-    private String createFileUploadedContent(String fileName, int fileCount, String uploaderName) {
-        if (fileCount == 1) {
-            return uploaderName + "님이 [" + fileName + "] 파일을 등록했어요";
-        }
-
-        return uploaderName + "님이 파일 " + fileCount + "개를 등록했어요";
+    private String createFileUploadedContent(String fileName, String uploaderName) {
+        return uploaderName + "님이 [" + fileName + "] 파일을 등록했어요";
     }
 
     private String createFallbackTitle(NotificationType type) {
