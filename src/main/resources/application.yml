@@ -23,6 +23,13 @@ spring:
       hibernate:
         format_sql: true
 
+  flyway:
+    # 기존 운영/개발 DB는 수동 반영된 V8 스키마를 기준점으로 등록한 뒤 이후 변경만 적용한다.
+    baseline-on-migrate: true
+    baseline-version: 8
+    baseline-description: legacy-schema
+    validate-on-migrate: true
+
 server:
   forward-headers-strategy: framework
 
