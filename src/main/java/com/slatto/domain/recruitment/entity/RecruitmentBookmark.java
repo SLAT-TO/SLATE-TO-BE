@@ -31,4 +31,13 @@ public class RecruitmentBookmark extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recruitment_id", nullable = false)
     private Recruitment recruitment;
+
+    private RecruitmentBookmark(Users user, Recruitment recruitment) {
+        this.user = user;
+        this.recruitment = recruitment;
+    }
+
+    public static RecruitmentBookmark create(Users user, Recruitment recruitment) {
+        return new RecruitmentBookmark(user, recruitment);
+    }
 }
