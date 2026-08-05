@@ -289,7 +289,6 @@ public class NotificationService {
     ) {
         validateRequiredId(projectId);
         validateRequiredId(videoId);
-        validateRequiredId(actorUserId);
 
         createOrUpdateGroupedNotifications(NotificationCreateCommand.builder()
             .recipientIds(recipientIds)
@@ -317,7 +316,6 @@ public class NotificationService {
     ) {
         validateRequiredId(projectId);
         validateRequiredId(videoId);
-        validateRequiredId(actorUserId);
         validateRequiredText(videoTitle);
         validateRequiredText(commenterName);
         Project project = getProjectOrNull(projectId);
