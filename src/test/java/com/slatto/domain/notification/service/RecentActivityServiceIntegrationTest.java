@@ -7,6 +7,7 @@ import com.slatto.domain.notification.enums.ActivityLogTargetType;
 import com.slatto.domain.notification.enums.ActivityLogType;
 import com.slatto.domain.notification.model.ActivityActor;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
+import com.slatto.domain.notification.repository.ProjectActivityReadCommandRepository;
 import com.slatto.domain.notification.repository.ProjectActivityReadRepository;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
@@ -37,7 +38,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
-@Import({RecentActivityService.class, ProjectAccessValidator.class})
+@Import({
+    RecentActivityService.class,
+    ProjectAccessValidator.class,
+    ProjectActivityReadCommandRepository.class
+})
 class RecentActivityServiceIntegrationTest {
 
     @Autowired

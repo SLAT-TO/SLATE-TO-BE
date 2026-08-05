@@ -4,6 +4,7 @@ import com.slatto.domain.notification.dto.ActivityLogCursor;
 import com.slatto.domain.notification.dto.ActivityLogListResponse;
 import com.slatto.domain.notification.entity.ActivityLog;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
+import com.slatto.domain.notification.repository.ProjectActivityReadCommandRepository;
 import com.slatto.domain.notification.repository.ProjectActivityReadRepository;
 import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.service.ProjectAccessValidator;
@@ -29,6 +30,7 @@ public class RecentActivityService {
 
     private final ActivityLogRepository activityLogRepository;
     private final ProjectActivityReadRepository projectActivityReadRepository;
+    private final ProjectActivityReadCommandRepository projectActivityReadCommandRepository;
     private final ProjectAccessValidator projectAccessValidator;
 
     public ActivityLogListResponse getRecentActivities(
@@ -80,7 +82,7 @@ public class RecentActivityService {
         ActivityLog activityLog = activityLogRepository.findByIdAndProjectId(activityId, projectId)
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        projectActivityReadRepository.insertIfAbsent(
+        projectActivityReadCommandRepository.insertIfAbsent(
             currentMember.getId(),
             activityLog.getId()
         );
@@ -91,7 +93,7 @@ public class RecentActivityService {
         projectAccessValidator.getProjectOrThrow(projectId);
         ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
 
-        projectActivityReadRepository.insertAllIfAbsentByProjectId(currentMember.getId(), projectId);
+        projectActivityReadCommandRepository.insertAllIfAbsentByProjectId(currentMember.getId(), projectId);
     }
 
     private ActivityLogListResponse.ActivityLogItem toItem(
