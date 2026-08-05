@@ -14,6 +14,8 @@ import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.Kind;
 import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.UserRepository;
+import com.slatto.global.exception.BaseException;
+import com.slatto.global.response.code.CommonErrorCode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -23,6 +25,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -100,6 +103,35 @@ class ActivityLogServiceIntegrationTest {
         assertThat(activityLogs)
             .extracting(ActivityLog::getContent)
             .contains("그린님이 프로젝트 정보를 수정했어요", "그린님이 프로젝트 단계를 '준비중'에서 '편집중'으로 변경했어요");
+    }
+
+    @Test
+    void 필수_파일명이_비어있으면_활동을_저장하지_않는다() {
+        // 업로드 처리 중 파일명이 비정상이라면 BAD_REQUEST로 중단하고, 화면에 보일 잘못된 활동 로그도 남기면 안 된다.
+        Users chaTaehoon = saveUser("chataehun@example.com", "차태훈");
+        Project project = saveProject(chaTaehoon);
+
+        assertThatThrownBy(() -> activityLogService.createFileUploadedLog(
+            project.getId(), chaTaehoon.getId(), 101L, "  "
+        ))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(CommonErrorCode.BAD_REQUEST);
+
+        assertThat(activityLogRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void 존재하지_않는_프로젝트에는_활동을_저장하지_않는다() {
+        // 이미 삭제됐거나 잘못된 프로젝트 ID에 대한 이벤트는 NOT_FOUND로 차단하고 다른 프로젝트 로그를 만들면 안 된다.
+        Users green = saveUser("green@example.com", "그린");
+
+        assertThatThrownBy(() -> activityLogService.createProjectUpdatedLog(999_999L, green.getId()))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(CommonErrorCode.NOT_FOUND);
+
+        assertThat(activityLogRepository.findAll()).isEmpty();
     }
 
     private Users saveUser(String email, String nickname) {
