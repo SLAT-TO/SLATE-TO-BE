@@ -2,10 +2,12 @@ package com.slatto.domain.notification.service;
 
 import com.slatto.domain.notification.dto.ActivityLogListResponse;
 import com.slatto.domain.notification.entity.ActivityLog;
+import com.slatto.domain.notification.entity.ProjectActivityRead;
 import com.slatto.domain.notification.enums.ActivityLogTargetType;
 import com.slatto.domain.notification.enums.ActivityLogType;
 import com.slatto.domain.notification.model.ActivityActor;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
+import com.slatto.domain.notification.repository.ProjectActivityReadRepository;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.enums.LengthType;
@@ -41,6 +43,9 @@ class RecentActivityServiceIntegrationTest {
 
     @Autowired
     private ActivityLogRepository activityLogRepository;
+
+    @Autowired
+    private ProjectActivityReadRepository projectActivityReadRepository;
 
     @Autowired
     private ProjectRepository projectRepository;
@@ -81,8 +86,8 @@ class RecentActivityServiceIntegrationTest {
     }
 
     @Test
-    void 개별_확인_후에는_선택_활동과_이전_활동만_읽음으로_반환한다() {
-        // 최근활동 하나를 눌렀을 때 선택 시각 이후의 새 활동 배지는 남아 있어야 한다.
+    void 개별_확인_후에는_선택한_활동만_읽음으로_반환한다() {
+        // 최근활동 하나를 눌러도 클릭하지 않은 이전·이후 활동의 새 활동 배지는 유지해야 한다.
         Fixture fixture = createFixture();
         LocalDateTime base = LocalDateTime.of(2026, 8, 4, 10, 0);
         ActivityLog oldest = saveActivity(fixture.project(), fixture.user(), "가장 이전 활동", base);
@@ -102,7 +107,46 @@ class RecentActivityServiceIntegrationTest {
 
         assertThat(findItem(items, newest.getId()).isNew()).isTrue();
         assertThat(findItem(items, selected.getId()).isNew()).isFalse();
-        assertThat(findItem(items, oldest.getId()).isNew()).isFalse();
+        assertThat(findItem(items, oldest.getId()).isNew()).isTrue();
+    }
+
+    @Test
+    void 한_멤버의_개별_확인은_다른_멤버의_새_활동_상태에_영향을_주지_않는다() {
+        // 프로젝트의 다른 멤버도 같은 활동을 보지만, 읽음 여부는 멤버별로 독립적이어야 한다.
+        Fixture fixture = createFixture();
+        Users green = userRepository.save(Users.createSocialUser(
+            "green@example.com",
+            "그린",
+            null,
+            SocialType.GOOGLE,
+            "google-green"
+        ));
+        projectMemberRepository.save(ProjectMember.createMember(fixture.project(), green));
+        ActivityLog activity = saveActivity(
+            fixture.project(),
+            fixture.user(),
+            "차태훈님이 새 공지를 등록했어요.",
+            LocalDateTime.of(2026, 8, 4, 10, 0)
+        );
+        entityManager.flush();
+
+        recentActivityService.markActivityAsRead(
+            fixture.project().getId(),
+            activity.getId(),
+            fixture.user().getId()
+        );
+        entityManager.flush();
+        entityManager.clear();
+
+        List<ActivityLogListResponse.ActivityLogItem> chaTaehoonItems = recentActivityService.getRecentActivities(
+            fixture.project().getId(), fixture.user().getId(), null, 10
+        ).items();
+        List<ActivityLogListResponse.ActivityLogItem> greenItems = recentActivityService.getRecentActivities(
+            fixture.project().getId(), green.getId(), null, 10
+        ).items();
+
+        assertThat(findItem(chaTaehoonItems, activity.getId()).isNew()).isFalse();
+        assertThat(findItem(greenItems, activity.getId()).isNew()).isTrue();
     }
 
     @Test
@@ -141,10 +185,18 @@ class RecentActivityServiceIntegrationTest {
     }
 
     @Test
-    void 빈_활동_목록의_전체_확인은_멤버_확인시각을_변경하지_않는다() {
-        // 아직 활동이 없는 프로젝트에서 전체 읽음을 눌러도 새 활동 판정의 기준을 만들지 않는다.
+    void 전체_확인은_현재_멤버의_읽지_않은_활동만_읽음으로_저장한다() {
+        // 전체 읽음은 현재 멤버에게만 적용하고, 이미 읽은 활동의 읽음 행을 중복 생성하지 않아야 한다.
         Fixture fixture = createFixture();
+        ActivityLog first = saveActivity(
+            fixture.project(), fixture.user(), "첫 번째 활동", LocalDateTime.of(2026, 8, 4, 10, 0)
+        );
+        ActivityLog second = saveActivity(
+            fixture.project(), fixture.user(), "두 번째 활동", LocalDateTime.of(2026, 8, 4, 10, 1)
+        );
+        entityManager.flush();
 
+        recentActivityService.markAllActivitiesAsRead(fixture.project().getId(), fixture.user().getId());
         recentActivityService.markAllActivitiesAsRead(fixture.project().getId(), fixture.user().getId());
         entityManager.flush();
         entityManager.clear();
@@ -152,7 +204,14 @@ class RecentActivityServiceIntegrationTest {
         ProjectMember member = projectMemberRepository.findByProjectIdAndUserIdAndLeftAtIsNull(
             fixture.project().getId(), fixture.user().getId()
         ).orElseThrow();
-        assertThat(member.getLastActivityReadAt()).isNull();
+        List<ProjectActivityRead> reads = projectActivityReadRepository.findAll();
+
+        assertThat(reads)
+            .extracting(read -> read.getProjectMember().getId(), read -> read.getActivityLog().getId())
+            .containsExactlyInAnyOrder(
+                org.assertj.core.groups.Tuple.tuple(member.getId(), first.getId()),
+                org.assertj.core.groups.Tuple.tuple(member.getId(), second.getId())
+            );
     }
 
     private Fixture createFixture() {
