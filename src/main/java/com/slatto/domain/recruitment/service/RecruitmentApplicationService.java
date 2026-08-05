@@ -24,6 +24,7 @@ import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,10 +32,10 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -78,14 +79,7 @@ public class RecruitmentApplicationService {
         Users applicant = userRepository.findByIdAndDeletedAtIsNull(currentUserId)
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        RecruitmentApplication saved = recruitmentApplicationRepository.save(
-            RecruitmentApplication.create(
-                applicant,
-                recruitment,
-                request.getMessage(),
-                request.getReferenceLink()
-            )
-        );
+        RecruitmentApplication saved = saveApplication(applicant, recruitment, request);
 
         dispatchAppliedNotification(recruitment, applicant);
 
@@ -211,6 +205,27 @@ public class RecruitmentApplicationService {
         return recruitmentConverter.toMyApplicationListResponse(items, nextCursor, hasNext);
     }
 
+    // exists 사전 체크와 INSERT 사이의 경쟁 구간은 uq_recruitment_application_active 가 막는다.
+    // 여기서 예외를 삼키지 않고 다시 던진다. 롤백이 정상 동작이므로 트랜잭션 오염 문제가 없다.
+    private RecruitmentApplication saveApplication(
+        Users applicant,
+        Recruitment recruitment,
+        RecruitmentApplicationCreateRequest request
+    ) {
+        try {
+            return recruitmentApplicationRepository.save(
+                RecruitmentApplication.create(
+                    applicant,
+                    recruitment,
+                    request.getMessage(),
+                    request.getReferenceLink()
+                )
+            );
+        } catch (DataIntegrityViolationException exception) {
+            throw new BaseException(RecruitmentErrorCode.APPLICATION_ALREADY_APPLIED);
+        }
+    }
+
     // 마감 판정은 상세 배지/목록 필터와 같은 정의를 써야 한다.
     private void validateOpen(Recruitment recruitment) {
         RecruitmentStatus status = recruitmentConverter.resolveStatus(
@@ -258,19 +273,19 @@ public class RecruitmentApplicationService {
         }
     }
 
+    // order by id asc + putIfAbsent 가 단건 조회의 "id ASC 첫 행" 규칙과 같은 값을 만든다.
+    // Collectors.toMap 은 값이 null 이면 NPE 를 던지므로 쓰지 않는다.
     private Map<Long, RoleName> getPrimaryRoleByUserId(Collection<Long> userIds) {
         if (userIds.isEmpty()) {
             return Map.of();
         }
 
-        // order by id asc + 머지 함수가 단건 조회의 "id ASC 첫 행" 규칙과 같은 값을 만든다.
-        return userRoleRepository.findRoleRowsByUserIds(userIds)
-            .stream()
-            .collect(Collectors.toMap(
-                row -> (Long) row[0],
-                row -> (RoleName) row[1],
-                (first, second) -> first
-            ));
+        Map<Long, RoleName> primaryRoleByUserId = new HashMap<>();
+        for (Object[] row : userRoleRepository.findRoleRowsByUserIds(userIds)) {
+            primaryRoleByUserId.putIfAbsent((Long) row[0], (RoleName) row[1]);
+        }
+
+        return primaryRoleByUserId;
     }
 
     private Map<Long, RegionName> getRegionByUserId(Collection<Long> userIds) {
@@ -278,13 +293,12 @@ public class RecruitmentApplicationService {
             return Map.of();
         }
 
-        return locationRepository.findUserRegionRowsByUserIds(userIds)
-            .stream()
-            .collect(Collectors.toMap(
-                row -> (Long) row[0],
-                row -> (RegionName) row[1],
-                (first, second) -> first
-            ));
+        Map<Long, RegionName> regionByUserId = new HashMap<>();
+        for (Object[] row : locationRepository.findUserRegionRowsByUserIds(userIds)) {
+            regionByUserId.putIfAbsent((Long) row[0], (RegionName) row[1]);
+        }
+
+        return regionByUserId;
     }
 
     private int normalizePageSize(int size) {
