@@ -663,7 +663,7 @@ public class NotificationService {
     }
 
     private String createScheduleAssignedContent(String scheduleTitle, String assigneeName) {
-        return assigneeName + "님이 [" + scheduleTitle + "] 담당자로 지정했어요";
+        return assigneeName + "님이 [" + scheduleTitle + "] 담당자로 지정되었어요";
     }
 
     private String createScheduleAssignedTitle(String projectTitle) {
