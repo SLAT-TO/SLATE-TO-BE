@@ -184,70 +184,91 @@ public class NotificationService {
         List<Users> recipients,
         Long writerId
     ) {
-        createNotifications(NotificationCreateCommand.builder()
-            .recipientIds(recipients.stream()
-                .map(Users::getId)
-                .toList())
-            .projectId(project != null ? project.getId() : null)
-            .type(NotificationType.SCHEDULE_ASSIGNED)
-            .title(createScheduleAssignedTitle(project != null ? project.getTitle() : null))
-            .content(createScheduleAssignedContent(scheduleTitle))
-            .targetType(NotificationTargetType.SCHEDULE)
-            .targetId(scheduleId)
-            .excludeUserId(writerId)
-            .build());
+        validateRequiredId(scheduleId);
+        validateRequiredId(writerId);
+        validateRequiredText(scheduleTitle);
+        if (recipients == null) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+
+        Project notificationProject = getProjectOrNull(project != null ? project.getId() : null);
+        String title = createScheduleAssignedTitle(project != null ? project.getTitle() : null);
+        String targetType = getTargetTypeName(NotificationTargetType.SCHEDULE);
+        Set<Long> recipientIds = new HashSet<>();
+
+        List<Notification> notifications = recipients.stream()
+            .filter(Objects::nonNull)
+            .filter(recipient -> recipientIds.add(recipient.getId()))
+            .filter(recipient -> !Objects.equals(recipient.getId(), writerId))
+            .map(recipient -> Notification.create(
+                recipient,
+                notificationProject,
+                NotificationType.SCHEDULE_ASSIGNED,
+                title,
+                createScheduleAssignedContent(scheduleTitle, recipient.getNickname()),
+                targetType,
+                scheduleId
+            ))
+            .toList();
+
+        notificationRepository.saveAll(notifications);
     }
 
     /**
-     * 프로젝트 초대 알림을 생성한다.
-     * 클릭 대상은 프로젝트 상세 화면이다.
-     *
-     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 projectTitle을 받는 메서드를 사용한다.
-     */
-    @Deprecated
-    @Transactional
-    public void createProjectInvitationNotification(
-        Long recipientId,
-        Long projectId,
-        String content
-    ) {
-        validateRequiredId(recipientId);
-        validateRequiredId(projectId);
-
-        createNotification(NotificationCreateCommand.builder()
-            .recipientIds(List.of(recipientId))
-            .projectId(projectId)
-            .type(NotificationType.PROJECT_INVITED)
-            .title(createFallbackTitle(NotificationType.PROJECT_INVITED))
-            .content(content)
-            .targetType(NotificationTargetType.PROJECT)
-            .targetId(projectId)
-            .build());
-    }
-
-    /**
-     * 프로젝트 초대 알림 문구를 정책에 맞춰 생성한다.
+     * 프로젝트 합류 알림을 프로젝트 참여자에게 생성한다.
+     * 합류자 본인도 수신 대상에 포함할 수 있다.
      */
     @Transactional
-    public void createProjectInvitationNotification(
-        Long recipientId,
+    public void createProjectJoinedNotifications(
         Long projectId,
         String projectTitle,
-        String inviterName
+        String joinerName,
+        List<Long> recipientIds
     ) {
         validateRequiredId(projectId);
-        validateRequiredId(recipientId);
         validateRequiredText(projectTitle);
-        validateRequiredText(inviterName);
+        validateRequiredText(joinerName);
 
-        createNotification(NotificationCreateCommand.builder()
-            .recipientIds(List.of(recipientId))
+        createNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
             .projectId(projectId)
-            .type(NotificationType.PROJECT_INVITED)
-            .title(createProjectInvitationTitle(projectTitle))
-            .content(createProjectInvitationContent(projectTitle, inviterName))
+            .type(NotificationType.PROJECT_JOINED)
+            .title(createProjectJoinedTitle(projectTitle))
+            .content(createProjectJoinedContent(joinerName))
             .targetType(NotificationTargetType.PROJECT)
             .targetId(projectId)
+            .build());
+    }
+
+    /**
+     * 프로젝트에 새 일정이 등록되었을 때 프로젝트 참여자에게 알림을 생성한다.
+     */
+    @Transactional
+    public void createScheduleCreatedNotifications(
+        Long projectId,
+        Long scheduleId,
+        String projectTitle,
+        String scheduleTitle,
+        String creatorName,
+        List<Long> recipientIds,
+        Long actorUserId
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(scheduleId);
+        validateRequiredId(actorUserId);
+        validateRequiredText(projectTitle);
+        validateRequiredText(scheduleTitle);
+        validateRequiredText(creatorName);
+
+        createNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.SCHEDULE_CREATED)
+            .title(createScheduleCreatedTitle(projectTitle))
+            .content(createScheduleCreatedContent(scheduleTitle, creatorName))
+            .targetType(NotificationTargetType.SCHEDULE)
+            .targetId(scheduleId)
+            .excludeUserId(actorUserId)
             .build());
     }
 
@@ -320,7 +341,7 @@ public class NotificationService {
      * 새로운 지원자 발생 알림을 생성하거나 기존 미읽음 알림을 갱신한다.
      * 동일 공고 기준으로 그룹핑하므로 targetId는 recruitmentId를 사용한다.
      *
-     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 recruitmentTitle과 applicantName을 받는 메서드를 사용한다.
+     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 projectTitle, recruitmentTitle, applicantName을 받는 메서드를 사용한다.
      */
     @Deprecated
     @Transactional
@@ -349,18 +370,20 @@ public class NotificationService {
     public void createRecruitmentAppliedNotification(
         Long recipientId,
         Long recruitmentId,
+        String projectTitle,
         String recruitmentTitle,
         String applicantName
     ) {
         validateRequiredId(recipientId);
         validateRequiredId(recruitmentId);
+        validateRequiredText(projectTitle);
         validateRequiredText(recruitmentTitle);
         validateRequiredText(applicantName);
 
         NotificationCreateCommand command = NotificationCreateCommand.builder()
             .recipientIds(List.of(recipientId))
             .type(NotificationType.RECRUITMENT_APPLIED)
-            .title(createRecruitmentAppliedTitle(recruitmentTitle))
+            .title(createRecruitmentAppliedTitle(projectTitle))
             .content(createRecruitmentAppliedContent(recruitmentTitle, applicantName, 1))
             .targetType(NotificationTargetType.RECRUITMENT)
             .targetId(recruitmentId)
@@ -370,6 +393,88 @@ public class NotificationService {
             command,
             groupCount -> createRecruitmentAppliedContent(recruitmentTitle, applicantName, groupCount)
         );
+    }
+
+    /**
+     * 공고 프로젝트명을 알 수 없는 기존 호출부에서 사용하는 지원자 알림 생성 메서드다.
+     * 프로젝트명을 전달할 수 있는 경우에는 5개 인자 메서드를 사용한다.
+     */
+    @Transactional
+    public void createRecruitmentAppliedNotification(
+        Long recipientId,
+        Long recruitmentId,
+        String recruitmentTitle,
+        String applicantName
+    ) {
+        createRecruitmentAppliedNotification(
+            recipientId,
+            recruitmentId,
+            recruitmentTitle,
+            recruitmentTitle,
+            applicantName
+        );
+    }
+
+    /**
+     * 프로젝트 공지가 등록되었을 때 프로젝트 참여자에게 알림을 생성한다.
+     */
+    @Transactional
+    public void createNoticeCreatedNotifications(
+        Long projectId,
+        Long noticeId,
+        String projectTitle,
+        String noticeTitle,
+        String creatorName,
+        List<Long> recipientIds,
+        Long actorUserId
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(noticeId);
+        validateRequiredId(actorUserId);
+        validateRequiredText(projectTitle);
+        validateRequiredText(noticeTitle);
+        validateRequiredText(creatorName);
+
+        createNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.NOTICE_CREATED)
+            .title(createNoticeCreatedTitle(projectTitle))
+            .content(createNoticeCreatedContent(noticeTitle, creatorName))
+            .targetType(NotificationTargetType.NOTICE)
+            .targetId(noticeId)
+            .excludeUserId(actorUserId)
+            .build());
+    }
+
+    /**
+     * 프로젝트 파일 등록 알림을 생성한다.
+     */
+    @Transactional
+    public void createFileUploadedNotifications(
+        Long projectId,
+        String projectTitle,
+        String fileName,
+        String uploaderName,
+        List<Long> recipientIds,
+        Long actorUserId
+    ) {
+        validateRequiredId(projectId);
+        validateRequiredId(actorUserId);
+        validateRequiredText(projectTitle);
+        validateRequiredText(fileName);
+        validateRequiredText(uploaderName);
+
+        createNotifications(NotificationCreateCommand.builder()
+            .recipientIds(recipientIds)
+            .projectId(projectId)
+            .type(NotificationType.FILE_UPLOADED)
+            .title(createFileUploadedTitle(projectTitle))
+            .content(createFileUploadedContent(fileName, uploaderName))
+            .targetType(NotificationTargetType.PROJECT_FILE)
+            .targetId(projectId)
+            .excludeUserId(actorUserId)
+            .build());
     }
 
     private void validateActiveUser(Long currentUserId) {
@@ -555,20 +660,28 @@ public class NotificationService {
             .build();
     }
 
-    private String createScheduleAssignedContent(String scheduleTitle) {
-        return "'" + scheduleTitle + "' 일정 담당자로 지정되었습니다.";
+    private String createScheduleAssignedContent(String scheduleTitle, String assigneeName) {
+        return assigneeName + "님이 [" + scheduleTitle + "] 담당자로 지정되었어요";
     }
 
     private String createScheduleAssignedTitle(String projectTitle) {
         return joinTitle(projectTitle, "일정 담당자 지정");
     }
 
-    private String createProjectInvitationTitle(String projectTitle) {
-        return joinTitle(projectTitle, "프로젝트 초대");
+    private String createProjectJoinedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "합류");
     }
 
-    private String createProjectInvitationContent(String projectTitle, String inviterName) {
-        return inviterName + "님이 [" + projectTitle + "] 프로젝트에 초대했어요";
+    private String createProjectJoinedContent(String joinerName) {
+        return joinerName + "님이 프로젝트에 합류했어요";
+    }
+
+    private String createScheduleCreatedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새 일정");
+    }
+
+    private String createScheduleCreatedContent(String scheduleTitle, String creatorName) {
+        return creatorName + "님이 [" + scheduleTitle + "] 일정을 등록했어요";
     }
 
     private String createVideoFeedbackCommentedTitle(String projectTitle) {
@@ -587,8 +700,8 @@ public class NotificationService {
         return "[" + videoTitle + "]에 새로운 피드백 " + groupCount + "건이 등록되었어요";
     }
 
-    private String createRecruitmentAppliedTitle(String recruitmentTitle) {
-        return joinTitle(recruitmentTitle, "새로운 지원자");
+    private String createRecruitmentAppliedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새로운 지원자");
     }
 
     private String createRecruitmentAppliedContent(
@@ -603,10 +716,26 @@ public class NotificationService {
         return "[" + recruitmentTitle + "]에 새로운 지원자 " + groupCount + "명이 지원했어요";
     }
 
+    private String createNoticeCreatedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새 공지");
+    }
+
+    private String createNoticeCreatedContent(String noticeTitle, String creatorName) {
+        return creatorName + "님이 새 공지를 등록했어요: " + noticeTitle;
+    }
+
+    private String createFileUploadedTitle(String projectTitle) {
+        return joinTitle(projectTitle, "새 파일");
+    }
+
+    private String createFileUploadedContent(String fileName, String uploaderName) {
+        return uploaderName + "님이 [" + fileName + "] 파일을 등록했어요";
+    }
+
     private String createFallbackTitle(NotificationType type) {
         return switch (type) {
             case SCHEDULE_ASSIGNED -> "일정 담당자 지정";
-            case PROJECT_INVITED -> "프로젝트 초대";
+            case PROJECT_JOINED -> "합류";
             case VIDEO_FEEDBACK_COMMENTED -> "새로운 피드백";
             case RECRUITMENT_APPLIED -> "새로운 지원자";
             case SCHEDULE_CREATED -> "새 일정";
