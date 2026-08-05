@@ -98,4 +98,8 @@ public class Users extends BaseEntity{
         this.onboardingCompleted = true;
     }
 
+    public void updateProfileImage(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
 }
