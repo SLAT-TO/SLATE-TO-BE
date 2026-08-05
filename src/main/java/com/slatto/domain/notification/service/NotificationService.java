@@ -212,59 +212,6 @@ public class NotificationService {
     }
 
     /**
-     * 프로젝트 초대 알림을 생성한다.
-     * 클릭 대상은 프로젝트 상세 화면이다.
-     *
-     * @deprecated 알림 문구는 알림 도메인에서 관리하므로 projectTitle을 받는 메서드를 사용한다.
-     */
-    @Deprecated
-    @Transactional
-    public void createProjectInvitationNotification(
-        Long recipientId,
-        Long projectId,
-        String content
-    ) {
-        validateRequiredId(recipientId);
-        validateRequiredId(projectId);
-
-        createNotification(NotificationCreateCommand.builder()
-            .recipientIds(List.of(recipientId))
-            .projectId(projectId)
-            .type(NotificationType.PROJECT_INVITED)
-            .title(createFallbackTitle(NotificationType.PROJECT_INVITED))
-            .content(content)
-            .targetType(NotificationTargetType.PROJECT)
-            .targetId(projectId)
-            .build());
-    }
-
-    /**
-     * 프로젝트 초대 알림 문구를 정책에 맞춰 생성한다.
-     */
-    @Transactional
-    public void createProjectInvitationNotification(
-        Long recipientId,
-        Long projectId,
-        String projectTitle,
-        String inviterName
-    ) {
-        validateRequiredId(projectId);
-        validateRequiredId(recipientId);
-        validateRequiredText(projectTitle);
-        validateRequiredText(inviterName);
-
-        createNotification(NotificationCreateCommand.builder()
-            .recipientIds(List.of(recipientId))
-            .projectId(projectId)
-            .type(NotificationType.PROJECT_INVITED)
-            .title(createProjectInvitationTitle(projectTitle))
-            .content(createProjectInvitationContent(projectTitle, inviterName))
-            .targetType(NotificationTargetType.PROJECT)
-            .targetId(projectId)
-            .build());
-    }
-
-    /**
      * 프로젝트 합류 알림을 프로젝트 참여자에게 생성한다.
      * 합류자 본인도 수신 대상에 포함할 수 있다.
      */
@@ -695,14 +642,6 @@ public class NotificationService {
         return joinTitle(projectTitle, "일정 담당자 지정");
     }
 
-    private String createProjectInvitationTitle(String projectTitle) {
-        return joinTitle(projectTitle, "프로젝트 초대");
-    }
-
-    private String createProjectInvitationContent(String projectTitle, String inviterName) {
-        return inviterName + "님이 [" + projectTitle + "] 프로젝트에 초대했어요";
-    }
-
     private String createProjectJoinedTitle(String projectTitle) {
         return joinTitle(projectTitle, "합류");
     }
@@ -770,7 +709,6 @@ public class NotificationService {
     private String createFallbackTitle(NotificationType type) {
         return switch (type) {
             case SCHEDULE_ASSIGNED -> "일정 담당자 지정";
-            case PROJECT_INVITED -> "프로젝트 초대";
             case PROJECT_JOINED -> "합류";
             case VIDEO_FEEDBACK_COMMENTED -> "새로운 피드백";
             case RECRUITMENT_APPLIED -> "새로운 지원자";
