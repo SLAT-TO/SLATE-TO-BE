@@ -7,6 +7,6 @@ services:
       - /home/ubuntu/SLAT-TO-BE/.env.prod
 
     ports:
-      - "8081:8080"
+      - "8081:8081"
 
     restart: unless-stopped
