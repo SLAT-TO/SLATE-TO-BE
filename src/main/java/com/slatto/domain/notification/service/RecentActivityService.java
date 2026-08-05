@@ -94,15 +94,7 @@ public class RecentActivityService {
         projectAccessValidator.getProjectOrThrow(projectId);
         ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
 
-        List<ActivityLog> activityLogs = activityLogRepository.findAllByProjectId(projectId);
-        Set<Long> readActivityLogIds = findReadActivityLogIds(currentMember.getId(), activityLogs);
-
-        List<ProjectActivityRead> unreadActivityReads = activityLogs.stream()
-            .filter(activityLog -> !readActivityLogIds.contains(activityLog.getId()))
-            .map(activityLog -> ProjectActivityRead.create(currentMember, activityLog))
-            .toList();
-
-        projectActivityReadRepository.saveAll(unreadActivityReads);
+        projectActivityReadRepository.insertAllIfAbsentByProjectId(currentMember.getId(), projectId);
     }
 
     private ActivityLogListResponse.ActivityLogItem toItem(

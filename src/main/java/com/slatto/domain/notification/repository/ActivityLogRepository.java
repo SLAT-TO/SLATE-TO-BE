@@ -31,6 +31,4 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     );
 
     Optional<ActivityLog> findByIdAndProjectId(Long activityId, Long projectId);
-
-    List<ActivityLog> findAllByProjectId(Long projectId);
 }
