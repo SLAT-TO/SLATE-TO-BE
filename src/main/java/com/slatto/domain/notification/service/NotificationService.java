@@ -185,6 +185,7 @@ public class NotificationService {
         Long writerId
     ) {
         validateRequiredId(scheduleId);
+        validateRequiredId(writerId);
         validateRequiredText(scheduleTitle);
         if (recipients == null) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
@@ -193,9 +194,11 @@ public class NotificationService {
         Project notificationProject = getProjectOrNull(project != null ? project.getId() : null);
         String title = createScheduleAssignedTitle(project != null ? project.getTitle() : null);
         String targetType = getTargetTypeName(NotificationTargetType.SCHEDULE);
+        Set<Long> recipientIds = new HashSet<>();
 
         List<Notification> notifications = recipients.stream()
             .filter(Objects::nonNull)
+            .filter(recipient -> recipientIds.add(recipient.getId()))
             .filter(recipient -> !Objects.equals(recipient.getId(), writerId))
             .map(recipient -> Notification.create(
                 recipient,
@@ -252,6 +255,7 @@ public class NotificationService {
     ) {
         validateRequiredId(projectId);
         validateRequiredId(scheduleId);
+        validateRequiredId(actorUserId);
         validateRequiredText(projectTitle);
         validateRequiredText(scheduleTitle);
         validateRequiredText(creatorName);
@@ -285,6 +289,7 @@ public class NotificationService {
     ) {
         validateRequiredId(projectId);
         validateRequiredId(videoId);
+        validateRequiredId(actorUserId);
 
         createOrUpdateGroupedNotifications(NotificationCreateCommand.builder()
             .recipientIds(recipientIds)
@@ -312,6 +317,7 @@ public class NotificationService {
     ) {
         validateRequiredId(projectId);
         validateRequiredId(videoId);
+        validateRequiredId(actorUserId);
         validateRequiredText(videoTitle);
         validateRequiredText(commenterName);
         Project project = getProjectOrNull(projectId);
@@ -426,6 +432,7 @@ public class NotificationService {
     ) {
         validateRequiredId(projectId);
         validateRequiredId(noticeId);
+        validateRequiredId(actorUserId);
         validateRequiredText(projectTitle);
         validateRequiredText(noticeTitle);
         validateRequiredText(creatorName);
@@ -455,6 +462,7 @@ public class NotificationService {
         Long actorUserId
     ) {
         validateRequiredId(projectId);
+        validateRequiredId(actorUserId);
         validateRequiredText(projectTitle);
         validateRequiredText(fileName);
         validateRequiredText(uploaderName);
