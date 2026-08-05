@@ -184,18 +184,31 @@ public class NotificationService {
         List<Users> recipients,
         Long writerId
     ) {
-        createNotifications(NotificationCreateCommand.builder()
-            .recipientIds(recipients.stream()
-                .map(Users::getId)
-                .toList())
-            .projectId(project != null ? project.getId() : null)
-            .type(NotificationType.SCHEDULE_ASSIGNED)
-            .title(createScheduleAssignedTitle(project != null ? project.getTitle() : null))
-            .content(createScheduleAssignedContent(scheduleTitle))
-            .targetType(NotificationTargetType.SCHEDULE)
-            .targetId(scheduleId)
-            .excludeUserId(writerId)
-            .build());
+        validateRequiredId(scheduleId);
+        validateRequiredText(scheduleTitle);
+        if (recipients == null) {
+            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+        }
+
+        Project notificationProject = getProjectOrNull(project != null ? project.getId() : null);
+        String title = createScheduleAssignedTitle(project != null ? project.getTitle() : null);
+        String targetType = getTargetTypeName(NotificationTargetType.SCHEDULE);
+
+        List<Notification> notifications = recipients.stream()
+            .filter(Objects::nonNull)
+            .filter(recipient -> !Objects.equals(recipient.getId(), writerId))
+            .map(recipient -> Notification.create(
+                recipient,
+                notificationProject,
+                NotificationType.SCHEDULE_ASSIGNED,
+                title,
+                createScheduleAssignedContent(scheduleTitle, recipient.getNickname()),
+                targetType,
+                scheduleId
+            ))
+            .toList();
+
+        notificationRepository.saveAll(notifications);
     }
 
     /**
@@ -683,8 +696,8 @@ public class NotificationService {
             .build();
     }
 
-    private String createScheduleAssignedContent(String scheduleTitle) {
-        return "'" + scheduleTitle + "' 일정 담당자로 지정되었습니다.";
+    private String createScheduleAssignedContent(String scheduleTitle, String assigneeName) {
+        return assigneeName + "님이 [" + scheduleTitle + "] 담당자로 지정했어요";
     }
 
     private String createScheduleAssignedTitle(String projectTitle) {
