@@ -219,7 +219,12 @@ public class UserService {
         String profileImageUrl = createProfileImageUrl(storageKey);
         String previousStorageKey = extractManagedStorageKey(user.getProfileImageUrl());
 
-        storageService.upload(file, storageKey);
+        try {
+            storageService.upload(file, storageKey);
+        } catch (RuntimeException exception) {
+            deleteStorageObjectQuietly(storageKey, "profile image upload");
+            throw exception;
+        }
         registerUploadedFileCleanupOnRollback(storageKey);
 
         user.updateProfileImage(profileImageUrl);
