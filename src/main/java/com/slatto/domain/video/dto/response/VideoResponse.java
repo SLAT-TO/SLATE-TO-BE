@@ -22,8 +22,6 @@ public class VideoResponse {
             String thumbnailUrl,
             @Schema(description = "영상 진행 상태", example = "IN_PROGRESS") String progressStatus,
             @Schema(description = "로그인한 사용자의 북마크 여부", example = "true") boolean bookmarked,
-            @Schema(description = "로그인한 사용자의 읽지 않은 피드백 개수", example = "0")
-            int unreadCommentCount,
             @Schema(description = "프로젝트 소개", example = "프로젝트 소개글") String description,
             @Schema(description = "영상 메모", example = "영상에 관련된 메모", nullable = true) String memo,
             @Schema(description = "프로젝트 태그", example = "[\"뮤직비디오\", \"단편\", \"외주\", \"연출\"]")
@@ -31,10 +29,11 @@ public class VideoResponse {
             @Schema(description = "생성일", example = "2026-05-20T00:00:00") LocalDateTime createdAt,
             @Schema(description = "수정일", example = "2026-05-25T00:00:00") LocalDateTime updatedAt
     ) {
-        public static VideoDetailResDTO from(Video video, boolean bookmarked, List<String> projectTags) {
-            // TODO: 피드백 도메인의 사용자별 읽지 않은 피드백 개수 조회 기능 연동 후 실제 값으로 교체
-            int unreadCommentCount = 0;
-
+        public static VideoDetailResDTO from(
+                Video video,
+                boolean bookmarked,
+                List<String> projectTags
+        ) {
             return new VideoDetailResDTO(
                     video.getId(),
                     video.getProject().getId(),
@@ -44,7 +43,6 @@ public class VideoResponse {
                     video.getThumbnailUrl(),
                     video.getProgressStatus().name(),
                     bookmarked,
-                    unreadCommentCount,
                     video.getProject().getDescription(),
                     video.getMemo(),
                     projectTags,
@@ -132,14 +130,15 @@ public class VideoResponse {
             @Schema(example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg") String thumbnailUrl,
             @Schema(example = "true") boolean bookmarked,
             @Schema(example = "IN_PROGRESS") String progressStatus,
-            @Schema(example = "3") int unreadCommentCount,
+            @Schema(description = "읽지 않은 피드백 존재 여부", example = "true")
+            boolean hasUnreadFeedback,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
-        public static VideoItemResDTO from(Video video, boolean bookmarked) {
+        public static VideoItemResDTO from(Video video, boolean bookmarked, boolean hasUnreadFeedback) {
             return new VideoItemResDTO(
                     video.getId(), video.getTitle(), video.getThumbnailUrl(), bookmarked,
-                    video.getProgressStatus().name(), 0, video.getCreatedAt(), video.getUpdatedAt()
+                    video.getProgressStatus().name(), hasUnreadFeedback, video.getCreatedAt(), video.getUpdatedAt()
             );
         }
     }
