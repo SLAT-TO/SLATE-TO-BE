@@ -64,4 +64,5 @@ public class ProjectMember {
     public void leave() {
         this.leftAt = LocalDateTime.now();
     }
+
 }

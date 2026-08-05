@@ -26,8 +26,8 @@ jobs:
       - name: Make Gradle Wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Build Spring Boot jar
-        run: ./gradlew clean bootJar -x test --no-daemon
+      - name: Test and build Spring Boot jar
+        run: ./gradlew clean test bootJar --no-daemon
 
       - name: Build Docker image
         run: docker build -t slatto-api:ci .
