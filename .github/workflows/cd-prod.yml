@@ -47,7 +47,6 @@ jobs:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USERNAME }}
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.PROD_EC2_HOST_FINGERPRINT }}
           source: docker-compose.prod.yml
           target: /home/ubuntu/deploy
           overwrite: true
@@ -58,7 +57,6 @@ jobs:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USERNAME }}
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
-          fingerprint: ${{ secrets.PROD_EC2_HOST_FINGERPRINT }}
           script: |
             set -u
 
