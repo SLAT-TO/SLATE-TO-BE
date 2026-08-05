@@ -20,6 +20,7 @@ import com.slatto.domain.user.enums.Kind;
 import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
+import com.slatto.global.response.code.CommonErrorCode;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -185,6 +187,97 @@ class RecentActivityServiceIntegrationTest {
     }
 
     @Test
+    void 활동이_없으면_빈_목록과_다음_커서_없음을_반환한다() {
+        // 첫 진입한 프로젝트에 활동이 없을 때도 FE가 빈 상태를 안정적으로 렌더링할 수 있어야 한다.
+        Fixture fixture = createFixture();
+
+        ActivityLogListResponse response = recentActivityService.getRecentActivities(
+            fixture.project().getId(), fixture.user().getId(), null, 20
+        );
+
+        assertThat(response.items()).isEmpty();
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+    }
+
+    @Test
+    void 잘못된_cursor는_잘못된_요청으로_처리한다() {
+        // 커서는 서버가 발급한 createdAt_ID 조합만 허용해 조회 순서가 깨지는 일을 막는다.
+        Fixture fixture = createFixture();
+
+        assertBadRequest(fixture, "not-a-cursor");
+        assertBadRequest(fixture, "2026-08-04T10:00:00_not-a-number");
+        assertBadRequest(fixture, "not-a-datetime_1");
+    }
+
+    @Test
+    void 페이지_크기는_기본값을_사용하고_최대_50건으로_제한한다() {
+        // size가 0 이하이면 기본 20건을 사용하고, 과도한 요청은 50건까지만 조회해야 한다.
+        Fixture fixture = createFixture();
+        List<ActivityLog> activities = new ArrayList<>();
+        LocalDateTime base = LocalDateTime.of(2026, 8, 4, 12, 0);
+        for (int index = 0; index < 51; index++) {
+            activities.add(saveActivity(
+                fixture.project(),
+                fixture.user(),
+                "활동 " + index,
+                base.plusMinutes(index)
+            ));
+        }
+        entityManager.flush();
+        entityManager.clear();
+
+        ActivityLogListResponse defaultSizeResponse = recentActivityService.getRecentActivities(
+            fixture.project().getId(), fixture.user().getId(), null, 0
+        );
+        ActivityLogListResponse maxSizeResponse = recentActivityService.getRecentActivities(
+            fixture.project().getId(), fixture.user().getId(), null, 10_000
+        );
+
+        assertThat(defaultSizeResponse.items()).hasSize(20);
+        assertThat(defaultSizeResponse.hasNext()).isTrue();
+        assertThat(maxSizeResponse.items()).hasSize(50);
+        assertThat(maxSizeResponse.hasNext()).isTrue();
+        assertThat(maxSizeResponse.nextCursor()).isNotBlank();
+        assertThat(maxSizeResponse.items())
+            .extracting(ActivityLogListResponse.ActivityLogItem::activityId)
+            .containsExactly(activities.reversed().subList(0, 50).stream().map(ActivityLog::getId).toArray(Long[]::new));
+    }
+
+    @Test
+    void 같은_활동을_반복해서_확인해도_읽음_행은_하나만_생성한다() {
+        // 사용자가 이동 버튼을 빠르게 여러 번 눌러도 unique 읽음 모델이 중복 행을 만들면 안 된다.
+        Fixture fixture = createFixture();
+        ActivityLog activity = saveActivity(
+            fixture.project(), fixture.user(), "반복 확인 활동", LocalDateTime.of(2026, 8, 4, 10, 0)
+        );
+        entityManager.flush();
+
+        recentActivityService.markActivityAsRead(fixture.project().getId(), activity.getId(), fixture.user().getId());
+        recentActivityService.markActivityAsRead(fixture.project().getId(), activity.getId(), fixture.user().getId());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(projectActivityReadRepository.findAll())
+            .filteredOn(read -> read.getActivityLog().getId().equals(activity.getId()))
+            .hasSize(1);
+    }
+
+    @Test
+    void 존재하지_않는_활동을_확인하면_찾을_수_없음으로_처리한다() {
+        // 삭제됐거나 잘못된 activityId에는 읽음 행을 만들지 않아야 한다.
+        Fixture fixture = createFixture();
+
+        assertThatThrownBy(() -> recentActivityService.markActivityAsRead(
+            fixture.project().getId(), 999_999L, fixture.user().getId()
+        ))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(CommonErrorCode.NOT_FOUND);
+        assertThat(projectActivityReadRepository.findAll()).isEmpty();
+    }
+
+    @Test
     void 전체_확인은_현재_멤버의_읽지_않은_활동만_읽음으로_저장한다() {
         // 전체 읽음은 현재 멤버에게만 적용하고, 이미 읽은 활동의 읽음 행을 중복 생성하지 않아야 한다.
         Fixture fixture = createFixture();
@@ -212,6 +305,46 @@ class RecentActivityServiceIntegrationTest {
                 org.assertj.core.groups.Tuple.tuple(member.getId(), first.getId()),
                 org.assertj.core.groups.Tuple.tuple(member.getId(), second.getId())
             );
+    }
+
+    @Test
+    void 전체_확인은_다른_멤버의_읽음_상태를_변경하지_않는다() {
+        // 전체 읽음은 현재 사용자의 프로젝트 멤버 행에만 기록돼야 하며 다른 멤버의 배지를 지우면 안 된다.
+        Fixture fixture = createFixture();
+        Users green = userRepository.save(Users.createSocialUser(
+            "green@example.com", "그린", null, SocialType.GOOGLE, "google-green"
+        ));
+        ProjectMember greenMember = projectMemberRepository.save(ProjectMember.createMember(fixture.project(), green));
+        ActivityLog activity = saveActivity(
+            fixture.project(), fixture.user(), "전체 확인 격리 활동", LocalDateTime.of(2026, 8, 4, 10, 0)
+        );
+        entityManager.flush();
+
+        recentActivityService.markAllActivitiesAsRead(fixture.project().getId(), fixture.user().getId());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(projectActivityReadRepository.findAll())
+            .extracting(read -> read.getProjectMember().getId(), read -> read.getActivityLog().getId())
+            .containsExactly(org.assertj.core.groups.Tuple.tuple(
+                projectMemberRepository.findByProjectIdAndUserIdAndLeftAtIsNull(
+                    fixture.project().getId(), fixture.user().getId()
+                ).orElseThrow().getId(),
+                activity.getId()
+            ));
+        assertThat(recentActivityService.getRecentActivities(
+            fixture.project().getId(), green.getId(), null, 20
+        ).items()).allMatch(ActivityLogListResponse.ActivityLogItem::isNew);
+        assertThat(greenMember.getId()).isNotNull();
+    }
+
+    private void assertBadRequest(Fixture fixture, String cursor) {
+        assertThatThrownBy(() -> recentActivityService.getRecentActivities(
+            fixture.project().getId(), fixture.user().getId(), cursor, 20
+        ))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(CommonErrorCode.BAD_REQUEST);
     }
 
     private Fixture createFixture() {
