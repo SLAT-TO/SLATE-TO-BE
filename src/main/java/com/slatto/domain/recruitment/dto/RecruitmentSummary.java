@@ -1,7 +1,6 @@
 package com.slatto.domain.recruitment.dto;
 
 import com.slatto.domain.project.enums.LengthType;
-import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
 import com.slatto.domain.recruitment.enums.RecruitmentStatus;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.RegionName;
@@ -12,9 +11,12 @@ import lombok.Getter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+// 전체 목록/추천/관심 목록이 공유하는 공고 카드다.
+// writer.primaryRole 과 location 은 유저당 쿼리 2방이라 카드에 넣지 않는다. 상세 응답에만 있다.
+// contact 도 넣지 않는다. 목록 API 로 연락처가 무차별 노출된다.
 @Getter
 @Builder
-public class RecruitmentDetailResponse {
+public class RecruitmentSummary {
 
     private Long id;
 
@@ -36,32 +38,16 @@ public class RecruitmentDetailResponse {
 
     private RecruitmentStatus status;
 
-    private String description;
-
-    private String shootingPeriod;
-
-    private String contact;
-
     private Integer viewCount;
-
-    private Long applicantCount;
 
     // 원시 boolean 이면 Jackson 이 is 를 벗겨 bookmarked 로 직렬화한다. 래퍼여야 키 이름이 유지된다.
     private Boolean isBookmarked;
 
     private Boolean isMine;
 
-    private Boolean hasApplied;
-
-    // 지원 취소 API 가 없어 hasApplied 만으로는 "지원 중"과 "거절됨"을 구분할 수 없다.
-    // 미지원이면 null 이다.
-    private RecruitmentApplicationStatus myApplicationStatus;
-
     private WriterSummary writer;
 
     private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
 
     @Getter
     @Builder
@@ -72,9 +58,5 @@ public class RecruitmentDetailResponse {
         private String nickname;
 
         private String profileImageUrl;
-
-        private RoleName primaryRole;
-
-        private RegionName location;
     }
 }
