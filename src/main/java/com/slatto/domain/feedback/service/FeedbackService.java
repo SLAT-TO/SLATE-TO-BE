@@ -85,7 +85,9 @@ public class FeedbackService {
         Feedback saved = feedbackRepository.save(feedback);
 
         // 5. 프로젝트 멤버에게 피드백 알림 발송 (작성자 본인은 actorUserId로 제외)
-        sendFeedbackNotification(video, userId);
+        //    알림 문구 조합용 작성자명 — 회원이면 유저명, 게스트면 게스트명
+        String commenterName = (user != null) ? user.getNickname() : guest.getName();
+        sendFeedbackNotification(video, userId, commenterName);
 
         // 6. 최근 활동 로그 기록 (회원/게스트 구분)
         if (user != null) {
@@ -108,8 +110,8 @@ public class FeedbackService {
     }
 
     // 피드백/답글 생성 시 프로젝트 멤버에게 알림을 보낸다.
-    // 저장/그룹핑/작성자 제외는 알림 도메인이 처리하므로 값만 준비해 호출한다.
-    private void sendFeedbackNotification(Video video, Long actorUserId) {
+    // 문구 조합/저장/그룹핑/작성자 제외는 알림 도메인이 처리하므로 재료(영상명·작성자명)만 준비해 호출한다.
+    private void sendFeedbackNotification(Video video, Long actorUserId, String commenterName) {
         Long projectId = video.getProject().getId();
 
         // 프로젝트 활성 멤버 전체를 수신자로 (작성자 제외는 actorUserId로 알림 도메인이 처리)
@@ -122,9 +124,10 @@ public class FeedbackService {
         notificationService.createVideoFeedbackCommentedNotifications(
                 projectId,
                 video.getId(),
-                "새 피드백이 등록되었습니다.",   // TODO: PM 확정 문구로 교체
+                video.getTitle(),   // 영상명 → 알림 도메인이 문구 조합에 사용
+                commenterName,       // 작성자명 → 알림 도메인이 문구 조합에 사용
                 recipientIds,
-                actorUserId                      // 게스트면 null → 제외 대상 없음
+                actorUserId          // 게스트면 null → 제외 대상 없음
         );
     }
 
