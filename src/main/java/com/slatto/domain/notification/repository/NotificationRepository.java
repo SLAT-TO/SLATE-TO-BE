@@ -60,11 +60,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             and n.type in :types
         order by
             case
-                when n.type = :recruitmentAppliedType then 3
-                when n.type = :scheduleCreatedType then 4
-                when n.type = :noticeCreatedType then 5
-                when n.type = :fileUploadedType then 6
-                when n.type = :videoFeedbackCommentedType then 7
+                when n.type = :recruitmentAppliedType then 4
+                when n.type = :scheduleCreatedType then 5
+                when n.type = :noticeCreatedType then 6
+                when n.type = :fileUploadedType then 7
+                when n.type = :videoFeedbackCommentedType then 8
                 else 999
             end,
             n.updatedAt desc,
