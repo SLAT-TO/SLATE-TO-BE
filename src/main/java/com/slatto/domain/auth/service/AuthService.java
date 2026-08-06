@@ -134,6 +134,21 @@ public class AuthService {
 		return toEmailAuthResult(user);
 	}
 
+	@Transactional
+	public void resetPassword(String email, String newRawPassword) {
+		emailVerificationService.consumeVerified(email, VerificationPurpose.PASSWORD_RESET);
+
+		// 계정이 없으면 인증 메일 자체가 나가지 않으므로 여기까지 올 수 없다. 방어적으로 같은 코드를 쓴다.
+		Users user = userRepository.findByEmail(email)
+			.filter(it -> it.getDeletedAt() == null)
+			.orElseThrow(() -> new BaseException(AuthErrorCode.EMAIL_NOT_VERIFIED));
+
+		user.changePassword(passwordEncoder.encode(newRawPassword));
+
+		// 비밀번호가 유출돼 재설정하는 상황을 가정한다. 살아 있는 세션을 끊지 않으면 의미가 없다.
+		refreshTokenRepository.deleteByUser(user);
+	}
+
 	// TODO: 리프레시 토큰 회전(rotation) 도입 시 여기서 기존 토큰을 폐기하고 새 토큰을 발급해
 	//       AccessTokenResponse와 함께 Set-Cookie로 다시 내려줘야 한다.
 	@Transactional(readOnly = true)

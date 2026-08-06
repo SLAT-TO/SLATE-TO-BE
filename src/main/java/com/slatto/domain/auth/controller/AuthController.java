@@ -8,6 +8,7 @@ import com.slatto.domain.auth.dto.EmailVerificationConfirmRequest;
 import com.slatto.domain.auth.dto.EmailVerificationConfirmResponse;
 import com.slatto.domain.auth.dto.EmailVerificationSendRequest;
 import com.slatto.domain.auth.dto.EmailVerificationSendResponse;
+import com.slatto.domain.auth.dto.PasswordResetRequest;
 import com.slatto.domain.auth.service.AuthService;
 import com.slatto.domain.auth.service.EmailVerificationService;
 import com.slatto.domain.auth.support.AuthCookieFactory;
@@ -194,6 +195,23 @@ public class AuthController {
 		);
 
 		return ApiResponse.success(CommonSuccessCode.OK, response);
+	}
+
+	@Operation(
+		summary = "비밀번호 재설정",
+		description = """
+			`PASSWORD_RESET` 목적의 이메일 인증을 마친 사용자의 비밀번호를 변경한다.
+
+			성공하면 해당 유저의 리프레시 토큰을 전부 삭제해 기존 세션을 끊는다.
+			구글로만 가입해 비밀번호가 없던 계정도 이 경로로 비밀번호를 설정할 수 있다.
+			"""
+	)
+	@SecurityRequirements
+	@PostMapping("/password/reset")
+	public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+		authService.resetPassword(request.email(), request.newPassword());
+
+		return ApiResponse.success(CommonSuccessCode.OK, null);
 	}
 
 	@Operation(summary = "로그아웃", description = "서버에 저장된 리프레시 토큰을 무효화하고 쿠키를 삭제한다.")
