@@ -26,6 +26,7 @@ import com.slatto.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 
 import java.time.LocalDate;
@@ -55,6 +56,9 @@ class ProjectNoticeActivityFlowIntegrationTest {
 
     @Autowired
     private ProjectActivityReadRepository projectActivityReadRepository;
+
+    @MockBean
+    private NotificationService notificationService;
 
     @Autowired
     private UserRepository userRepository;
