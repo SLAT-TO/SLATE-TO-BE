@@ -669,7 +669,7 @@ public class NotificationService {
     }
 
     private String createScheduleAssignedContent(String scheduleTitle, String assigneeName) {
-        return assigneeName + "님이 [" + scheduleTitle + "] 담당자로 지정되었어요";
+        return assigneeName + "님이 [" + scheduleTitle + "] 담당자로 지명되었어요.";
     }
 
     private String createScheduleAssignedTitle(String projectTitle) {
@@ -681,7 +681,7 @@ public class NotificationService {
     }
 
     private String createProjectJoinedContent(String joinerName) {
-        return joinerName + "님이 프로젝트에 합류했어요";
+        return joinerName + "님이 프로젝트에 합류했어요.";
     }
 
     private String createScheduleCreatedTitle(String projectTitle) {
@@ -689,7 +689,7 @@ public class NotificationService {
     }
 
     private String createScheduleCreatedContent(String scheduleTitle, String creatorName) {
-        return creatorName + "님이 [" + scheduleTitle + "] 일정을 등록했어요";
+        return creatorName + "님이 [" + scheduleTitle + "] 일정을 등록했어요.";
     }
 
     private String createVideoFeedbackCommentedTitle(String projectTitle) {
@@ -702,10 +702,10 @@ public class NotificationService {
         int groupCount
     ) {
         if (groupCount <= 1) {
-            return commenterName + "님이 [" + videoTitle + "]에 새로운 피드백을 남겼어요";
+            return commenterName + "님이 [" + videoTitle + "]에 새로운 피드백을 남겼어요.";
         }
 
-        return "[" + videoTitle + "]에 새로운 피드백 " + groupCount + "건이 등록되었어요";
+        return "[" + videoTitle + "]에 새로운 피드백 " + groupCount + "건이 등록되었어요.";
     }
 
     private String createRecruitmentAppliedTitle(String projectTitle) {
@@ -718,10 +718,10 @@ public class NotificationService {
         int groupCount
     ) {
         if (groupCount <= 1) {
-            return applicantName + "님이 [" + recruitmentTitle + "]에 지원했어요";
+            return applicantName + "님이 [" + recruitmentTitle + "]에 지원했어요.";
         }
 
-        return "[" + recruitmentTitle + "]에 새로운 지원자 " + groupCount + "명이 지원했어요";
+        return "[" + recruitmentTitle + "]에 새로운 지원자 " + groupCount + "명이 지원했어요.";
     }
 
     private String createNoticeCreatedTitle(String projectTitle) {
@@ -729,7 +729,7 @@ public class NotificationService {
     }
 
     private String createNoticeCreatedContent(String noticeTitle, String creatorName) {
-        return creatorName + "님이 새 공지를 등록했어요: " + noticeTitle;
+        return creatorName + "님이 새 공지를 등록했어요: " + noticeTitle + ".";
     }
 
     private String createFileUploadedTitle(String projectTitle) {
@@ -737,7 +737,7 @@ public class NotificationService {
     }
 
     private String createFileUploadedContent(String fileName, String uploaderName) {
-        return uploaderName + "님이 [" + fileName + "] 파일을 등록했어요";
+        return uploaderName + "님이 [" + fileName + "] 파일을 등록했어요.";
     }
 
     private String createFallbackTitle(NotificationType type) {
