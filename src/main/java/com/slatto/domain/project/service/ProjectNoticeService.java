@@ -1,6 +1,7 @@
 package com.slatto.domain.project.service;
 
 import com.slatto.domain.notification.service.ActivityLogService;
+import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.project.dto.ProjectNoticeCreateRequest;
 import com.slatto.domain.project.dto.ProjectNoticeListResponse;
 import com.slatto.domain.project.dto.ProjectNoticeReadResponse;
@@ -11,6 +12,7 @@ import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.entity.ProjectNotice;
 import com.slatto.domain.project.entity.ProjectNoticeRead;
 import com.slatto.domain.project.exception.ProjectErrorCode;
+import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.project.repository.ProjectNoticeReadRepository;
 import com.slatto.domain.project.repository.ProjectNoticeRepository;
 import com.slatto.domain.user.entity.Users;
@@ -35,8 +37,10 @@ public class ProjectNoticeService {
 
     private final ProjectNoticeRepository projectNoticeRepository;
     private final ProjectNoticeReadRepository projectNoticeReadRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final ProjectAccessValidator projectAccessValidator;
     private final ActivityLogService activityLogService;
+    private final NotificationService notificationService;
 
     public ProjectNoticeListResponse getProjectNotices(
         Long projectId,
@@ -95,6 +99,15 @@ public class ProjectNoticeService {
         );
         ProjectNotice savedNotice = projectNoticeRepository.save(projectNotice);
         activityLogService.createNoticeCreatedLog(projectId, currentUserId, savedNotice.getId());
+        notificationService.createNoticeCreatedNotifications(
+            projectId,
+            savedNotice.getId(),
+            project.getTitle(),
+            savedNotice.getTitle(),
+            currentMember.getUser().getNickname(),
+            getActiveProjectMemberUserIds(projectId),
+            currentUserId
+        );
 
         return toResponse(savedNotice, false);
     }
@@ -200,6 +213,14 @@ public class ProjectNoticeService {
                 projectNoticeRead -> true,
                 (left, right) -> left
             ));
+    }
+
+    private List<Long> getActiveProjectMemberUserIds(Long projectId) {
+        return projectMemberRepository.findAllActiveMembersByProjectId(projectId)
+            .stream()
+            .map(ProjectMember::getUser)
+            .map(Users::getId)
+            .toList();
     }
 
     private int normalizePageSize(int size) {
