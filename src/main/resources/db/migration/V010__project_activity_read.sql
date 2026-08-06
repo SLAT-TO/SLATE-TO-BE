@@ -4,11 +4,6 @@
 ALTER TABLE project_member
     DROP COLUMN IF EXISTS last_activity_read_at;
 
--- MySQL 8.0 호환: DROP 후 CREATE (CREATE IF NOT EXISTS는 MySQL 8.0.13+에서만 지원)
-DROP INDEX IF EXISTS idx_activity_log_project_created_id ON activity_log;
-CREATE INDEX idx_activity_log_project_created_id 
-    ON activity_log (project_id, created_at, id);
-
 CREATE TABLE project_activity_read (
     id BIGINT NOT NULL AUTO_INCREMENT,
     project_member_id BIGINT NOT NULL,
@@ -21,3 +16,5 @@ CREATE TABLE project_activity_read (
     CONSTRAINT fk_project_activity_read_activity_log
         FOREIGN KEY (activity_log_id) REFERENCES activity_log (id)
 );
+
+-- 인덱스는 V011에서 별도 생성
