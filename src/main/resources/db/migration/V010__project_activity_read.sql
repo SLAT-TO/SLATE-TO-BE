@@ -4,21 +4,9 @@
 ALTER TABLE project_member
     DROP COLUMN IF EXISTS last_activity_read_at;
 
-SET @activity_log_index_exists = (
-    SELECT COUNT(*)
-    FROM information_schema.statistics
-    WHERE table_schema = DATABASE()
-      AND table_name = 'activity_log'
-      AND index_name = 'idx_activity_log_project_created_id'
-);
-SET @create_activity_log_index = IF(
-    @activity_log_index_exists = 0,
-    'CREATE INDEX idx_activity_log_project_created_id ON activity_log (project_id, created_at, id)',
-    'SELECT 1'
-);
-PREPARE activity_log_index_statement FROM @create_activity_log_index;
-EXECUTE activity_log_index_statement;
-DEALLOCATE PREPARE activity_log_index_statement;
+-- Flyway 호환성: PREPARE/EXECUTE 대신 직접 조건부 생성
+CREATE INDEX IF NOT EXISTS idx_activity_log_project_created_id 
+    ON activity_log (project_id, created_at, id);
 
 CREATE TABLE project_activity_read (
     id BIGINT NOT NULL AUTO_INCREMENT,
