@@ -11,6 +11,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -40,10 +42,17 @@ public class SecurityConfig {
 			.httpBasic(httpBasic -> httpBasic.disable())
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
+				// /login/** 은 /api/v1/auth/login 자체도 매칭한다(** 는 0개 세그먼트도 받는다).
+				// 이메일 로그인이 여기 묻히지 않도록 명시적으로 나열한다.
 				.requestMatchers(
 					"/api/v1/auth/login/**",
 					"/api/v1/auth/callback/**",
-					"/api/v1/auth/refresh"
+					"/api/v1/auth/refresh",
+					"/api/v1/auth/login",
+					"/api/v1/auth/signup",
+					"/api/v1/auth/password/reset",
+					"/api/v1/auth/email/verification-codes",
+					"/api/v1/auth/email/verification-codes/confirm"
 				).permitAll()
 					// 게스트 등록
 					.requestMatchers(HttpMethod.POST, "/api/v1/share-links/*/guests").permitAll()
@@ -72,6 +81,11 @@ public class SecurityConfig {
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 			.addFilterBefore(cookieCsrfProtectionFilter, JwtAuthenticationFilter.class)
 			.build();
+	}
+
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
 	}
 
 	@Bean
