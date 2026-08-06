@@ -1,4 +1,4 @@
--- ddl-auto=validate 이므로 애플리케이션 기동 전에 직접 적용해야 한다.
+-- Google OAuth 로그인 도입에 필요한 사용자 온보딩 상태와 리프레시 토큰 테이블을 추가한다.
 
 ALTER TABLE users
     ADD COLUMN onboarding_completed BIT(1) NOT NULL DEFAULT b'0';

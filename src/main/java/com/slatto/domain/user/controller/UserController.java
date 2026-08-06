@@ -5,6 +5,7 @@ import com.slatto.domain.user.dto.UserOnboardingRequest;
 import com.slatto.domain.user.dto.UserOnboardingResponse;
 import com.slatto.domain.user.dto.UserProfileUpdateRequest;
 import com.slatto.domain.user.dto.UserProfileUpdateResponse;
+import com.slatto.domain.user.dto.UserProfileImageResponse;
 import com.slatto.domain.user.dto.UserPublicProfileResponse;
 import com.slatto.domain.user.service.UserService;
 import com.slatto.global.response.ApiResponse;
@@ -20,7 +21,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "User", description = "유저 API")
 @RestController
@@ -56,6 +61,17 @@ public class UserController {
         @Valid @RequestBody UserProfileUpdateRequest request
     ) {
         UserProfileUpdateResponse response = userService.updateProfile(userId, request);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(summary = "프로필 이미지 업로드", description = "프로필 이미지를 S3에 업로드하고 CDN 공개 URL로 교체한다.")
+    @PutMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<UserProfileImageResponse> uploadProfileImage(
+        @AuthenticationPrincipal Long userId,
+        @RequestPart("file") MultipartFile file
+    ) {
+        UserProfileImageResponse response = userService.uploadProfileImage(userId, file);
 
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }

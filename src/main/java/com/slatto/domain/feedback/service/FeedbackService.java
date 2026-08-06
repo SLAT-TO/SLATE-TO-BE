@@ -13,6 +13,7 @@ import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.slatto.domain.notification.service.NotificationService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +47,7 @@ public class FeedbackService {
     private final ObjectProvider<EntityManager> entityManagerProvider;
     private final ProjectMemberRepository projectMemberRepository;
     private final FeedbackDetailRepository feedbackDetailRepository;
+    private final NotificationService notificationService;
     private final ActivityLogService activityLogService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
@@ -82,6 +84,12 @@ public class FeedbackService {
         Feedback feedback = feedbackConverter.toFeedback(video, user, guest, req);
         Feedback saved = feedbackRepository.save(feedback);
 
+        // 5. 프로젝트 멤버에게 피드백 알림 발송 (작성자 본인은 actorUserId로 제외)
+        //    알림 문구 조합용 작성자명 — 회원이면 유저명, 게스트면 게스트명
+        String commenterName = (user != null) ? user.getNickname() : guest.getName();
+        sendFeedbackNotification(video, userId, commenterName);
+
+        // 6. 최근 활동 로그 기록 (회원/게스트 구분)
         if (user != null) {
             activityLogService.createVideoFeedbackCommentedLog(
                     video.getProject().getId(),
@@ -99,6 +107,28 @@ public class FeedbackService {
         }
 
         return feedbackConverter.toCreateResponse(saved);
+    }
+
+    // 피드백/답글 생성 시 프로젝트 멤버에게 알림을 보낸다.
+    // 문구 조합/저장/그룹핑/작성자 제외는 알림 도메인이 처리하므로 재료(영상명·작성자명)만 준비해 호출한다.
+    private void sendFeedbackNotification(Video video, Long actorUserId, String commenterName) {
+        Long projectId = video.getProject().getId();
+
+        // 프로젝트 활성 멤버 전체를 수신자로 (작성자 제외는 actorUserId로 알림 도메인이 처리)
+        List<Long> recipientIds = projectMemberRepository
+                .findAllActiveMembersByProjectId(projectId)
+                .stream()
+                .map(pm -> pm.getUser().getId())
+                .toList();
+
+        notificationService.createVideoFeedbackCommentedNotifications(
+                projectId,
+                video.getId(),
+                video.getTitle(),   // 영상명 → 알림 도메인이 문구 조합에 사용
+                commenterName,       // 작성자명 → 알림 도메인이 문구 조합에 사용
+                recipientIds,
+                actorUserId          // 게스트면 null → 제외 대상 없음
+        );
     }
 
     @Transactional
@@ -296,4 +326,5 @@ public class FeedbackService {
 
         return feedbackConverter.toStatusResponse(feedback);
     }
+
 }

@@ -17,6 +17,8 @@ import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.project.repository.ProjectPinRepository;
 import com.slatto.domain.project.repository.ProjectRepository;
 import com.slatto.domain.project.repository.ProjectUserRoleRepository;
+import com.slatto.domain.notification.repository.ActivityLogRepository;
+import com.slatto.domain.notification.repository.ProjectLatestActivityProjection;
 import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
@@ -54,6 +56,7 @@ public class ProjectService {
     private final ProjectConverter projectConverter;
     private final ProjectAccessValidator projectAccessValidator;
     private final ActivityLogService activityLogService;
+    private final ActivityLogRepository activityLogRepository;
 
     @Transactional
     public ProjectResponse createProject(Long ownerUserId, ProjectCreateRequest request) {
@@ -97,6 +100,7 @@ public class ProjectService {
         Map<Long, List<RoleName>> roleNamesByMemberId = getRoleNamesByMemberId(currentPageMembers);
         Map<Long, String> previewImageUrlByProjectId = getPreviewImageUrlByProjectId(currentPageMembers);
         Map<Long, LocalDateTime> pinnedAtByProjectId = getPinnedAtByProjectId(currentUserId, currentPageMembers);
+        Map<Long, LocalDateTime> lastActivityAtByProjectId = getLastActivityAtByProjectId(currentPageMembers);
 
         Long nextCursor = hasNext && !currentPageMembers.isEmpty()
             ? currentPageMembers.get(currentPageMembers.size() - 1).getProject().getId()
@@ -111,7 +115,7 @@ public class ProjectService {
                 previewImageUrlByProjectId.get(projectMember.getProject().getId()),
                 pinnedAtByProjectId.get(projectMember.getProject().getId()),
                 projectMember.getPermission(),
-                resolveLastActivityAt(projectMember.getProject())
+                lastActivityAtByProjectId.get(projectMember.getProject().getId())
             ))
             .toList();
 
@@ -311,6 +315,24 @@ public class ProjectService {
             ));
     }
 
+    private Map<Long, LocalDateTime> getLastActivityAtByProjectId(List<ProjectMember> projectMembers) {
+        List<Long> projectIds = projectMembers.stream()
+            .map(ProjectMember::getProject)
+            .map(Project::getId)
+            .toList();
+
+        if (projectIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return activityLogRepository.findLatestActivityAtByProjectIds(projectIds)
+            .stream()
+            .collect(Collectors.toMap(
+                ProjectLatestActivityProjection::getProjectId,
+                ProjectLatestActivityProjection::getLastActivityAt
+            ));
+    }
+
     private LocalDateTime getProjectCursorPinnedAt(Long userId, Long cursor) {
         if (cursor == null) {
             return null;
@@ -319,10 +341,6 @@ public class ProjectService {
         return projectPinRepository.findByUserIdAndProjectId(userId, cursor)
             .map(ProjectPin::getPinnedAt)
             .orElse(null);
-    }
-
-    private LocalDateTime resolveLastActivityAt(Project project) {
-        return project.getUpdatedAt() != null ? project.getUpdatedAt() : project.getCreatedAt();
     }
 
     private int normalizePageSize(int size) {

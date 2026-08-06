@@ -16,10 +16,14 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
+  flyway:
+    enabled: false
+
 cloud:
   aws:
     s3:
       bucket: test-bucket
+      public-base-url: https://cdn.test.example
 
 youtube:
   api:

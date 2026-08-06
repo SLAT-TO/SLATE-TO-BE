@@ -17,6 +17,7 @@ import com.slatto.domain.sharelink.repository.GuestRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.domain.video.entity.Video;
+import com.slatto.domain.notification.service.NotificationService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +50,7 @@ class FeedbackActivityLogConnectionTest {
     @Mock private TypedQuery<Video> videoQuery;
     @Mock private ProjectMemberRepository projectMemberRepository;
     @Mock private ActivityLogService activityLogService;
+    @Mock private NotificationService notificationService;
 
     private FeedbackService feedbackService;
     private FeedbackDetailService feedbackDetailService;
@@ -63,6 +65,7 @@ class FeedbackActivityLogConnectionTest {
                 entityManagerProvider,
                 projectMemberRepository,
                 feedbackDetailRepository,
+                notificationService,
                 activityLogService
         );
         feedbackDetailService = new FeedbackDetailService(
@@ -72,6 +75,7 @@ class FeedbackActivityLogConnectionTest {
                 guestRepository,
                 feedbackDetailConverter,
                 projectMemberRepository,
+                notificationService,
                 activityLogService
         );
     }
