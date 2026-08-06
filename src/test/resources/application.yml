@@ -24,6 +24,11 @@ spring:
     port: 3025
     username: test@example.com
     password: test-password
+    properties:
+      # 테스트에서 실수로 실제 발송이 일어나도 즉시 실패하게 한다. 없으면 OS 기본 타임아웃까지 블록된다.
+      mail.smtp.connectiontimeout: 500
+      mail.smtp.timeout: 500
+      mail.smtp.writetimeout: 500
 
 cloud:
   aws:
