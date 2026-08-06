@@ -55,7 +55,7 @@ public class RecruitmentConverter {
         boolean isBookmarked,
         RecruitmentApplicationStatus myApplicationStatus,
         RoleName writerPrimaryRole,
-        RegionName writerRegion
+        List<RegionName> writerRegions
     ) {
         LocalDate today = currentDate();
 
@@ -79,7 +79,7 @@ public class RecruitmentConverter {
             .isMine(recruitment.isWriter(currentUserId))
             .hasApplied(myApplicationStatus != null)
             .myApplicationStatus(myApplicationStatus)
-            .writer(toWriterSummary(recruitment.getWriter(), writerPrimaryRole, writerRegion))
+            .writer(toWriterSummary(recruitment.getWriter(), writerPrimaryRole, writerRegions))
             .createdAt(recruitment.getCreatedAt())
             .updatedAt(recruitment.getUpdatedAt())
             .build();
@@ -170,7 +170,7 @@ public class RecruitmentConverter {
     public RecruitmentApplicantListResponse.ApplicantSummary toApplicantSummary(
         RecruitmentApplication application,
         RoleName primaryRole,
-        RegionName region
+        List<RegionName> regions
     ) {
         Users applicant = application.getUser();
 
@@ -185,7 +185,7 @@ public class RecruitmentConverter {
                 .nickname(applicant.getNickname())
                 .profileImageUrl(applicant.getProfileImageUrl())
                 .primaryRole(primaryRole)
-                .location(region)
+                .locations(regions)
                 .build())
             .build();
     }
@@ -278,14 +278,14 @@ public class RecruitmentConverter {
     private RecruitmentDetailResponse.WriterSummary toWriterSummary(
         Users writer,
         RoleName primaryRole,
-        RegionName region
+        List<RegionName> regions
     ) {
         return RecruitmentDetailResponse.WriterSummary.builder()
             .id(writer.getId())
             .nickname(writer.getNickname())
             .profileImageUrl(writer.getProfileImageUrl())
             .primaryRole(primaryRole)
-            .location(region)
+            .locations(regions)
             .build();
     }
 

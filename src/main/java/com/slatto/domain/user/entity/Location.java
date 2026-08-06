@@ -43,8 +43,4 @@ public class Location {
         }
         return new Location(user, regionName);
     }
-
-    public void changeRegion(RegionName regionName) {
-        this.regionName = regionName;
-    }
 }

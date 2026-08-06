@@ -7,13 +7,14 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 public interface LocationRepository extends JpaRepository<Location, Long> {
 
-    Optional<Location> findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(Long userId);
+    List<Location> findAllByUserIdAndRecruitmentIsNullOrderByIdAsc(Long userId);
 
-    // findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc 의 배치판.
+    void deleteByUserIdAndRecruitmentIsNull(Long userId);
+
+    // findAllByUserIdAndRecruitmentIsNullOrderByIdAsc 의 배치판. 유저당 여러 행이 나온다.
     // recruitment is null 이 "유저 활동 지역"의 정의다(공고 촬영 지역이 아니다).
     @Query("""
         select l.user.id, l.regionName
