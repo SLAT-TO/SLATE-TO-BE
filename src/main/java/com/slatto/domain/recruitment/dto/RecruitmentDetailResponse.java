@@ -11,6 +11,7 @@ import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -75,6 +76,6 @@ public class RecruitmentDetailResponse {
 
         private RoleName primaryRole;
 
-        private RegionName location;
+        private List<RegionName> locations;
     }
 }

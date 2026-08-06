@@ -37,7 +37,7 @@ public class RecruitmentApplicantListResponse {
         private ApplicantProfile applicant;
     }
 
-    // 지원자 카드에서만 primaryRole 과 location 을 노출한다. 반드시 배치 조회로 채운다.
+    // 지원자 카드에서만 primaryRole 과 locations 를 노출한다. 반드시 배치 조회로 채운다.
     @Getter
     @Builder
     public static class ApplicantProfile {
@@ -50,6 +50,6 @@ public class RecruitmentApplicantListResponse {
 
         private RoleName primaryRole;
 
-        private RegionName location;
+        private List<RegionName> locations;
     }
 }

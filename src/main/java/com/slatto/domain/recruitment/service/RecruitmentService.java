@@ -73,7 +73,7 @@ public class RecruitmentService {
             false,
             null,
             getPrimaryRole(currentUserId),
-            getUserRegion(currentUserId)
+            getUserRegions(currentUserId)
         );
     }
 
@@ -354,7 +354,7 @@ public class RecruitmentService {
             recruitmentBookmarkRepository.existsByRecruitmentIdAndUserId(recruitmentId, currentUserId),
             getMyApplicationStatus(recruitmentId, currentUserId),
             getPrimaryRole(writerId),
-            getUserRegion(writerId)
+            getUserRegions(writerId)
         );
     }
 
@@ -379,9 +379,10 @@ public class RecruitmentService {
         return roles.isEmpty() ? null : roles.get(0).getRoleName();
     }
 
-    private RegionName getUserRegion(Long userId) {
-        return locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
+    private List<RegionName> getUserRegions(Long userId) {
+        return locationRepository.findAllByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
+            .stream()
             .map(Location::getRegionName)
-            .orElse(null);
+            .toList();
     }
 }
