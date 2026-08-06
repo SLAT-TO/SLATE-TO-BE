@@ -87,12 +87,13 @@ public class RecruitmentController {
 
     @Operation(
         summary = "구인구직 추천 공고 조회",
-        description = "활동 역할·관심 카테고리·활동 지역 매칭도 순으로 정렬한다. 페이지네이션이 없다."
+        description = "활동 역할·관심 카테고리·활동 지역 매칭도 상위 공고 중에서 무작위로 고른다. "
+            + "호출마다 조합이 달라지며 페이지네이션이 없다."
     )
     @GetMapping("/recommended")
     public ApiResponse<RecruitmentRecommendationResponse> getRecommendedRecruitments(
         @AuthenticationPrincipal Long currentUserId,
-        @RequestParam(defaultValue = "10") int size
+        @RequestParam(defaultValue = "4") int size
     ) {
         RecruitmentRecommendationResponse response =
             recruitmentService.getRecommendedRecruitments(currentUserId, size);
