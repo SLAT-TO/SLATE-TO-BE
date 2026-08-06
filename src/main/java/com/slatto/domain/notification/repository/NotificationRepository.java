@@ -103,7 +103,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("readAt") LocalDateTime readAt
     );
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Modifying(flushAutomatically = true)
     @Query("""
         update Notification n
         set n.isRead = true,
