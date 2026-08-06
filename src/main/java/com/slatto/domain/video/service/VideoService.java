@@ -1,6 +1,7 @@
 package com.slatto.domain.video.service;
 
 import com.slatto.domain.project.entity.Project;
+import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.project.enums.LengthType;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.Kind;
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -53,6 +55,7 @@ public class VideoService {
     private final VideoProjectAccessRepository projectAccessRepository;
     private final VideoRepository videoRepository;
     private final VideoBookmarkRepository videoBookmarkRepository;
+    private final NotificationService notificationService;
     private final YoutubeUrlParser youtubeUrlParser;
     private final YoutubeApiClient youtubeApiClient;
 
@@ -192,10 +195,15 @@ public class VideoService {
         Set<Long> bookmarkedVideoIds = videoIds.isEmpty()
                 ? Set.of()
                 : Set.copyOf(videoBookmarkRepository.findBookmarkedVideoIdsByUserIdAndVideoIds(memberId, videoIds));
+        Map<Long, Integer> unreadCommentCounts = notificationService.getUnreadVideoFeedbackCounts(
+                memberId,
+                videoIds
+        );
         List<VideoItemResDTO> items = currentPageVideos.stream()
                 .map(video -> VideoItemResDTO.from(
                         video,
-                        bookmarkedVideoIds.contains(video.getId())
+                        bookmarkedVideoIds.contains(video.getId()),
+                        unreadCommentCounts.getOrDefault(video.getId(), 0) > 0
                 ))
                 .toList();
         Long nextCursor = hasNext && !items.isEmpty() ? items.getLast().videoId() : null;

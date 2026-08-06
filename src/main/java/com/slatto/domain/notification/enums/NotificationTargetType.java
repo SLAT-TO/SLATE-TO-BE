@@ -8,5 +8,7 @@ public enum NotificationTargetType {
     SCHEDULE,
     PROJECT,
     VIDEO,
-    RECRUITMENT
+    RECRUITMENT,
+    NOTICE,
+    PROJECT_FILE
 }

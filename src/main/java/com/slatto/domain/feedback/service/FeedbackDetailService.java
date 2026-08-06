@@ -21,6 +21,8 @@ import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.sharelink.entity.ShareLink;
 import com.slatto.domain.sharelink.exception.ShareLinkErrorCode;
 import com.slatto.domain.sharelink.repository.GuestRepository;
+import com.slatto.domain.notification.service.NotificationService;
+import com.slatto.domain.video.entity.Video;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
@@ -39,6 +41,7 @@ public class FeedbackDetailService {
     private final GuestRepository guestRepository;
     private final FeedbackDetailConverter feedbackDetailConverter;
     private final ProjectMemberRepository projectMemberRepository;
+    private final NotificationService notificationService;
     private final ActivityLogService activityLogService;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
@@ -71,6 +74,12 @@ public class FeedbackDetailService {
         FeedbackDetail reply = feedbackDetailConverter.toFeedbackDetail(feedback, user, guest, req);
         FeedbackDetail saved = feedbackDetailRepository.save(reply);
 
+        // 5. 프로젝트 멤버에게 답글 알림 발송 (작성자 본인은 actorUserId로 제외)
+        //    알림 문구 조합용 작성자명 — 회원이면 유저명, 게스트면 게스트명
+        String commenterName = (user != null) ? user.getNickname() : guest.getName();
+        sendReplyNotification(feedback.getVideo(), userId, commenterName);
+
+        // 6. 최근 활동 로그 기록 (회원/게스트 구분)
         if (user != null) {
             activityLogService.createVideoFeedbackCommentedLog(
                     feedback.getVideo().getProject().getId(),
@@ -88,6 +97,29 @@ public class FeedbackDetailService {
         }
 
         return feedbackDetailConverter.toCreateResponse(saved);
+    }
+
+    // 답글 생성 시 프로젝트 멤버에게 알림 발송
+    // 문구 조합/저장/그룹핑/작성자 제외는 알림 도메인이 처리하므로 재료(영상명·작성자명)만 준비해 호출한다.
+    // 원 피드백의 영상 기준으로 그룹핑되므로 targetId는 videoId가 사용된다.
+    private void sendReplyNotification(Video video, Long actorUserId, String commenterName) {
+        Long projectId = video.getProject().getId();
+
+        // 프로젝트 활성 멤버 전체를 수신자로 (작성자 제외는 actorUserId로 알림 도메인이 처리)
+        List<Long> recipientIds = projectMemberRepository
+                .findAllActiveMembersByProjectId(projectId)
+                .stream()
+                .map(pm -> pm.getUser().getId())
+                .toList();
+
+        notificationService.createVideoFeedbackCommentedNotifications(
+                projectId,
+                video.getId(),
+                video.getTitle(),   // 영상명 → 알림 도메인이 문구 조합에 사용
+                commenterName,       // 작성자명 → 알림 도메인이 문구 조합에 사용
+                recipientIds,
+                actorUserId          // 게스트면 null → 제외 대상 없음
+        );
     }
 
     private void validateWriter(Long userId, Long guestId) {

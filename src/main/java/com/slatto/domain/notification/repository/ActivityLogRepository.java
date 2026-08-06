@@ -31,4 +31,14 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     );
 
     Optional<ActivityLog> findByIdAndProjectId(Long activityId, Long projectId);
+
+    @Query("""
+        select al.project.id as projectId, max(al.createdAt) as lastActivityAt
+        from ActivityLog al
+        where al.project.id in :projectIds
+        group by al.project.id
+        """)
+    List<ProjectLatestActivityProjection> findLatestActivityAtByProjectIds(
+        @Param("projectIds") List<Long> projectIds
+    );
 }
