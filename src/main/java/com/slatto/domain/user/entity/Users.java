@@ -71,6 +71,22 @@ public class Users extends BaseEntity{
         return new Users(email, nickname, profileImageUrl, socialType, socialId);
     }
 
+    public static Users createEmailUser(String email, String nickname, String encodedPassword) {
+        Users user = new Users(email, nickname, null, SocialType.EMAIL, null);
+        user.password = encodedPassword;
+
+        return user;
+    }
+
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    // 소셜로만 가입해 비밀번호가 없는 계정과 이메일 가입 계정을 구분한다.
+    public boolean hasPassword() {
+        return password != null;
+    }
+
     public void linkSocialAccount(SocialType socialType, String socialId) {
         this.socialType = socialType;
         this.socialId = socialId;
