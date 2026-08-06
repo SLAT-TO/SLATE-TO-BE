@@ -4,8 +4,9 @@
 ALTER TABLE project_member
     DROP COLUMN IF EXISTS last_activity_read_at;
 
--- Flyway 호환성: PREPARE/EXECUTE 대신 직접 조건부 생성
-CREATE INDEX IF NOT EXISTS idx_activity_log_project_created_id 
+-- MySQL 8.0 호환: DROP 후 CREATE (CREATE IF NOT EXISTS는 MySQL 8.0.13+에서만 지원)
+DROP INDEX IF EXISTS idx_activity_log_project_created_id ON activity_log;
+CREATE INDEX idx_activity_log_project_created_id 
     ON activity_log (project_id, created_at, id);
 
 CREATE TABLE project_activity_read (
