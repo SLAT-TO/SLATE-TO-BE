@@ -24,7 +24,7 @@ public class UserMeResponse {
 
     private String bio;
 
-    private RegionName region;
+    private List<RegionName> regions;
 
     private SocialType socialType;
 

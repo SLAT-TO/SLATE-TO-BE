@@ -20,7 +20,7 @@ public class UserPublicProfileResponse {
 
     private String bio;
 
-    private RegionName location;
+    private List<RegionName> locations;
 
     private RoleName primaryRole;
 
