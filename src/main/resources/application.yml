@@ -4,8 +4,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 100MB
-      max-request-size: 105MB
+      max-file-size: 10MB
+      max-request-size: 10MB
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -23,6 +23,13 @@ spring:
       hibernate:
         format_sql: true
 
+  flyway:
+    # 기존 운영/개발 DB는 수동 반영된 V8 스키마를 기준점으로 등록한 뒤 이후 변경만 적용한다.
+    baseline-on-migrate: true
+    baseline-version: 8
+    baseline-description: legacy-schema
+    validate-on-migrate: true
+
 server:
   forward-headers-strategy: framework
 
@@ -36,6 +43,7 @@ cloud:
   aws:
     s3:
       bucket: ${CLOUD_AWS_S3_BUCKET}
+      public-base-url: ${CLOUD_AWS_S3_PUBLIC_BASE_URL:}
 
 youtube:
   api:

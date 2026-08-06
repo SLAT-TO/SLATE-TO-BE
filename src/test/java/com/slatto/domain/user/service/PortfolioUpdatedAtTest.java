@@ -16,12 +16,14 @@ import com.slatto.domain.user.repository.UserPortfolioRepository;
 import com.slatto.domain.user.repository.UserPortfolioRoleRepository;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.domain.video.util.YoutubeUrlParser;
+import com.slatto.global.storage.StorageService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
@@ -40,6 +42,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PortfolioUpdatedAtTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    // UserService가 프로필 이미지 업로드용 StorageService를 의존하므로, 이 JPA 슬라이스에서는 빈만 제공한다.
+    @MockBean
+    private StorageService storageService;
 
     @Autowired
     private PortfolioService portfolioService;

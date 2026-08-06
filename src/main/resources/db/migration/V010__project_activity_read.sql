@@ -1,8 +1,24 @@
 -- 프로젝트 멤버별 최근활동 읽음 상태를 활동 로그 단위로 저장한다.
--- 기존 확인 시각 컬럼이 적용된 DB에서는 개별 읽음 테이블로 전환한다.
+-- 이전 확인 시각 방식이 일부 DB에 반영된 경우를 함께 정리한다.
 
 ALTER TABLE project_member
     DROP COLUMN IF EXISTS last_activity_read_at;
+
+SET @activity_log_index_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'activity_log'
+      AND index_name = 'idx_activity_log_project_created_id'
+);
+SET @create_activity_log_index = IF(
+    @activity_log_index_exists = 0,
+    'CREATE INDEX idx_activity_log_project_created_id ON activity_log (project_id, created_at, id)',
+    'SELECT 1'
+);
+PREPARE activity_log_index_statement FROM @create_activity_log_index;
+EXECUTE activity_log_index_statement;
+DEALLOCATE PREPARE activity_log_index_statement;
 
 CREATE TABLE project_activity_read (
     id BIGINT NOT NULL AUTO_INCREMENT,
