@@ -461,6 +461,7 @@ public class NotificationService {
     @Transactional
     public void createFileUploadedNotifications(
         Long projectId,
+        Long fileId,
         String projectTitle,
         String fileName,
         String uploaderName,
@@ -468,6 +469,7 @@ public class NotificationService {
         Long actorUserId
     ) {
         validateRequiredId(projectId);
+        validateRequiredId(fileId);
         validateRequiredId(actorUserId);
         validateRequiredText(projectTitle);
         validateRequiredText(fileName);
@@ -480,7 +482,7 @@ public class NotificationService {
             .title(createFileUploadedTitle(projectTitle))
             .content(createFileUploadedContent(fileName, uploaderName))
             .targetType(NotificationTargetType.PROJECT_FILE)
-            .targetId(projectId)
+            .targetId(fileId)
             .excludeUserId(actorUserId)
             .build());
     }

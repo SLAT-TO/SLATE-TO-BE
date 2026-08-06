@@ -129,6 +129,7 @@ public class ProjectFileService {
         activityLogService.createFileUploadedLog(projectId, currentUserId, savedFile.getId(), savedFile.getFileName());
         notificationService.createFileUploadedNotifications(
             projectId,
+            savedFile.getId(),
             project.getTitle(),
             savedFile.getFileName(),
             currentMember.getUser().getNickname(),
