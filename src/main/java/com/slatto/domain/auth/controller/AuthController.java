@@ -1,6 +1,9 @@
 package com.slatto.domain.auth.controller;
 
 import com.slatto.domain.auth.dto.AccessTokenResponse;
+import com.slatto.domain.auth.dto.EmailAuthResponse;
+import com.slatto.domain.auth.dto.EmailLoginRequest;
+import com.slatto.domain.auth.dto.EmailSignupRequest;
 import com.slatto.domain.auth.dto.EmailVerificationConfirmRequest;
 import com.slatto.domain.auth.dto.EmailVerificationConfirmResponse;
 import com.slatto.domain.auth.dto.EmailVerificationSendRequest;
@@ -104,6 +107,53 @@ public class AuthController {
 	}
 
 	@Operation(
+		summary = "이메일 회원가입",
+		description = """
+			이메일 인증을 마친 사용자의 계정을 생성하고 즉시 로그인 상태로 만든다.
+			액세스 토큰은 본문으로, 리프레시 토큰은 HttpOnly 쿠키로 내려간다.
+
+			`onboardingCompleted`는 항상 `false`다. 이어서 온보딩 화면으로 이동한다.
+			약관 동의는 이 API 가 아니라 온보딩 API 가 받는다.
+			"""
+	)
+	@SecurityRequirements
+	@PostMapping("/signup")
+	public ResponseEntity<ApiResponse<EmailAuthResponse>> signup(
+		@Valid @RequestBody EmailSignupRequest request
+	) {
+		AuthService.EmailAuthResult result = authService.signup(
+			request.name(), request.email(), request.password()
+		);
+
+		return ResponseEntity
+			.status(HttpStatus.CREATED)
+			.header(HttpHeaders.SET_COOKIE, refreshTokenCookie(result))
+			.body(ApiResponse.success(CommonSuccessCode.CREATED, toEmailAuthResponse(result)));
+	}
+
+	@Operation(
+		summary = "이메일 로그인",
+		description = """
+			이메일과 비밀번호로 로그인한다.
+			액세스 토큰은 본문으로, 리프레시 토큰은 HttpOnly 쿠키로 내려간다.
+
+			이메일 미존재·비밀번호 불일치·소셜 전용 계정을 구분하지 않고 모두 같은 401 을 반환한다.
+			"""
+	)
+	@SecurityRequirements
+	@PostMapping("/login")
+	public ResponseEntity<ApiResponse<EmailAuthResponse>> login(
+		@Valid @RequestBody EmailLoginRequest request
+	) {
+		AuthService.EmailAuthResult result = authService.login(request.email(), request.password());
+
+		return ResponseEntity
+			.ok()
+			.header(HttpHeaders.SET_COOKIE, refreshTokenCookie(result))
+			.body(ApiResponse.success(CommonSuccessCode.OK, toEmailAuthResponse(result)));
+	}
+
+	@Operation(
 		summary = "이메일 인증번호 발송",
 		description = """
 			입력한 이메일로 6자리 인증번호를 발송한다. 인증번호는 5분간 유효하다.
@@ -157,6 +207,16 @@ public class AuthController {
 			.ok()
 			.header(HttpHeaders.SET_COOKIE, authCookieFactory.expiredRefreshToken().toString())
 			.body(ApiResponse.<Void>success(CommonSuccessCode.OK, null));
+	}
+
+	private String refreshTokenCookie(AuthService.EmailAuthResult result) {
+		return authCookieFactory
+			.refreshToken(result.refreshToken(), result.refreshTokenMaxAgeSeconds())
+			.toString();
+	}
+
+	private EmailAuthResponse toEmailAuthResponse(AuthService.EmailAuthResult result) {
+		return new EmailAuthResponse(result.userId(), result.accessToken(), result.onboardingCompleted());
 	}
 
 }
