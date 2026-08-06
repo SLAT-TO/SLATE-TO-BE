@@ -88,7 +88,8 @@ public class RecruitmentController {
     @Operation(
         summary = "구인구직 추천 공고 조회",
         description = "활동 역할·관심 카테고리·활동 지역 매칭도 상위 공고 중에서 무작위로 고른다. "
-            + "호출마다 조합이 달라지며 페이지네이션이 없다."
+            + "호출마다 구성이 달라질 수 있으나 같은 조합이 다시 나올 수 있고, "
+            + "대상 공고가 요청 개수 이하이면 항상 같은 공고가 반환된다. 페이지네이션이 없다."
     )
     @GetMapping("/recommended")
     public ApiResponse<RecruitmentRecommendationResponse> getRecommendedRecruitments(

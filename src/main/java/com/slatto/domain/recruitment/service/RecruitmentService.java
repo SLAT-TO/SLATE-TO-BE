@@ -200,7 +200,8 @@ public class RecruitmentService {
     }
 
     // 매칭 가중치는 쿼리가 계산한다. 온보딩 미완료 유저는 전 조건이 0점이라 최신순으로 자동 폴백된다.
-    // 호출마다 다른 조합을 주기 위해 상위 매칭 공고를 풀로 받아 섞은 뒤 잘라낸다.
+    // 매번 같은 결과가 나오지 않도록 상위 매칭 공고를 풀로 받아 섞은 뒤 잘라낸다.
+    // 무작위 추출이라 직전 호출과 겹칠 수 있고, 대상 공고가 요청 개수 이하면 항상 같은 조합이다.
     // order by RAND() 를 쓰면 매칭 정렬이 무너지고 MySQL 이 전체 정렬을 돌린다.
     public RecruitmentRecommendationResponse getRecommendedRecruitments(Long currentUserId, int size) {
         LocalDate today = recruitmentConverter.currentDate();
