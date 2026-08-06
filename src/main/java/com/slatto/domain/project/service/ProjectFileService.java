@@ -1,6 +1,7 @@
 package com.slatto.domain.project.service;
 
 import com.slatto.domain.notification.service.ActivityLogService;
+import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
 import com.slatto.domain.project.dto.ProjectFileResponse;
 import com.slatto.domain.project.dto.ProjectFileListResponse;
@@ -12,6 +13,7 @@ import com.slatto.domain.project.entity.ProjectFile;
 import com.slatto.domain.project.entity.ProjectMember;
 import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectFileRepository;
+import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
@@ -53,8 +55,10 @@ public class ProjectFileService {
 
     private final ProjectFileRepository projectFileRepository;
     private final ProjectAccessValidator projectAccessValidator;
+    private final ProjectMemberRepository projectMemberRepository;
     private final StorageService storageService;
     private final ActivityLogService activityLogService;
+    private final NotificationService notificationService;
 
     public ProjectFileListResponse getProjectFiles(
         Long projectId,
@@ -123,6 +127,15 @@ public class ProjectFileService {
 
         ProjectFile savedFile = projectFileRepository.save(projectFile);
         activityLogService.createFileUploadedLog(projectId, currentUserId, savedFile.getId(), savedFile.getFileName());
+        notificationService.createFileUploadedNotifications(
+            projectId,
+            savedFile.getId(),
+            project.getTitle(),
+            savedFile.getFileName(),
+            currentMember.getUser().getNickname(),
+            getActiveProjectMemberUserIds(projectId),
+            currentUserId
+        );
 
         return toResponse(savedFile);
     }
@@ -319,6 +332,14 @@ public class ProjectFileService {
         }
 
         return Math.min(size, MAX_PAGE_SIZE);
+    }
+
+    private List<Long> getActiveProjectMemberUserIds(Long projectId) {
+        return projectMemberRepository.findAllActiveMembersByProjectId(projectId)
+            .stream()
+            .map(ProjectMember::getUser)
+            .map(Users::getId)
+            .toList();
     }
 
     private ProjectFileResponse toResponse(ProjectFile projectFile) {
