@@ -211,6 +211,15 @@ public class ScheduleService {
             writer.getId()
         );
         if (savedSchedule.isProjectSchedule()) {
+            notificationService.createScheduleCreatedNotifications(
+                project.getId(),
+                savedSchedule.getId(),
+                project.getTitle(),
+                savedSchedule.getTitle(),
+                writer.getNickname(),
+                getActiveProjectMemberUserIds(project.getId()),
+                writer.getId()
+            );
             activityLogService.createScheduleCreatedLog(
                 project.getId(),
                 currentUserId,
@@ -374,6 +383,14 @@ public class ScheduleService {
 
         return uniqueParticipantIds.stream()
             .map(usersById::get)
+            .toList();
+    }
+
+    private List<Long> getActiveProjectMemberUserIds(Long projectId) {
+        return projectMemberRepository.findAllActiveMembersByProjectId(projectId)
+            .stream()
+            .map(ProjectMember::getUser)
+            .map(Users::getId)
             .toList();
     }
 
