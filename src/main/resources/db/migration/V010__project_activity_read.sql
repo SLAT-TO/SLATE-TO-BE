@@ -4,21 +4,10 @@
 ALTER TABLE project_member
     DROP COLUMN IF EXISTS last_activity_read_at;
 
-SET @activity_log_index_exists = (
-    SELECT COUNT(*)
-    FROM information_schema.statistics
-    WHERE table_schema = DATABASE()
-      AND table_name = 'activity_log'
-      AND index_name = 'idx_activity_log_project_created_id'
-);
-SET @create_activity_log_index = IF(
-    @activity_log_index_exists = 0,
-    'CREATE INDEX idx_activity_log_project_created_id ON activity_log (project_id, created_at, id)',
-    'SELECT 1'
-);
-PREPARE activity_log_index_statement FROM @create_activity_log_index;
-EXECUTE activity_log_index_statement;
-DEALLOCATE PREPARE activity_log_index_statement;
+-- MySQL 8.0 호환: DROP 후 CREATE (CREATE IF NOT EXISTS는 MySQL 8.0.13+에서만 지원)
+DROP INDEX IF EXISTS idx_activity_log_project_created_id ON activity_log;
+CREATE INDEX idx_activity_log_project_created_id 
+    ON activity_log (project_id, created_at, id);
 
 CREATE TABLE project_activity_read (
     id BIGINT NOT NULL AUTO_INCREMENT,

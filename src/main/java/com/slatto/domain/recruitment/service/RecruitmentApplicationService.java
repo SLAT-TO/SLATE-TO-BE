@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -115,13 +116,13 @@ public class RecruitmentApplicationService {
             .map(application -> application.getUser().getId())
             .toList();
         Map<Long, RoleName> primaryRoleByUserId = getPrimaryRoleByUserId(applicantIds);
-        Map<Long, RegionName> regionByUserId = getRegionByUserId(applicantIds);
+        Map<Long, List<RegionName>> regionsByUserId = getRegionsByUserId(applicantIds);
 
         List<RecruitmentApplicantListResponse.ApplicantSummary> items = currentPage.stream()
             .map(application -> recruitmentConverter.toApplicantSummary(
                 application,
                 primaryRoleByUserId.get(application.getUser().getId()),
-                regionByUserId.get(application.getUser().getId())
+                regionsByUserId.getOrDefault(application.getUser().getId(), List.of())
             ))
             .toList();
 
@@ -288,17 +289,18 @@ public class RecruitmentApplicationService {
         return primaryRoleByUserId;
     }
 
-    private Map<Long, RegionName> getRegionByUserId(Collection<Long> userIds) {
+    private Map<Long, List<RegionName>> getRegionsByUserId(Collection<Long> userIds) {
         if (userIds.isEmpty()) {
             return Map.of();
         }
 
-        Map<Long, RegionName> regionByUserId = new HashMap<>();
+        Map<Long, List<RegionName>> regionsByUserId = new HashMap<>();
         for (Object[] row : locationRepository.findUserRegionRowsByUserIds(userIds)) {
-            regionByUserId.putIfAbsent((Long) row[0], (RegionName) row[1]);
+            regionsByUserId.computeIfAbsent((Long) row[0], key -> new ArrayList<>())
+                .add((RegionName) row[1]);
         }
 
-        return regionByUserId;
+        return regionsByUserId;
     }
 
     private int normalizePageSize(int size) {

@@ -23,7 +23,8 @@ public class UserProfileUpdateRequest {
 
     private String bio;
 
-    private RegionName location;
+    @Size(min = 1, message = "활동 지역은 1개 이상 선택해야 합니다.")
+    private List<@NotNull(message = "활동 지역은 필수입니다.") RegionName> locations;
 
     @Size(min = 1, message = "활동 역할은 1개 이상 선택해야 합니다.")
     private List<@NotNull(message = "활동 역할은 필수입니다.") RoleName> roles;

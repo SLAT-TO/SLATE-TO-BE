@@ -74,17 +74,13 @@ public class UserService {
             .map(UserCategory::getCategoryName)
             .toList();
 
-        RegionName region = locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
-            .map(Location::getRegionName)
-            .orElse(null);
-
         return UserMeResponse.builder()
             .id(user.getId())
             .email(user.getEmail())
             .nickname(user.getNickname())
             .profileImageUrl(user.getProfileImageUrl())
             .bio(user.getBio())
-            .region(region)
+            .regions(getUserRegions(userId))
             .socialType(user.getSocialType())
             .primaryRole(roles.isEmpty() ? null : roles.get(0))
             .roles(roles)
@@ -119,7 +115,12 @@ public class UserService {
             .toList();
         userCategoryRepository.saveAll(categories);
 
-        locationRepository.save(Location.createUserLocation(user, request.getRegion()));
+        List<Location> locations = request.getRegions()
+            .stream()
+            .distinct()
+            .map(regionName -> Location.createUserLocation(user, regionName))
+            .toList();
+        locationRepository.saveAll(locations);
 
         userRepository.flush();
 
@@ -166,17 +167,22 @@ public class UserService {
             userCategoryRepository.saveAll(categories);
         }
 
-        if (request.getLocation() != null) {
-            locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
-                .ifPresentOrElse(
-                    location -> location.changeRegion(request.getLocation()),
-                    () -> locationRepository.save(Location.createUserLocation(user, request.getLocation()))
-                );
+        // 부분 갱신이 아니라 전체 교체다. 남은 행을 지우지 않으면 지역이 계속 누적된다.
+        if (request.getLocations() != null) {
+            locationRepository.deleteByUserIdAndRecruitmentIsNull(userId);
+            locationRepository.flush();
+
+            List<Location> locations = request.getLocations()
+                .stream()
+                .distinct()
+                .map(regionName -> Location.createUserLocation(user, regionName))
+                .toList();
+            locationRepository.saveAll(locations);
         }
 
         boolean associationChanged = request.getRoles() != null
             || request.getCategories() != null
-            || request.getLocation() != null;
+            || request.getLocations() != null;
         if (associationChanged) {
             user.markUpdated();
         }
@@ -193,16 +199,12 @@ public class UserService {
             .map(UserCategory::getCategoryName)
             .toList();
 
-        RegionName region = locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
-            .map(Location::getRegionName)
-            .orElse(null);
-
         return UserProfileUpdateResponse.builder()
             .id(user.getId())
             .nickname(user.getNickname())
             .profileImageUrl(user.getProfileImageUrl())
             .bio(user.getBio())
-            .location(region)
+            .locations(getUserRegions(userId))
             .primaryRole(roles.isEmpty() ? null : roles.get(0))
             .roles(roles)
             .categories(categories)
@@ -250,21 +252,24 @@ public class UserService {
             .map(UserCategory::getCategoryName)
             .toList();
 
-        RegionName region = locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
-            .map(Location::getRegionName)
-            .orElse(null);
-
         return UserPublicProfileResponse.builder()
             .id(user.getId())
             .nickname(user.getNickname())
             .profileImageUrl(user.getProfileImageUrl())
             .bio(user.getBio())
-            .location(region)
+            .locations(getUserRegions(userId))
             .primaryRole(roles.isEmpty() ? null : roles.get(0))
             .roles(roles)
             .categories(categories)
             .stats(UserPublicProfileResponse.Stats.empty())
             .build();
+    }
+
+    private List<RegionName> getUserRegions(Long userId) {
+        return locationRepository.findAllByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
+            .stream()
+            .map(Location::getRegionName)
+            .toList();
     }
 
     private void validateProfileImage(MultipartFile file) {

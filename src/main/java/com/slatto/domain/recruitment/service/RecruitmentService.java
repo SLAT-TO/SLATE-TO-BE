@@ -35,6 +35,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,8 +49,11 @@ public class RecruitmentService {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;
-    private static final int DEFAULT_RECOMMENDATION_SIZE = 10;
+    private static final int DEFAULT_RECOMMENDATION_SIZE = 4;
     private static final int MAX_RECOMMENDATION_SIZE = 20;
+    // 풀이 클수록 직전 호출과 겹칠 확률이 낮아지고, 대신 매칭도가 낮은 공고까지 후보에 들어온다.
+    private static final int RECOMMENDATION_POOL_MULTIPLIER = 5;
+    private static final int MAX_RECOMMENDATION_POOL_SIZE = 40;
 
     private final RecruitmentRepository recruitmentRepository;
     private final RecruitmentApplicationRepository recruitmentApplicationRepository;
@@ -73,7 +78,7 @@ public class RecruitmentService {
             false,
             null,
             getPrimaryRole(currentUserId),
-            getUserRegion(currentUserId)
+            getUserRegions(currentUserId)
         );
     }
 
@@ -195,13 +200,24 @@ public class RecruitmentService {
     }
 
     // 매칭 가중치는 쿼리가 계산한다. 온보딩 미완료 유저는 전 조건이 0점이라 최신순으로 자동 폴백된다.
+    // 매번 같은 결과가 나오지 않도록 상위 매칭 공고를 풀로 받아 섞은 뒤 잘라낸다.
+    // 무작위 추출이라 직전 호출과 겹칠 수 있고, 대상 공고가 요청 개수 이하면 항상 같은 조합이다.
+    // order by RAND() 를 쓰면 매칭 정렬이 무너지고 MySQL 이 전체 정렬을 돌린다.
     public RecruitmentRecommendationResponse getRecommendedRecruitments(Long currentUserId, int size) {
         LocalDate today = recruitmentConverter.currentDate();
-        List<Recruitment> recruitments = recruitmentRepository.findRecommended(
+        int recommendationSize = normalizeRecommendationSize(size);
+
+        // JPA 가 돌려준 리스트를 그대로 섞지 않는다.
+        List<Recruitment> pool = new ArrayList<>(recruitmentRepository.findRecommended(
             currentUserId,
             today,
-            PageRequest.of(0, normalizeRecommendationSize(size))
-        );
+            PageRequest.of(0, resolveRecommendationPoolSize(recommendationSize))
+        ));
+        Collections.shuffle(pool);
+
+        List<Recruitment> recruitments = pool.stream()
+            .limit(recommendationSize)
+            .toList();
 
         Set<Long> bookmarkedIds = getBookmarkedRecruitmentIds(currentUserId, recruitments);
 
@@ -343,6 +359,10 @@ public class RecruitmentService {
         return Math.min(size, MAX_RECOMMENDATION_SIZE);
     }
 
+    private int resolveRecommendationPoolSize(int recommendationSize) {
+        return Math.min(recommendationSize * RECOMMENDATION_POOL_MULTIPLIER, MAX_RECOMMENDATION_POOL_SIZE);
+    }
+
     private RecruitmentDetailResponse buildDetailResponse(Recruitment recruitment, Long currentUserId) {
         Long recruitmentId = recruitment.getId();
         Long writerId = recruitment.getWriter().getId();
@@ -354,7 +374,7 @@ public class RecruitmentService {
             recruitmentBookmarkRepository.existsByRecruitmentIdAndUserId(recruitmentId, currentUserId),
             getMyApplicationStatus(recruitmentId, currentUserId),
             getPrimaryRole(writerId),
-            getUserRegion(writerId)
+            getUserRegions(writerId)
         );
     }
 
@@ -379,9 +399,10 @@ public class RecruitmentService {
         return roles.isEmpty() ? null : roles.get(0).getRoleName();
     }
 
-    private RegionName getUserRegion(Long userId) {
-        return locationRepository.findFirstByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
+    private List<RegionName> getUserRegions(Long userId) {
+        return locationRepository.findAllByUserIdAndRecruitmentIsNullOrderByIdAsc(userId)
+            .stream()
             .map(Location::getRegionName)
-            .orElse(null);
+            .toList();
     }
 }
