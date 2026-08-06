@@ -209,11 +209,16 @@ public class TodayBriefingService {
     }
 
     private boolean isScheduleEndDate(Schedule schedule, LocalDate date) {
-        return schedule.getEndAt().toLocalDate().isEqual(date);
+        return getInclusiveEndDate(schedule).isEqual(date);
     }
 
     private boolean isMultiDaySchedule(Schedule schedule) {
-        return !schedule.getStartAt().toLocalDate().isEqual(schedule.getEndAt().toLocalDate());
+        return !schedule.getStartAt().toLocalDate().isEqual(getInclusiveEndDate(schedule));
+    }
+
+    private LocalDate getInclusiveEndDate(Schedule schedule) {
+        // endAt은 종료 경계값이므로 00:00 종료 일정은 전날까지 진행된 일정으로 본다.
+        return schedule.getEndAt().minusNanos(1).toLocalDate();
     }
 
     private Long getProjectId(Project project) {
