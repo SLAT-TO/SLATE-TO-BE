@@ -29,8 +29,8 @@ public class UserOnboardingRequest {
     @NotEmpty(message = "활동 역할은 1개 이상 선택해야 합니다.")
     private List<@NotNull(message = "활동 역할은 필수입니다.") RoleName> roles;
 
-    @NotNull(message = "활동 지역은 필수입니다.")
-    private RegionName region;
+    @NotEmpty(message = "활동 지역은 1개 이상 선택해야 합니다.")
+    private List<@NotNull(message = "활동 지역은 필수입니다.") RegionName> regions;
 
     @NotEmpty(message = "관심 카테고리는 1개 이상 선택해야 합니다.")
     private List<@NotNull(message = "관심 카테고리는 필수입니다.") CategoryName> categories;
