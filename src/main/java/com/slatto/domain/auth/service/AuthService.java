@@ -5,6 +5,7 @@ import com.slatto.domain.auth.client.dto.GoogleTokenResponse;
 import com.slatto.domain.auth.client.dto.GoogleUserInfo;
 import com.slatto.domain.auth.dto.AccessTokenResponse;
 import com.slatto.domain.auth.entity.RefreshToken;
+import com.slatto.domain.auth.enums.VerificationPurpose;
 import com.slatto.domain.auth.exception.AuthErrorCode;
 import com.slatto.domain.auth.repository.RefreshTokenRepository;
 import com.slatto.domain.auth.support.GoogleAuthFailureReason;
@@ -19,6 +20,7 @@ import com.slatto.global.exception.BaseException;
 import com.slatto.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,10 +32,17 @@ import java.time.LocalDateTime;
 @Transactional(readOnly = true)
 public class AuthService {
 
+	// 존재하지 않는 이메일이면 해시 비교를 건너뛰어 응답이 빨라진다. 그 시간 차이만으로 가입 여부가 드러나므로
+	// 항상 한 번은 비교한다. 이 값은 결과가 버려지는 자리에만 쓴다.
+	private static final String DUMMY_PASSWORD_HASH =
+		"$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
 	private final GoogleOAuthClient googleOAuthClient;
 	private final UserRepository userRepository;
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final NotificationSettingRepository notificationSettingRepository;
+	private final EmailVerificationService emailVerificationService;
+	private final PasswordEncoder passwordEncoder;
 	private final JwtTokenProvider jwtTokenProvider;
 	private final FrontendProperties frontendProperties;
 
@@ -84,6 +93,62 @@ public class AuthService {
 		);
 	}
 
+	// 인증 확인을 중복 검사보다 먼저 한다. 순서를 뒤집으면 인증 없이 아무 이메일이나 넣어보고
+	// 409 인지 400 인지로 가입 여부를 알아낼 수 있다.
+	@Transactional
+	public EmailAuthResult signup(String name, String email, String rawPassword) {
+		emailVerificationService.consumeVerified(email, VerificationPurpose.SIGNUP);
+
+		userRepository.findByEmail(email).ifPresent(existing -> {
+			throw new BaseException(existing.hasPassword()
+				? AuthErrorCode.SIGNUP_DUPLICATE_EMAIL
+				: AuthErrorCode.SIGNUP_SOCIAL_ACCOUNT_EXISTS);
+		});
+
+		Users user = userRepository.save(
+			Users.createEmailUser(email, name, passwordEncoder.encode(rawPassword))
+		);
+		notificationSettingRepository.save(NotificationSetting.createDefault(user));
+
+		return toEmailAuthResult(user);
+	}
+
+	@Transactional
+	public EmailAuthResult login(String email, String rawPassword) {
+		Users user = userRepository.findByEmail(email)
+			.filter(it -> it.getDeletedAt() == null)
+			.orElse(null);
+
+		boolean hasPassword = user != null && user.hasPassword();
+		boolean matched = passwordEncoder.matches(
+			rawPassword,
+			hasPassword ? user.getPassword() : DUMMY_PASSWORD_HASH
+		);
+
+		// 미존재·비밀번호 불일치·소셜 전용 계정을 구분하지 않는다.
+		// "구글로 가입된 계정입니다" 같은 안내는 이메일 열거를 그대로 허용한다.
+		if (!hasPassword || !matched) {
+			throw new BaseException(AuthErrorCode.LOGIN_FAILED);
+		}
+
+		return toEmailAuthResult(user);
+	}
+
+	@Transactional
+	public void resetPassword(String email, String newRawPassword) {
+		emailVerificationService.consumeVerified(email, VerificationPurpose.PASSWORD_RESET);
+
+		// 계정이 없으면 인증 메일 자체가 나가지 않으므로 여기까지 올 수 없다. 방어적으로 같은 코드를 쓴다.
+		Users user = userRepository.findByEmail(email)
+			.filter(it -> it.getDeletedAt() == null)
+			.orElseThrow(() -> new BaseException(AuthErrorCode.EMAIL_NOT_VERIFIED));
+
+		user.changePassword(passwordEncoder.encode(newRawPassword));
+
+		// 비밀번호가 유출돼 재설정하는 상황을 가정한다. 살아 있는 세션을 끊지 않으면 의미가 없다.
+		refreshTokenRepository.deleteByUser(user);
+	}
+
 	// TODO: 리프레시 토큰 회전(rotation) 도입 시 여기서 기존 토큰을 폐기하고 새 토큰을 발급해
 	//       AccessTokenResponse와 함께 Set-Cookie로 다시 내려줘야 한다.
 	@Transactional(readOnly = true)
@@ -131,6 +196,16 @@ public class AuthService {
 			});
 	}
 
+	private EmailAuthResult toEmailAuthResult(Users user) {
+		return new EmailAuthResult(
+			user.getId(),
+			jwtTokenProvider.createAccessToken(user.getId()),
+			user.getOnboardingCompleted(),
+			issueRefreshToken(user),
+			jwtTokenProvider.refreshTokenMaxAgeSeconds()
+		);
+	}
+
 	private String issueRefreshToken(Users user) {
 		refreshTokenRepository.deleteByUser(user);
 
@@ -148,6 +223,15 @@ public class AuthService {
 	}
 
 	public record GoogleLoginEntry(String authorizationUri, OAuthState state) {
+	}
+
+	public record EmailAuthResult(
+		Long userId,
+		String accessToken,
+		Boolean onboardingCompleted,
+		String refreshToken,
+		long refreshTokenMaxAgeSeconds
+	) {
 	}
 
 	public record GoogleCallbackResult(String redirectUri, String refreshToken, long refreshTokenMaxAgeSeconds) {
