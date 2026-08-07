@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -147,7 +148,7 @@ public class ProjectNoticeService {
         projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
         getActiveNoticeOrThrow(projectId, noticeId);
 
-        projectNoticeReadRepository.upsertRead(noticeId, currentUserId);
+        projectNoticeReadRepository.upsertRead(noticeId, currentUserId, LocalDateTime.now());
         ProjectNoticeRead projectNoticeRead = projectNoticeReadRepository
             .findByNoticeIdAndUserId(noticeId, currentUserId)
             .orElseThrow(() -> new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR));

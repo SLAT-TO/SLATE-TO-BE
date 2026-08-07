@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -20,11 +21,12 @@ public interface RecruitmentBookmarkRepository extends JpaRepository<Recruitment
     @Query(value = """
         INSERT IGNORE INTO recruitment_bookmark
             (user_id, recruitment_id, created_at, updated_at)
-        VALUES (:userId, :recruitmentId, NOW(6), NOW(6))
+        VALUES (:userId, :recruitmentId, :now, :now)
         """, nativeQuery = true)
     void insertIgnore(
         @Param("userId") Long userId,
-        @Param("recruitmentId") Long recruitmentId
+        @Param("recruitmentId") Long recruitmentId,
+        @Param("now") LocalDateTime now
     );
 
     @Modifying
