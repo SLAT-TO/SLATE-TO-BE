@@ -15,6 +15,7 @@ import com.slatto.domain.project.repository.ProjectInvitationRepository;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.notification.service.ActivityLogService;
+import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.UserRepository;
@@ -50,6 +51,7 @@ public class ProjectInvitationService {
     private final ProjectAccessValidator projectAccessValidator;
     private final ProjectInvitationProperties projectInvitationProperties;
     private final ActivityLogService activityLogService;
+    private final NotificationService notificationService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -117,6 +119,12 @@ public class ProjectInvitationService {
         saveProjectRoles(projectMember, roleNames);
         projectInvitation.accept(accepter);
         activityLogService.createProjectMemberJoinedLog(project.getId(), accepter.getId());
+        notificationService.createProjectJoinedNotifications(
+            project.getId(),
+            project.getTitle(),
+            accepter.getNickname(),
+            getActiveProjectMemberUserIds(project.getId())
+        );
 
         return ProjectInvitationAcceptResponse.builder()
             .projectId(project.getId())
@@ -132,6 +140,14 @@ public class ProjectInvitationService {
             .toList();
 
         projectUserRoleRepository.saveAll(projectUserRoles);
+    }
+
+    private List<Long> getActiveProjectMemberUserIds(Long projectId) {
+        return projectMemberRepository.findAllActiveMembersByProjectId(projectId)
+            .stream()
+            .map(ProjectMember::getUser)
+            .map(Users::getId)
+            .toList();
     }
 
     private void validateAcceptableInvitation(ProjectInvitation projectInvitation) {
