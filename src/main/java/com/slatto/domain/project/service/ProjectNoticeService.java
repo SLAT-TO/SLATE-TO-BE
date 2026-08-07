@@ -109,8 +109,22 @@ public class ProjectNoticeService {
             getActiveProjectMemberUserIds(projectId),
             currentUserId
         );
+        // 작성자 본인에게는 자기가 쓴 공지가 처음부터 읽음이어야 한다.
+        // 방금 만든 공지라 중복 행이 있을 수 없으므로 upsert 없이 그냥 저장한다.
+        projectNoticeReadRepository.save(ProjectNoticeRead.create(savedNotice, currentMember.getUser()));
 
-        return toResponse(savedNotice, false);
+        return toResponse(savedNotice, true);
+    }
+
+    public ProjectNoticeResponse getProjectNotice(Long projectId, Long noticeId, Long currentUserId) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.validateProjectAccess(projectId, currentUserId);
+        ProjectNotice projectNotice = getActiveNoticeOrThrow(projectId, noticeId);
+
+        boolean isRead = projectNoticeReadRepository.findByNoticeIdAndUserId(noticeId, currentUserId)
+            .isPresent();
+
+        return toResponse(projectNotice, isRead);
     }
 
     @Transactional
