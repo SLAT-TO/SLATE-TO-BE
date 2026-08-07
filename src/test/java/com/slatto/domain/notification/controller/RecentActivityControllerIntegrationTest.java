@@ -66,7 +66,7 @@ class RecentActivityControllerIntegrationTest {
 
     @Test
     void 로그인한_프로젝트_멤버는_최근활동_목록을_새_활동_상태와_함께_조회한다() throws Exception {
-        // JWT 인증, 프로젝트 멤버 권한, 목록 응답 형식, 초기 isNew=true를 한 요청 흐름으로 검증한다.
+        // JWT 인증, 프로젝트 멤버 권한, 목록 응답 형식, 초기 isRead=false를 한 요청 흐름으로 검증한다.
         Fixture fixture = createFixture();
         ActivityLog activity = saveActivity(fixture.project(), fixture.chaTaehoon(), "차태훈님이 새 공지를 등록했어요.");
         entityManager.flush();
@@ -79,7 +79,7 @@ class RecentActivityControllerIntegrationTest {
             .andExpect(jsonPath("$.code").value("COMMON200"))
             .andExpect(jsonPath("$.result.items[0].activityId").value(activity.getId()))
             .andExpect(jsonPath("$.result.items[0].content").value("차태훈님이 새 공지를 등록했어요."))
-            .andExpect(jsonPath("$.result.items[0].isNew").value(true))
+            .andExpect(jsonPath("$.result.items[0].isRead").value(false))
             .andExpect(jsonPath("$.result.hasNext").value(false));
     }
 
@@ -127,8 +127,8 @@ class RecentActivityControllerIntegrationTest {
         mockMvc.perform(get(activitiesUrl(fixture.project().getId()))
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(fixture.chaTaehoon())))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.result.items[?(@.activityId == " + selected.getId() + ")].isNew").value(false))
-            .andExpect(jsonPath("$.result.items[?(@.activityId == " + first.getId() + ")].isNew").value(true));
+            .andExpect(jsonPath("$.result.items[?(@.activityId == " + selected.getId() + ")].isRead").value(true))
+            .andExpect(jsonPath("$.result.items[?(@.activityId == " + first.getId() + ")].isRead").value(false));
 
         assertThat(projectActivityReadRepository.findAll())
             .extracting(read -> read.getActivityLog().getId())
@@ -156,14 +156,14 @@ class RecentActivityControllerIntegrationTest {
         mockMvc.perform(get(activitiesUrl(fixture.project().getId()))
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(fixture.chaTaehoon())))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.result.items[?(@.activityId == " + first.getId() + ")].isNew").value(false))
-            .andExpect(jsonPath("$.result.items[?(@.activityId == " + second.getId() + ")].isNew").value(false));
+            .andExpect(jsonPath("$.result.items[?(@.activityId == " + first.getId() + ")].isRead").value(true))
+            .andExpect(jsonPath("$.result.items[?(@.activityId == " + second.getId() + ")].isRead").value(true));
 
         mockMvc.perform(get(activitiesUrl(fixture.project().getId()))
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(green)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.result.items[?(@.activityId == " + first.getId() + ")].isNew").value(true))
-            .andExpect(jsonPath("$.result.items[?(@.activityId == " + second.getId() + ")].isNew").value(true));
+            .andExpect(jsonPath("$.result.items[?(@.activityId == " + first.getId() + ")].isRead").value(false))
+            .andExpect(jsonPath("$.result.items[?(@.activityId == " + second.getId() + ")].isRead").value(false));
 
         assertThat(projectActivityReadRepository.findAll())
             .hasSize(2)
