@@ -76,7 +76,7 @@ public class TodayBriefingService {
 
         schedules.forEach(schedule -> {
             candidates.add(BriefingCandidate.builder()
-                .type(TodayBriefingType.TODAY_SCHEDULE)
+                .type(getTodayScheduleBriefingType(schedule, today))
                 .content(buildTodayScheduleContent(schedule, today))
                 .projectId(getProjectId(schedule.getProject()))
                 .targetType(NotificationTargetType.SCHEDULE.name())
@@ -176,7 +176,7 @@ public class TodayBriefingService {
     private String buildTodayScheduleContent(Schedule schedule, LocalDate today) {
         String title = schedule.getTitle();
         String projectTitle = getProjectTitle(schedule.getProject());
-        String actionText = isMultiDaySchedule(schedule) && isScheduleEndDate(schedule, today)
+        String actionText = isScheduleDueToday(schedule, today)
             ? "마감이에요"
             : "일정이 있어요";
 
@@ -184,6 +184,17 @@ public class TodayBriefingService {
             return "오늘 [" + title + "] " + actionText;
         }
         return "[" + projectTitle + "] 오늘 [" + title + "] " + actionText;
+    }
+
+    private TodayBriefingType getTodayScheduleBriefingType(Schedule schedule, LocalDate today) {
+        if (isScheduleDueToday(schedule, today)) {
+            return TodayBriefingType.SCHEDULE_DUE_TODAY;
+        }
+        return TodayBriefingType.TODAY_SCHEDULE;
+    }
+
+    private boolean isScheduleDueToday(Schedule schedule, LocalDate today) {
+        return isMultiDaySchedule(schedule) && isScheduleEndDate(schedule, today);
     }
 
     private String buildStartReminderContent(Schedule schedule, int dayOffset) {
@@ -198,11 +209,16 @@ public class TodayBriefingService {
     }
 
     private boolean isScheduleEndDate(Schedule schedule, LocalDate date) {
-        return schedule.getEndAt().toLocalDate().isEqual(date);
+        return getInclusiveEndDate(schedule).isEqual(date);
     }
 
     private boolean isMultiDaySchedule(Schedule schedule) {
-        return !schedule.getStartAt().toLocalDate().isEqual(schedule.getEndAt().toLocalDate());
+        return !schedule.getStartAt().toLocalDate().isEqual(getInclusiveEndDate(schedule));
+    }
+
+    private LocalDate getInclusiveEndDate(Schedule schedule) {
+        // endAt은 종료 경계값이므로 00:00 종료 일정은 전날까지 진행된 일정으로 본다.
+        return schedule.getEndAt().minusNanos(1).toLocalDate();
     }
 
     private Long getProjectId(Project project) {
