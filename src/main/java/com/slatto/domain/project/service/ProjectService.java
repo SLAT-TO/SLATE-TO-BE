@@ -147,7 +147,7 @@ public class ProjectService {
         Project project = projectAccessValidator.getProjectOrThrow(projectId);
         projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
 
-        projectPinRepository.insertIgnore(currentUserId, projectId);
+        projectPinRepository.insertIgnore(currentUserId, projectId, LocalDateTime.now());
         ProjectPin projectPin = projectPinRepository.findByUserIdAndProjectId(currentUserId, projectId)
             .orElseThrow(() -> new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR));
 

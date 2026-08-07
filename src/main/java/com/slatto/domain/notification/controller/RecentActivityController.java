@@ -41,7 +41,7 @@ public class RecentActivityController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로젝트 최근활동 개별 확인")
+    @Operation(summary = "프로젝트 최근활동 단건 읽음 처리")
     @PatchMapping("/{activityId}/read")
     public ApiResponse<Void> markActivityAsRead(
         @AuthenticationPrincipal Long currentUserId,
@@ -53,7 +53,7 @@ public class RecentActivityController {
         return ApiResponse.success(CommonSuccessCode.OK, null);
     }
 
-    @Operation(summary = "프로젝트 최근활동 전체 확인")
+    @Operation(summary = "프로젝트 최근활동 전체 읽음 처리")
     @PatchMapping("/read-all")
     public ApiResponse<Void> markAllActivitiesAsRead(
         @AuthenticationPrincipal Long currentUserId,

@@ -6,15 +6,19 @@ import org.springframework.stereotype.Repository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
+import java.time.LocalDateTime;
+
 @Repository
 public class ProjectActivityReadCommandRepository {
 
+    // 시각은 DB 의 CURRENT_TIMESTAMP 가 아니라 애플리케이션에서 만든다.
+    // DB 시계는 MySQL 세션 타임존을 따르므로 JPA Auditing 이 쓰는 다른 시각들과 어긋난다.
     private static final String MYSQL_INSERT_IF_ABSENT = """
         INSERT IGNORE INTO project_activity_read (
             project_member_id,
             activity_log_id,
             read_at
-        ) VALUES (?, ?, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?)
         """;
 
     private static final String H2_INSERT_IF_ABSENT = """
@@ -23,7 +27,7 @@ public class ProjectActivityReadCommandRepository {
             activity_log_id,
             read_at
         )
-        SELECT ?, ?, CURRENT_TIMESTAMP
+        SELECT ?, ?, ?
         WHERE NOT EXISTS (
             SELECT 1
             FROM project_activity_read
@@ -38,7 +42,7 @@ public class ProjectActivityReadCommandRepository {
             activity_log_id,
             read_at
         )
-        SELECT ?, activity_log.id, CURRENT_TIMESTAMP
+        SELECT ?, activity_log.id, ?
         FROM activity_log
         WHERE activity_log.project_id = ?
         """;
@@ -49,7 +53,7 @@ public class ProjectActivityReadCommandRepository {
             activity_log_id,
             read_at
         )
-        SELECT ?, activity_log.id, CURRENT_TIMESTAMP
+        SELECT ?, activity_log.id, ?
         FROM activity_log
         WHERE activity_log.project_id = ?
           AND NOT EXISTS (
@@ -67,33 +71,41 @@ public class ProjectActivityReadCommandRepository {
     private String datasourceUrl;
 
     public int insertIfAbsent(Long projectMemberId, Long activityLogId) {
+        LocalDateTime now = LocalDateTime.now();
+
         if (isH2()) {
             return entityManager.createNativeQuery(H2_INSERT_IF_ABSENT)
                 .setParameter(1, projectMemberId)
                 .setParameter(2, activityLogId)
-                .setParameter(3, projectMemberId)
-                .setParameter(4, activityLogId)
+                .setParameter(3, now)
+                .setParameter(4, projectMemberId)
+                .setParameter(5, activityLogId)
                 .executeUpdate();
         }
 
         return entityManager.createNativeQuery(MYSQL_INSERT_IF_ABSENT)
             .setParameter(1, projectMemberId)
             .setParameter(2, activityLogId)
+            .setParameter(3, now)
             .executeUpdate();
     }
 
     public int insertAllIfAbsentByProjectId(Long projectMemberId, Long projectId) {
+        LocalDateTime now = LocalDateTime.now();
+
         if (isH2()) {
             return entityManager.createNativeQuery(H2_INSERT_ALL_IF_ABSENT)
                 .setParameter(1, projectMemberId)
-                .setParameter(2, projectId)
-                .setParameter(3, projectMemberId)
+                .setParameter(2, now)
+                .setParameter(3, projectId)
+                .setParameter(4, projectMemberId)
                 .executeUpdate();
         }
 
         return entityManager.createNativeQuery(MYSQL_INSERT_ALL_IF_ABSENT)
             .setParameter(1, projectMemberId)
-            .setParameter(2, projectId)
+            .setParameter(2, now)
+            .setParameter(3, projectId)
             .executeUpdate();
     }
 

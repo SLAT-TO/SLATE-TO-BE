@@ -22,7 +22,7 @@ public class TodayBriefingController {
 
     @Operation(
         summary = "오늘의 브리핑 조회",
-        description = "홈 화면에 표시할 오늘의 브리핑을 최대 3건까지 조회합니다. 브리핑은 일정과 최근 주요 알림 데이터를 조합해 반환합니다."
+        description = "홈 화면에 표시할 오늘의 브리핑을 최대 3건까지 조회합니다. 오늘 일정, 여러 날 일정의 마감 당일, 일정 시작 D-1/D-3 알림과 최근 24시간 주요 알림을 정책 우선순위 기준으로 조합해 반환합니다."
     )
     @GetMapping("/today")
     public ApiResponse<TodayBriefingResponse> getTodayBriefings(

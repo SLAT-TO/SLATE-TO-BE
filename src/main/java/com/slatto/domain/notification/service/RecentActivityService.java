@@ -107,7 +107,7 @@ public class RecentActivityService {
             .targetType(activityLog.getTargetType())
             .targetId(activityLog.getTargetId())
             .createdAt(activityLog.getCreatedAt())
-            .isNew(!readActivityLogIds.contains(activityLog.getId()))
+            .isRead(readActivityLogIds.contains(activityLog.getId()))
             .build();
     }
 
