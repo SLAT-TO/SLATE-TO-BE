@@ -59,6 +59,7 @@ public class VideoService {
     private final YoutubeUrlParser youtubeUrlParser;
     private final YoutubeApiClient youtubeApiClient;
 
+    @Transactional
     public VideoDetailResDTO getVideo(Long memberId, Long projectId, Long videoId) {
         if (!projectAccessRepository.projectExistsById(projectId)) {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
@@ -74,6 +75,8 @@ public class VideoService {
                 video.getProject(),
                 projectAccessRepository.findProjectRoleNames(projectId)
         );
+
+        notificationService.markVideoFeedbackNotificationsAsRead(memberId, videoId);
 
         return VideoDetailResDTO.from(video, bookmarked, projectTags);
     }
