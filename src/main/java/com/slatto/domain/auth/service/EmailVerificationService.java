@@ -121,12 +121,16 @@ public class EmailVerificationService {
 		verification.markConsumed(now);
 	}
 
+	// 재설정 대상 조건을 AuthService.resetPassword 와 같게 맞춘다.
+	// 탈퇴 계정에 코드를 보내면 인증까지 통과한 뒤 마지막 단계에서만 실패한다.
 	private boolean shouldDeliver(String email, VerificationPurpose purpose) {
 		if (purpose != VerificationPurpose.PASSWORD_RESET) {
 			return true;
 		}
 
-		return userRepository.findByEmail(email).isPresent();
+		return userRepository.findByEmail(email)
+			.filter(user -> user.getDeletedAt() == null)
+			.isPresent();
 	}
 
 	// 커밋 전에 보내면 롤백된 인증번호가 사용자에게 도착한다. 입력해도 실패하는 코드다.

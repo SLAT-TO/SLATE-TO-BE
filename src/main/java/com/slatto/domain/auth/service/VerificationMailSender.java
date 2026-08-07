@@ -41,8 +41,23 @@ public class VerificationMailSender {
 
 			javaMailSender.send(message);
 		} catch (Exception exception) {
-			log.warn("[Mail] 인증번호 발송 실패. email={}, purpose={}", email, purpose, exception);
+			log.warn("[Mail] 인증번호 발송 실패. email={}, purpose={}", maskEmail(email), purpose, exception);
 		}
+	}
+
+	// 로그 저장소에 이메일 원본이 쌓이지 않게 한다. 도메인은 남겨 수신처별 실패 경향을 볼 수 있게 한다.
+	private String maskEmail(String email) {
+		int atIndex = email == null ? -1 : email.indexOf('@');
+		if (atIndex < 1) {
+			return "***";
+		}
+
+		String localPart = email.substring(0, atIndex);
+		String maskedLocalPart = localPart.length() <= 2
+			? localPart.charAt(0) + "***"
+			: localPart.substring(0, 2) + "***";
+
+		return maskedLocalPart + email.substring(atIndex);
 	}
 
 	private String resolveSubject(VerificationPurpose purpose) {
