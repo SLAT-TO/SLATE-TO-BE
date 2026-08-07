@@ -51,6 +51,22 @@ public class ProjectNoticeController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
+    @Operation(summary = "프로젝트 공지 상세 조회")
+    @GetMapping("/{noticeId}")
+    public ApiResponse<ProjectNoticeResponse> getProjectNotice(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long projectId,
+        @PathVariable Long noticeId
+    ) {
+        ProjectNoticeResponse response = projectNoticeService.getProjectNotice(
+            projectId,
+            noticeId,
+            currentUserId
+        );
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
     @Operation(summary = "프로젝트 공지 등록")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

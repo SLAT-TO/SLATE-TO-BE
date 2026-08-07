@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface NotificationSettingRepository extends JpaRepository<NotificationSetting, Long> {
@@ -19,8 +20,8 @@ public interface NotificationSettingRepository extends JpaRepository<Notificatio
         INSERT INTO notification_setting
             (user_id, email_all_enabled, email_deadline_reminder, email_assigned,
              email_new_applicant, email_missed_summary, created_at, updated_at)
-        VALUES (:userId, true, true, true, true, true, NOW(6), NOW(6))
+        VALUES (:userId, true, true, true, true, true, :now, :now)
         ON DUPLICATE KEY UPDATE user_id = user_id
         """, nativeQuery = true)
-    void insertDefaultIfAbsent(@Param("userId") Long userId);
+    void insertDefaultIfAbsent(@Param("userId") Long userId, @Param("now") LocalDateTime now);
 }

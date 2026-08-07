@@ -21,7 +21,7 @@ public record ActivityLogListResponse(
         String targetType,
         Long targetId,
         LocalDateTime createdAt,
-        boolean isNew
+        boolean isRead
     ) {
     }
 }

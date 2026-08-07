@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -37,7 +39,7 @@ public class NotificationSettingService {
     private NotificationSetting getOrCreate(Long userId) {
         return notificationSettingRepository.findByUserId(userId)
             .orElseGet(() -> {
-                notificationSettingRepository.insertDefaultIfAbsent(userId);
+                notificationSettingRepository.insertDefaultIfAbsent(userId, LocalDateTime.now());
                 return notificationSettingRepository.findByUserId(userId)
                     .orElseThrow(() -> new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR));
             });

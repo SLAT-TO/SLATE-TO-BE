@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class RecruitmentBookmarkService {
         validateRecruitmentExists(recruitmentId);
 
         // exists 후 save 는 동시 요청에서 유니크 위반으로 500 이 난다. DB 가 멱등성을 보장하게 한다.
-        recruitmentBookmarkRepository.insertIgnore(currentUserId, recruitmentId);
+        recruitmentBookmarkRepository.insertIgnore(currentUserId, recruitmentId, LocalDateTime.now());
 
         return recruitmentConverter.toBookmarkResponse(recruitmentId, true);
     }

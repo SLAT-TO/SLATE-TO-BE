@@ -6,6 +6,7 @@ import com.slatto.domain.recruitment.enums.RecruitmentStatus;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.RegionName;
 import com.slatto.domain.user.enums.RoleName;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -66,6 +67,7 @@ public class RecruitmentDetailResponse {
 
     @Getter
     @Builder
+    @Schema(name = "RecruitmentDetailWriterSummary")
     public static class WriterSummary {
 
         private Long id;

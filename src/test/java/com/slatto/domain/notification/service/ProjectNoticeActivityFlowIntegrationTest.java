@@ -97,7 +97,7 @@ class ProjectNoticeActivityFlowIntegrationTest {
         assertThat(activityLog.getContent()).isEqualTo("차태훈님이 새 공지를 등록했어요");
         assertThat(response.items()).singleElement().satisfies(item -> {
             assertThat(item.activityId()).isEqualTo(activityLog.getId());
-            assertThat(item.isNew()).isTrue();
+            assertThat(item.isRead()).isFalse();
             assertThat(item.targetType()).isEqualTo(ActivityLogTargetType.NOTICE.name());
             assertThat(item.targetId()).isEqualTo(activityLog.getTargetId());
         });

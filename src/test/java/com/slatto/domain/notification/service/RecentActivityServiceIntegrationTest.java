@@ -112,9 +112,9 @@ class RecentActivityServiceIntegrationTest {
             fixture.project().getId(), fixture.user().getId(), null, 10
         ).items();
 
-        assertThat(findItem(items, newest.getId()).isNew()).isTrue();
-        assertThat(findItem(items, selected.getId()).isNew()).isFalse();
-        assertThat(findItem(items, oldest.getId()).isNew()).isTrue();
+        assertThat(findItem(items, newest.getId()).isRead()).isFalse();
+        assertThat(findItem(items, selected.getId()).isRead()).isTrue();
+        assertThat(findItem(items, oldest.getId()).isRead()).isFalse();
     }
 
     @Test
@@ -152,8 +152,8 @@ class RecentActivityServiceIntegrationTest {
             fixture.project().getId(), green.getId(), null, 10
         ).items();
 
-        assertThat(findItem(chaTaehoonItems, activity.getId()).isNew()).isFalse();
-        assertThat(findItem(greenItems, activity.getId()).isNew()).isTrue();
+        assertThat(findItem(chaTaehoonItems, activity.getId()).isRead()).isTrue();
+        assertThat(findItem(greenItems, activity.getId()).isRead()).isFalse();
     }
 
     @Test
@@ -343,7 +343,7 @@ class RecentActivityServiceIntegrationTest {
             ));
         assertThat(recentActivityService.getRecentActivities(
             fixture.project().getId(), green.getId(), null, 20
-        ).items()).allMatch(ActivityLogListResponse.ActivityLogItem::isNew);
+        ).items()).noneMatch(ActivityLogListResponse.ActivityLogItem::isRead);
         assertThat(greenMember.getId()).isNotNull();
     }
 

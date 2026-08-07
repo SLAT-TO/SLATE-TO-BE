@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -108,8 +109,22 @@ public class ProjectNoticeService {
             getActiveProjectMemberUserIds(projectId),
             currentUserId
         );
+        // 작성자 본인에게는 자기가 쓴 공지가 처음부터 읽음이어야 한다.
+        // 방금 만든 공지라 중복 행이 있을 수 없으므로 upsert 없이 그냥 저장한다.
+        projectNoticeReadRepository.save(ProjectNoticeRead.create(savedNotice, currentMember.getUser()));
 
-        return toResponse(savedNotice, false);
+        return toResponse(savedNotice, true);
+    }
+
+    public ProjectNoticeResponse getProjectNotice(Long projectId, Long noticeId, Long currentUserId) {
+        projectAccessValidator.getProjectOrThrow(projectId);
+        projectAccessValidator.validateProjectAccess(projectId, currentUserId);
+        ProjectNotice projectNotice = getActiveNoticeOrThrow(projectId, noticeId);
+
+        boolean isRead = projectNoticeReadRepository.findByNoticeIdAndUserId(noticeId, currentUserId)
+            .isPresent();
+
+        return toResponse(projectNotice, isRead);
     }
 
     @Transactional
@@ -147,7 +162,7 @@ public class ProjectNoticeService {
         projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
         getActiveNoticeOrThrow(projectId, noticeId);
 
-        projectNoticeReadRepository.upsertRead(noticeId, currentUserId);
+        projectNoticeReadRepository.upsertRead(noticeId, currentUserId, LocalDateTime.now());
         ProjectNoticeRead projectNoticeRead = projectNoticeReadRepository
             .findByNoticeIdAndUserId(noticeId, currentUserId)
             .orElseThrow(() -> new BaseException(CommonErrorCode.INTERNAL_SERVER_ERROR));
