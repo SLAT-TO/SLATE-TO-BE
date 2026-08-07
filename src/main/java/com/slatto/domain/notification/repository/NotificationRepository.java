@@ -103,6 +103,26 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("readAt") LocalDateTime readAt
     );
 
+    @Modifying(flushAutomatically = true)
+    @Query("""
+        update Notification n
+        set n.isRead = true,
+            n.readAt = :readAt
+        where n.user.id = :userId
+            and n.type = :type
+            and n.targetType = :targetType
+            and n.targetId = :videoId
+            and n.isRead = false
+            and n.deletedAt is null
+        """)
+    int markVideoFeedbackNotificationsAsRead(
+        @Param("userId") Long userId,
+        @Param("type") NotificationType type,
+        @Param("targetType") String targetType,
+        @Param("videoId") Long videoId,
+        @Param("readAt") LocalDateTime readAt
+    );
+
     // 동일 대상의 미읽음 그룹 알림을 잠금 조회해 누적 개수와 문구를 같은 엔티티 상태 기준으로 갱신한다.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

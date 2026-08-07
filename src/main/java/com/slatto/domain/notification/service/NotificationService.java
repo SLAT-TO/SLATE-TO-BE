@@ -102,6 +102,20 @@ public class NotificationService {
         notificationRepository.markAllAsReadByUserId(currentUserId, LocalDateTime.now());
     }
 
+    @Transactional
+    public void markVideoFeedbackNotificationsAsRead(Long userId, Long videoId) {
+        validateActiveUser(userId);
+        validateRequiredId(videoId);
+
+        notificationRepository.markVideoFeedbackNotificationsAsRead(
+            userId,
+            NotificationType.VIDEO_FEEDBACK_COMMENTED,
+            NotificationTargetType.VIDEO.name(),
+            videoId,
+            LocalDateTime.now()
+        );
+    }
+
     /**
      * 영상 목록의 미읽은 피드백 누적 개수를 한 번에 조회한다.
      */
