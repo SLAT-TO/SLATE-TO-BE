@@ -290,11 +290,17 @@ public class UserService {
 
         LocalDateTime withdrawnAt = LocalDateTime.now();
 
+        // withdraw 가 URL 을 지우기 전에 키를 뽑아둔다. URL 만 비우면 스토리지 객체가 남아
+        // 기존 공개 URL 을 아는 사람은 탈퇴 후에도 프로필 사진을 계속 볼 수 있다.
+        String profileImageStorageKey = extractManagedStorageKey(user.getProfileImageUrl());
+
         userPortfolioRepository.softDeleteAllByUserId(userId, withdrawnAt);
         recruitmentRepository.softDeleteAllByWriterId(userId, withdrawnAt);
         refreshTokenRepository.deleteByUser(user);
 
         user.withdraw(withdrawnAt);
+
+        registerPreviousFileDeletionAfterCommit(profileImageStorageKey);
     }
 
     private List<RegionName> getUserRegions(Long userId) {
