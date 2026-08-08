@@ -20,7 +20,12 @@ public enum AuthErrorCode implements BaseCode {
 	SIGNUP_SOCIAL_ACCOUNT_EXISTS(HttpStatus.CONFLICT, "AUTH_SIGNUP_SOCIAL409", "구글 계정으로 가입된 이메일입니다. 구글 로그인을 이용해 주세요."),
 
 	// 이메일 미존재·비밀번호 불일치·소셜 전용 계정을 모두 같은 응답으로 처리한다. 이메일 열거 방지다.
-	LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH_LOGIN401", "이메일 또는 비밀번호가 올바르지 않습니다.");
+	LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH_LOGIN401", "이메일 또는 비밀번호가 올바르지 않습니다."),
+
+	// 로그인한 본인이 호출하는 경로라 사유를 구분해도 새어 나갈 정보가 없다.
+	CURRENT_PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_PASSWORD401", "현재 비밀번호가 올바르지 않습니다."),
+	PASSWORD_NOT_SET(HttpStatus.BAD_REQUEST, "AUTH_PASSWORD_NOT_SET400", "비밀번호가 설정되지 않은 계정입니다. 비밀번호 찾기를 이용해 주세요."),
+	PASSWORD_UNCHANGED(HttpStatus.BAD_REQUEST, "AUTH_PASSWORD_UNCHANGED400", "새 비밀번호가 기존 비밀번호와 같습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String code;

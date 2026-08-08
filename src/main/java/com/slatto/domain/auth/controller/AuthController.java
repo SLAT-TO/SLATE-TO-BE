@@ -8,6 +8,7 @@ import com.slatto.domain.auth.dto.EmailVerificationConfirmRequest;
 import com.slatto.domain.auth.dto.EmailVerificationConfirmResponse;
 import com.slatto.domain.auth.dto.EmailVerificationSendRequest;
 import com.slatto.domain.auth.dto.EmailVerificationSendResponse;
+import com.slatto.domain.auth.dto.PasswordChangeRequest;
 import com.slatto.domain.auth.dto.PasswordResetRequest;
 import com.slatto.domain.auth.service.AuthService;
 import com.slatto.domain.auth.service.EmailVerificationService;
@@ -23,8 +24,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -195,6 +198,32 @@ public class AuthController {
 		);
 
 		return ApiResponse.success(CommonSuccessCode.OK, response);
+	}
+
+	@Operation(
+		summary = "비밀번호 변경",
+		description = """
+			로그인한 상태에서 현재 비밀번호를 확인하고 새 비밀번호로 바꾼다.
+
+			비밀번호를 잊어버려 인증번호로 재설정하는 `POST /auth/password/reset` 과는 다른 경로다.
+			변경 성공 시 리프레시 토큰을 새로 발급한다.
+
+			구글로만 가입해 비밀번호가 없는 계정은 이 API 로 설정할 수 없다. 비밀번호 찾기를 이용한다.
+			"""
+	)
+	@PatchMapping("/password")
+	public ResponseEntity<ApiResponse<EmailAuthResponse>> changePassword(
+		@AuthenticationPrincipal Long userId,
+		@Valid @RequestBody PasswordChangeRequest request
+	) {
+		AuthService.EmailAuthResult result = authService.changePassword(
+			userId, request.currentPassword(), request.newPassword()
+		);
+
+		return ResponseEntity
+			.ok()
+			.header(HttpHeaders.SET_COOKIE, refreshTokenCookie(result))
+			.body(ApiResponse.success(CommonSuccessCode.OK, toEmailAuthResponse(result)));
 	}
 
 	@Operation(
