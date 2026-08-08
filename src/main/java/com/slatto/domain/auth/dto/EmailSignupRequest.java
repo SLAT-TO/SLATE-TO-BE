@@ -8,7 +8,10 @@ import jakarta.validation.constraints.Size;
 public record EmailSignupRequest(
 
 	@NotBlank(message = "이름은 필수입니다.")
-	@Size(min = 1, max = 20, message = "이름은 1자 이상 20자 이하로 입력해야 합니다.")
+	@Pattern(
+		regexp = "^(?=.*\\S)[가-힣a-zA-Z0-9 ]{2,20}$",
+		message = "이름은 특수문자 없이 2자 이상 20자 이하로 입력해야 합니다."
+	)
 	String name,
 
 	@NotBlank(message = "이메일은 필수입니다.")

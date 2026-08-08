@@ -23,8 +23,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDateTime;
@@ -33,7 +37,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-@Import({PortfolioService.class, UserService.class, YoutubeUrlParser.class})
+@Import({PortfolioService.class, UserService.class, YoutubeUrlParser.class,
+    PortfolioUpdatedAtTest.PasswordEncoderTestConfig.class})
 @TestPropertySource(properties = {
     "spring.jpa.database=h2",
     "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
@@ -42,6 +47,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PortfolioUpdatedAtTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @TestConfiguration
+    static class PasswordEncoderTestConfig {
+
+        @Bean
+        PasswordEncoder passwordEncoder() {
+            return new BCryptPasswordEncoder();
+        }
+    }
 
     // UserService가 프로필 이미지 업로드용 StorageService를 의존하므로, 이 JPA 슬라이스에서는 빈만 제공한다.
     @MockBean

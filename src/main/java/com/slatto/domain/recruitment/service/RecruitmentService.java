@@ -14,6 +14,7 @@ import com.slatto.domain.recruitment.entity.RecruitmentApplication;
 import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
 import com.slatto.domain.recruitment.enums.RecruitmentSortType;
 import com.slatto.domain.recruitment.enums.RecruitmentStatus;
+import com.slatto.domain.recruitment.exception.RecruitmentErrorCode;
 import com.slatto.domain.recruitment.repository.RecruitmentApplicationRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentBookmarkRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentRepository;
@@ -106,6 +107,12 @@ public class RecruitmentService {
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         validateWriter(recruitment, currentUserId);
+
+        // 마감된 공고는 내용을 수정할 수 없다. 다만 다시 모집중으로 되돌리는 요청은 통과시킨다.
+        // 전면 차단하면 상태 변경도 같은 API 를 쓰므로 수동 마감을 취소할 방법이 사라진다.
+        if (isClosed(recruitment) && !isReopening(recruitment, request)) {
+            throw new BaseException(RecruitmentErrorCode.RECRUITMENT_CLOSED_NOT_EDITABLE);
+        }
 
         recruitment.update(
             request.getTitle(),
@@ -397,6 +404,29 @@ public class RecruitmentService {
         List<UserRole> roles = userRoleRepository.findAllByUserIdOrderByIdAsc(userId);
 
         return roles.isEmpty() ? null : roles.get(0).getRoleName();
+    }
+
+    // status 만 RECRUITING 으로 바꿔도 마감일이 과거면 여전히 마감이다. 그 상태로 통과시키면
+    // 같은 요청에 실린 내용 변경까지 반영돼 마감 공고 수정 금지가 우회된다.
+    // 적용 후 실제로 모집중이 되는 요청만 재개로 인정한다.
+    private boolean isReopening(Recruitment recruitment, RecruitmentUpdateRequest request) {
+        if (request.getStatus() != RecruitmentStatus.RECRUITING) {
+            return false;
+        }
+
+        LocalDate appliedDeadline = request.getDeadline() != null
+            ? request.getDeadline()
+            : recruitment.getDeadline();
+
+        return appliedDeadline == null || !appliedDeadline.isBefore(recruitmentConverter.currentDate());
+    }
+
+    private boolean isClosed(Recruitment recruitment) {
+        return recruitmentConverter.resolveStatus(
+            recruitment.getClosedManually(),
+            recruitment.getDeadline(),
+            recruitmentConverter.currentDate()
+        ) == RecruitmentStatus.CLOSED;
     }
 
     private List<RegionName> getUserRegions(Long userId) {

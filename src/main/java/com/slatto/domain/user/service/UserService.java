@@ -7,6 +7,10 @@ import com.slatto.domain.user.dto.UserProfileUpdateRequest;
 import com.slatto.domain.user.dto.UserProfileUpdateResponse;
 import com.slatto.domain.user.dto.UserProfileImageResponse;
 import com.slatto.domain.user.dto.UserPublicProfileResponse;
+import com.slatto.domain.user.dto.UserWithdrawRequest;
+import com.slatto.domain.auth.repository.RefreshTokenRepository;
+import com.slatto.domain.recruitment.repository.RecruitmentRepository;
+import com.slatto.domain.user.repository.UserPortfolioRepository;
 import com.slatto.domain.user.entity.Location;
 import com.slatto.domain.user.entity.UserCategory;
 import com.slatto.domain.user.entity.UserRole;
@@ -25,6 +29,7 @@ import com.slatto.global.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -32,6 +37,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -44,7 +50,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class UserService {
 
-    private static final long MAX_PROFILE_IMAGE_SIZE = 10L * 1024 * 1024;
+    private static final long MAX_PROFILE_IMAGE_SIZE = 2L * 1024 * 1024;
     private static final String PROFILE_IMAGE_STORAGE_KEY_FORMAT = "users/%d/profile-images/%s.%s";
     private static final Map<String, Set<String>> ALLOWED_EXTENSIONS_BY_CONTENT_TYPE = Map.of(
         "image/jpeg", Set.of("jpg", "jpeg"),
@@ -56,6 +62,10 @@ public class UserService {
     private final UserRoleRepository userRoleRepository;
     private final UserCategoryRepository userCategoryRepository;
     private final LocationRepository locationRepository;
+    private final UserPortfolioRepository userPortfolioRepository;
+    private final RecruitmentRepository recruitmentRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
 
     @Value("${cloud.aws.s3.public-base-url:}")
@@ -263,6 +273,34 @@ public class UserService {
             .categories(categories)
             .stats(UserPublicProfileResponse.Stats.empty())
             .build();
+    }
+
+    // 유저 행은 남긴다. 프로젝트·공고 등 연관 데이터가 FK 로 참조하고 있어 지우면 이력이 끊긴다.
+    @Transactional
+    public void withdraw(Long userId, UserWithdrawRequest request) {
+        Users user = getUserOrThrow(userId);
+
+        // 세션이 탈취된 상태에서 탈퇴까지 가능하면 계정을 통째로 지워버릴 수 있다.
+        // matches 는 raw 가 null 이면 IllegalArgumentException 을 던져 500 이 나간다. 먼저 걸러낸다.
+        if (user.hasPassword()
+            && (request.getPassword() == null
+            || !passwordEncoder.matches(request.getPassword(), user.getPassword()))) {
+            throw new BaseException(UserErrorCode.WITHDRAW_PASSWORD_MISMATCH);
+        }
+
+        LocalDateTime withdrawnAt = LocalDateTime.now();
+
+        // withdraw 가 URL 을 지우기 전에 키를 뽑아둔다. URL 만 비우면 스토리지 객체가 남아
+        // 기존 공개 URL 을 아는 사람은 탈퇴 후에도 프로필 사진을 계속 볼 수 있다.
+        String profileImageStorageKey = extractManagedStorageKey(user.getProfileImageUrl());
+
+        userPortfolioRepository.softDeleteAllByUserId(userId, withdrawnAt);
+        recruitmentRepository.softDeleteAllByWriterId(userId, withdrawnAt);
+        refreshTokenRepository.deleteByUser(user);
+
+        user.withdraw(withdrawnAt);
+
+        registerPreviousFileDeletionAfterCommit(profileImageStorageKey);
     }
 
     private List<RegionName> getUserRegions(Long userId) {

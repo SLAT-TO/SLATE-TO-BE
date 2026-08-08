@@ -1,6 +1,11 @@
 package com.slatto.domain.user.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.slatto.domain.auth.repository.RefreshTokenRepository;
+import com.slatto.domain.recruitment.repository.RecruitmentRepository;
 import com.slatto.domain.user.dto.UserProfileImageResponse;
+import com.slatto.domain.user.dto.UserWithdrawRequest;
+import com.slatto.domain.user.repository.UserPortfolioRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.LocationRepository;
@@ -18,6 +23,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Optional;
 
@@ -44,6 +51,15 @@ class UserProfileImageServiceTest {
 
     @Mock
     private LocationRepository locationRepository;
+
+    @Mock
+    private UserPortfolioRepository userPortfolioRepository;
+
+    @Mock
+    private RecruitmentRepository recruitmentRepository;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
     private StorageService storageService;
@@ -88,6 +104,37 @@ class UserProfileImageServiceTest {
             .isInstanceOf(BaseException.class);
 
         verify(storageService, never()).upload(any(), anyString());
+    }
+
+    // URL 만 비우면 스토리지 객체가 남아 기존 공개 URL 을 아는 사람은 탈퇴 후에도 사진을 볼 수 있다.
+    @Test
+    void 탈퇴하면_프로필_이미지_객체도_삭제한다() {
+        String storageKey = "users/1/profile-images/abc.png";
+        Users user = user(1L, "https://cdn.slatto.cloud/" + storageKey);
+        when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(user));
+
+        // 삭제는 커밋 이후에 실행된다. 실제 트랜잭션이 없는 슬라이스라 동기화를 직접 열고 닫는다.
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            userService.withdraw(1L, withdrawRequest());
+
+            TransactionSynchronizationManager.getSynchronizations()
+                .forEach(synchronization ->
+                    synchronization.afterCompletion(TransactionSynchronization.STATUS_COMMITTED));
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+
+        verify(storageService).delete(storageKey);
+        assertThat(user.getProfileImageUrl()).isNull();
+    }
+
+    private UserWithdrawRequest withdrawRequest() {
+        try {
+            return new ObjectMapper().readValue("{\"agreed\":true}", UserWithdrawRequest.class);
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 
     private Users user(Long id, String profileImageUrl) {

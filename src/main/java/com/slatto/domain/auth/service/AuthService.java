@@ -17,6 +17,7 @@ import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.config.properties.FrontendProperties;
 import com.slatto.global.exception.BaseException;
+import com.slatto.global.response.code.CommonErrorCode;
 import com.slatto.global.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -130,6 +131,31 @@ public class AuthService {
 		if (!hasPassword || !matched) {
 			throw new BaseException(AuthErrorCode.LOGIN_FAILED);
 		}
+
+		return toEmailAuthResult(user);
+	}
+
+	// 재설정과 달리 리프레시 토큰을 새로 발급한다. 본인이 로그인한 상태에서 바꾸는 것이라
+	// 세션을 끊을 이유가 없다. 유출을 가정하는 resetPassword 와 여기가 갈리는 지점이다.
+	@Transactional
+	public EmailAuthResult changePassword(Long userId, String currentPassword, String newRawPassword) {
+		Users user = userRepository.findByIdAndDeletedAtIsNull(userId)
+			.orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+		if (!user.hasPassword()) {
+			throw new BaseException(AuthErrorCode.PASSWORD_NOT_SET);
+		}
+
+		// 세션이 탈취된 상황에서 비밀번호까지 바꿀 수 있으면 계정을 통째로 빼앗긴다.
+		if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+			throw new BaseException(AuthErrorCode.CURRENT_PASSWORD_MISMATCH);
+		}
+
+		if (passwordEncoder.matches(newRawPassword, user.getPassword())) {
+			throw new BaseException(AuthErrorCode.PASSWORD_UNCHANGED);
+		}
+
+		user.changePassword(passwordEncoder.encode(newRawPassword));
 
 		return toEmailAuthResult(user);
 	}

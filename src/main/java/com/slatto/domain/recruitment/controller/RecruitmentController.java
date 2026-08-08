@@ -39,7 +39,15 @@ public class RecruitmentController {
 
     private final RecruitmentService recruitmentService;
 
-    @Operation(summary = "구인구직 공고 작성")
+    @Operation(
+        summary = "구인구직 공고 작성",
+        description = """
+            필수는 `title`, `recruitPart`, `description`, `contact` 네 개다.
+            `category`, `lengthType`, `location`, `shootingPeriod`, `pay`, `deadline` 은 비워도 등록된다.
+
+            `title` 은 5~50자다. `deadline` 을 비우면 수동으로 마감할 때까지 모집이 유지된다.
+            """
+    )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RecruitmentDetailResponse> createRecruitment(
@@ -113,7 +121,19 @@ public class RecruitmentController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "구인구직 공고 수정")
+    @Operation(
+        summary = "구인구직 공고 수정",
+        description = """
+            전달한 항목만 부분 수정된다.
+
+            **마감된 공고는 내용을 수정할 수 없다.** 마감일이 지났거나 수동 마감한 공고에
+            내용 수정을 요청하면 `RECRUITMENT_CLOSED_EDIT400` 이 반환된다.
+
+            다만 `status` 를 `RECRUITING` 으로 보내는 요청은 통과한다. 상태 변경이 같은 API 라
+            전면 차단하면 마감을 되돌릴 방법이 없어지기 때문이다. 마감일이 지나 자동 마감된
+            공고를 되살리려면 `deadline` 도 함께 보내야 한다.
+            """
+    )
     @PatchMapping("/{recruitmentId}")
     public ApiResponse<RecruitmentDetailResponse> updateRecruitment(
         @AuthenticationPrincipal Long currentUserId,
