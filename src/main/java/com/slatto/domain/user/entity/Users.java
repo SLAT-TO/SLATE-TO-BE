@@ -104,6 +104,19 @@ public class Users extends BaseEntity{
         }
     }
 
+    // email 과 nickname 이 NOT NULL 이라 비울 수 없다. id 를 섞은 고유 값으로 덮어
+    // 개인정보를 지우면서 email 유니크 제약도 피한다. 원래 주소가 사라지므로 재가입이 열린다.
+    // .invalid 는 RFC 2606 예약 TLD 라 실수로 발송돼도 외부로 나가지 않는다.
+    public void withdraw(LocalDateTime withdrawnAt) {
+        this.deletedAt = withdrawnAt;
+        this.email = "withdrawn_" + id + "@slatto.invalid";
+        this.nickname = "탈퇴한 사용자_" + id;
+        this.password = null;
+        this.socialId = null;
+        this.profileImageUrl = null;
+        this.bio = null;
+    }
+
     public void completeOnboarding(String nickname, String bio, String profileImageUrl) {
         this.nickname = nickname;
         this.bio = bio;

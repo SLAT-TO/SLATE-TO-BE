@@ -7,6 +7,9 @@ import com.slatto.domain.user.dto.UserProfileUpdateRequest;
 import com.slatto.domain.user.dto.UserProfileUpdateResponse;
 import com.slatto.domain.user.dto.UserProfileImageResponse;
 import com.slatto.domain.user.dto.UserPublicProfileResponse;
+import com.slatto.domain.user.dto.UserWithdrawRequest;
+import com.slatto.domain.auth.repository.RefreshTokenRepository;
+import com.slatto.domain.user.repository.UserPortfolioRepository;
 import com.slatto.domain.user.entity.Location;
 import com.slatto.domain.user.entity.UserCategory;
 import com.slatto.domain.user.entity.UserRole;
@@ -32,6 +35,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,6 +60,8 @@ public class UserService {
     private final UserRoleRepository userRoleRepository;
     private final UserCategoryRepository userCategoryRepository;
     private final LocationRepository locationRepository;
+    private final UserPortfolioRepository userPortfolioRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final StorageService storageService;
 
     @Value("${cloud.aws.s3.public-base-url:}")
@@ -263,6 +269,18 @@ public class UserService {
             .categories(categories)
             .stats(UserPublicProfileResponse.Stats.empty())
             .build();
+    }
+
+    // 유저 행은 남긴다. 프로젝트·공고 등 연관 데이터가 FK 로 참조하고 있어 지우면 이력이 끊긴다.
+    @Transactional
+    public void withdraw(Long userId, UserWithdrawRequest request) {
+        Users user = getUserOrThrow(userId);
+        LocalDateTime withdrawnAt = LocalDateTime.now();
+
+        userPortfolioRepository.softDeleteAllByUserId(userId, withdrawnAt);
+        refreshTokenRepository.deleteByUser(user);
+
+        user.withdraw(withdrawnAt);
     }
 
     private List<RegionName> getUserRegions(Long userId) {
