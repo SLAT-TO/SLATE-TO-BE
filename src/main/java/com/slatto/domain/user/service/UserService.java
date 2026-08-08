@@ -281,8 +281,10 @@ public class UserService {
         Users user = getUserOrThrow(userId);
 
         // 세션이 탈취된 상태에서 탈퇴까지 가능하면 계정을 통째로 지워버릴 수 있다.
+        // matches 는 raw 가 null 이면 IllegalArgumentException 을 던져 500 이 나간다. 먼저 걸러낸다.
         if (user.hasPassword()
-            && !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            && (request.getPassword() == null
+            || !passwordEncoder.matches(request.getPassword(), user.getPassword()))) {
             throw new BaseException(UserErrorCode.WITHDRAW_PASSWORD_MISMATCH);
         }
 

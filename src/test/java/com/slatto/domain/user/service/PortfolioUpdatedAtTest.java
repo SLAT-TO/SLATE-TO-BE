@@ -23,8 +23,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDateTime;
@@ -44,12 +48,12 @@ class PortfolioUpdatedAtTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    @org.springframework.boot.test.context.TestConfiguration
+    @TestConfiguration
     static class PasswordEncoderTestConfig {
 
-        @org.springframework.context.annotation.Bean
-        org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
-            return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+        @Bean
+        PasswordEncoder passwordEncoder() {
+            return new BCryptPasswordEncoder();
         }
     }
 

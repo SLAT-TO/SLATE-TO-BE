@@ -223,6 +223,22 @@ class UserWithdrawTest {
             .isEqualTo(UserErrorCode.WITHDRAW_PASSWORD_MISMATCH);
     }
 
+    // BCryptPasswordEncoder.matches 는 raw 가 null 이면 예외를 던져 500 이 나간다.
+    @Test
+    @DisplayName("비밀번호가 있는 계정이 비밀번호를 보내지 않으면 401 로 거부한다")
+    void rejectsWithdrawWithoutPassword() {
+        Users emailUser = userRepository.save(
+            Users.createEmailUser("nopass@slatto.com", "이메일유저", passwordEncoder.encode(PASSWORD))
+        );
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThatThrownBy(() -> userService.withdraw(emailUser.getId(), withdrawRequest(null)))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(UserErrorCode.WITHDRAW_PASSWORD_MISMATCH);
+    }
+
     // 소셜로만 가입한 계정은 확인할 비밀번호가 없다. 필수로 걸면 탈퇴 자체가 막힌다.
     @Test
     @DisplayName("비밀번호가 없는 소셜 계정은 비밀번호 없이 탈퇴할 수 있다")
