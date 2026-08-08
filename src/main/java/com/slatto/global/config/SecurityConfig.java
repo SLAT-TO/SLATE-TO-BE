@@ -93,7 +93,8 @@ public class SecurityConfig {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(corsProperties.allowedOrigins());
 		configuration.setAllowCredentials(true);
-		configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+		// PUT 이 빠져 있어 프로필 이미지 업로드(PUT /users/me/profile-image)가 preflight 에서 막혔다.
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("*"));
 		configuration.setMaxAge(3600L);
 
