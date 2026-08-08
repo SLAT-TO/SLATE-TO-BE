@@ -1,5 +1,6 @@
 package com.slatto.global.security;
 
+import com.slatto.domain.user.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	private static final String BEARER_PREFIX = "Bearer ";
 
 	private final JwtTokenProvider jwtTokenProvider;
+	private final UserRepository userRepository;
 
 	@Override
 	protected void doFilterInternal(
@@ -34,7 +36,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 			Long userId = jwtTokenProvider.parseUserId(token, false);
 
-			if (userId != null) {
+			// 탈퇴해도 이미 발급된 액세스 토큰은 만료까지 서명 검증을 통과한다.
+			// 여기서 걸러내지 않으면 탈퇴 후에도 그 시간 동안 API 가 열린다.
+			// 인증된 요청마다 PK 조회가 한 번 늘어난다.
+			if (userId != null && userRepository.existsByIdAndDeletedAtIsNull(userId)) {
 				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
 					userId, null, List.of()
 				);
