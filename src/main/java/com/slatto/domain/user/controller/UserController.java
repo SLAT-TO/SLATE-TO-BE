@@ -49,7 +49,15 @@ public class UserController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "온보딩 정보 저장", description = "온보딩에서 입력한 약관 동의·역할·지역·카테고리·프로필 정보를 저장한다. 최초 1회만 허용한다.")
+    @Operation(
+        summary = "온보딩 정보 저장",
+        description = """
+            온보딩에서 입력한 약관 동의·역할·지역·카테고리·프로필 정보를 저장한다. 최초 1회만 허용한다.
+
+            `roles`, `regions`, `categories` 는 각각 1개 이상이어야 한다. 중복 값은 저장 시 제거된다.
+            `nickname` 은 특수문자 없이 2~20자, `bio` 는 200자 이하다.
+            """
+    )
     @PostMapping("/onboarding")
     public ApiResponse<UserOnboardingResponse> completeOnboarding(
         @AuthenticationPrincipal Long userId,
@@ -60,7 +68,15 @@ public class UserController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로필 수정", description = "마이페이지에서 내 프로필 정보를 수정한다. 전달된 항목만 부분 수정된다.")
+    @Operation(
+        summary = "프로필 수정",
+        description = """
+            마이페이지에서 내 프로필 정보를 수정한다. 전달된 항목만 부분 수정된다.
+
+            `nickname` 은 특수문자 없이 2~20자, `bio` 는 200자 이하다.
+            `locations` 를 전달하면 기존 활동 지역을 모두 지우고 전달한 값으로 교체한다.
+            """
+    )
     @PatchMapping("/me")
     public ApiResponse<UserProfileUpdateResponse> updateProfile(
         @AuthenticationPrincipal Long userId,
@@ -71,7 +87,14 @@ public class UserController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로필 이미지 업로드", description = "프로필 이미지를 S3에 업로드하고 CDN 공개 URL로 교체한다.")
+    @Operation(
+        summary = "프로필 이미지 업로드",
+        description = """
+            프로필 이미지를 S3에 업로드하고 CDN 공개 URL로 교체한다.
+
+            **최대 2MB**, jpg·jpeg·png·webp 만 허용한다. MIME 타입과 확장자가 모두 일치해야 한다.
+            """
+    )
     @PutMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<UserProfileImageResponse> uploadProfileImage(
         @AuthenticationPrincipal Long userId,
