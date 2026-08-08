@@ -9,6 +9,7 @@ import com.slatto.domain.user.dto.UserProfileImageResponse;
 import com.slatto.domain.user.dto.UserPublicProfileResponse;
 import com.slatto.domain.user.dto.UserWithdrawRequest;
 import com.slatto.domain.auth.repository.RefreshTokenRepository;
+import com.slatto.domain.recruitment.repository.RecruitmentRepository;
 import com.slatto.domain.user.repository.UserPortfolioRepository;
 import com.slatto.domain.user.entity.Location;
 import com.slatto.domain.user.entity.UserCategory;
@@ -61,6 +62,7 @@ public class UserService {
     private final UserCategoryRepository userCategoryRepository;
     private final LocationRepository locationRepository;
     private final UserPortfolioRepository userPortfolioRepository;
+    private final RecruitmentRepository recruitmentRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final StorageService storageService;
 
@@ -278,6 +280,7 @@ public class UserService {
         LocalDateTime withdrawnAt = LocalDateTime.now();
 
         userPortfolioRepository.softDeleteAllByUserId(userId, withdrawnAt);
+        recruitmentRepository.softDeleteAllByWriterId(userId, withdrawnAt);
         refreshTokenRepository.deleteByUser(user);
 
         user.withdraw(withdrawnAt);

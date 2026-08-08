@@ -3,11 +3,16 @@ package com.slatto.domain.user.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.slatto.domain.auth.entity.RefreshToken;
 import com.slatto.domain.auth.repository.RefreshTokenRepository;
+import com.slatto.domain.project.enums.LengthType;
+import com.slatto.domain.recruitment.entity.Recruitment;
+import com.slatto.domain.recruitment.repository.RecruitmentRepository;
 import com.slatto.domain.user.dto.UserWithdrawRequest;
 import com.slatto.domain.user.entity.UserPortfolio;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.Kind;
+import com.slatto.domain.user.enums.RegionName;
+import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.UserPortfolioRepository;
 import com.slatto.domain.user.repository.UserRepository;
@@ -23,6 +28,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,6 +59,9 @@ class UserWithdrawTest {
     private UserPortfolioRepository userPortfolioRepository;
 
     @Autowired
+    private RecruitmentRepository recruitmentRepository;
+
+    @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
@@ -60,6 +69,7 @@ class UserWithdrawTest {
 
     private Long userId;
     private Long portfolioId;
+    private Long recruitmentId;
 
     @BeforeEach
     void setUp() {
@@ -81,6 +91,21 @@ class UserWithdrawTest {
             "https://img.youtube.com/vi/abcdefghijk/hqdefault.jpg"
         ));
         portfolioId = portfolio.getId();
+
+        Recruitment recruitment = recruitmentRepository.save(Recruitment.create(
+            user,
+            "단편영화 촬영감독 구합니다",
+            CategoryName.FILM_DRAMA,
+            LengthType.SHORT_FORM,
+            RoleName.CINEMATOGRAPHER,
+            RegionName.SEOUL,
+            "2026년 9월",
+            "협의",
+            "010-0000-0000",
+            "단편영화 촬영 인력을 모집합니다.",
+            LocalDate.now().plusDays(30)
+        ));
+        recruitmentId = recruitment.getId();
 
         refreshTokenRepository.save(
             RefreshToken.issue(user, "refresh-token-value", LocalDateTime.now().plusDays(14))
@@ -139,6 +164,17 @@ class UserWithdrawTest {
         entityManager.clear();
 
         assertThat(userRepository.findByEmail(EMAIL)).isEmpty();
+    }
+
+    // 작성자가 없는 공고가 목록에 남으면 지원자가 응답받을 수 없는 곳에 지원하게 된다.
+    @Test
+    @DisplayName("탈퇴하면 작성한 공고도 함께 내려간다")
+    void softDeletesRecruitmentsOnWithdraw() {
+        userService.withdraw(userId, withdrawRequest());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(recruitmentRepository.findById(recruitmentId).orElseThrow().getDeletedAt()).isNotNull();
     }
 
     @Test

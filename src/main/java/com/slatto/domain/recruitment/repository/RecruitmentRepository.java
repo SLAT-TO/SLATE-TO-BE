@@ -12,10 +12,23 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface RecruitmentRepository extends JpaRepository<Recruitment, Long> {
+
+    // 작성자가 탈퇴하면 공고도 함께 내린다. 연락받을 사람이 없는 공고가 목록에 남으면
+    // 지원자가 응답 없는 공고에 지원하게 된다.
+    // clearAutomatically 는 쓰지 않는다. 같은 트랜잭션에 로딩된 엔티티가 detach 된다.
+    @Modifying
+    @Query("""
+        update Recruitment r
+        set r.deletedAt = :deletedAt
+        where r.writer.id = :writerId
+            and r.deletedAt is null
+        """)
+    int softDeleteAllByWriterId(@Param("writerId") Long writerId, @Param("deletedAt") LocalDateTime deletedAt);
 
     Optional<Recruitment> findByIdAndDeletedAtIsNull(Long id);
 
