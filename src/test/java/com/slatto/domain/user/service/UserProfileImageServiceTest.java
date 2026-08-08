@@ -78,10 +78,9 @@ class UserProfileImageServiceTest {
     @Test
     void 허용하지_않은_이미지_형식은_S3에_업로드하지_않는다() {
         // MIME 타입과 확장자가 허용 목록에 없으면 저장 전 요청을 차단해야 한다.
-        // 허용 목록은 jpg·jpeg·png·gif 다. gif 가 허용으로 바뀌어 webp 로 예시를 바꿨다.
         Users user = user(1L, null);
         MockMultipartFile file = new MockMultipartFile(
-            "file", "green.webp", "image/webp", "profile-image".getBytes()
+            "file", "green.gif", "image/gif", "profile-image".getBytes()
         );
         when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(user));
 

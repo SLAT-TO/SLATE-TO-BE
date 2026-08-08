@@ -55,7 +55,7 @@ public class UserService {
     private static final Map<String, Set<String>> ALLOWED_EXTENSIONS_BY_CONTENT_TYPE = Map.of(
         "image/jpeg", Set.of("jpg", "jpeg"),
         "image/png", Set.of("png"),
-        "image/gif", Set.of("gif")
+        "image/webp", Set.of("webp")
     );
 
     private final UserRepository userRepository;
