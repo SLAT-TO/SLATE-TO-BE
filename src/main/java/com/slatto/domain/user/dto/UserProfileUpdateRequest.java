@@ -4,6 +4,7 @@ import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.RegionName;
 import com.slatto.domain.user.enums.RoleName;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -15,12 +16,16 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserProfileUpdateRequest {
 
-    @Size(min = 1, max = 20, message = "닉네임은 1자 이상 20자 이하로 입력해야 합니다.")
+    @Pattern(
+        regexp = "^(?=.*\\S)[가-힣a-zA-Z0-9 ]{2,20}$",
+        message = "닉네임은 특수문자 없이 2자 이상 20자 이하로 입력해야 합니다."
+    )
     private String nickname;
 
     @Size(max = 500, message = "프로필 이미지 URL은 500자 이하로 입력해야 합니다.")
     private String profileImageUrl;
 
+    @Size(max = 200, message = "소개는 200자 이하로 입력해야 합니다.")
     private String bio;
 
     @Size(min = 1, message = "활동 지역은 1개 이상 선택해야 합니다.")

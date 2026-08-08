@@ -33,7 +33,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-@Import({PortfolioService.class, UserService.class, YoutubeUrlParser.class})
+@Import({PortfolioService.class, UserService.class, YoutubeUrlParser.class,
+    PortfolioUpdatedAtTest.PasswordEncoderTestConfig.class})
 @TestPropertySource(properties = {
     "spring.jpa.database=h2",
     "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
@@ -42,6 +43,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PortfolioUpdatedAtTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @org.springframework.boot.test.context.TestConfiguration
+    static class PasswordEncoderTestConfig {
+
+        @org.springframework.context.annotation.Bean
+        org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
+            return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+        }
+    }
 
     // UserService가 프로필 이미지 업로드용 StorageService를 의존하므로, 이 JPA 슬라이스에서는 빈만 제공한다.
     @MockBean

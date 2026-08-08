@@ -15,8 +15,10 @@ import com.slatto.domain.user.enums.RegionName;
 import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.UserPortfolioRepository;
+import com.slatto.domain.user.exception.UserErrorCode;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.domain.video.util.YoutubeUrlParser;
+import com.slatto.global.exception.BaseException;
 import com.slatto.global.storage.StorageService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +26,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -32,9 +38,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
-@Import({UserService.class, YoutubeUrlParser.class})
+@Import({UserService.class, YoutubeUrlParser.class, UserWithdrawTest.PasswordEncoderTestConfig.class})
 @TestPropertySource(properties = {
     "spring.jpa.database=h2",
     "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
@@ -44,6 +51,16 @@ class UserWithdrawTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String EMAIL = "tester@slatto.com";
+    private static final String PASSWORD = "slatto!2026";
+
+    @TestConfiguration
+    static class PasswordEncoderTestConfig {
+
+        @Bean
+        PasswordEncoder passwordEncoder() {
+            return new BCryptPasswordEncoder();
+        }
+    }
 
     // UserService 가 프로필 이미지 업로드용으로 의존한다. 이 슬라이스에서는 빈만 제공한다.
     @MockitoBean
@@ -63,6 +80,9 @@ class UserWithdrawTest {
 
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private EntityManager entityManager;
@@ -187,9 +207,44 @@ class UserWithdrawTest {
         assertThat(refreshTokenRepository.findByToken("refresh-token-value")).isEmpty();
     }
 
+    // 세션만으로 탈퇴가 되면 토큰이 탈취된 상황에서 계정을 통째로 지워버릴 수 있다.
+    @Test
+    @DisplayName("비밀번호가 있는 계정은 비밀번호가 틀리면 탈퇴할 수 없다")
+    void rejectsWithdrawWithWrongPassword() {
+        Users emailUser = userRepository.save(
+            Users.createEmailUser("email@slatto.com", "이메일유저", passwordEncoder.encode(PASSWORD))
+        );
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThatThrownBy(() -> userService.withdraw(emailUser.getId(), withdrawRequest("wrong!2026")))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(UserErrorCode.WITHDRAW_PASSWORD_MISMATCH);
+    }
+
+    // 소셜로만 가입한 계정은 확인할 비밀번호가 없다. 필수로 걸면 탈퇴 자체가 막힌다.
+    @Test
+    @DisplayName("비밀번호가 없는 소셜 계정은 비밀번호 없이 탈퇴할 수 있다")
+    void allowsWithdrawWithoutPasswordForSocialAccount() {
+        userService.withdraw(userId, withdrawRequest(null));
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(userRepository.findById(userId).orElseThrow().getDeletedAt()).isNotNull();
+    }
+
     private UserWithdrawRequest withdrawRequest() {
+        return withdrawRequest(null);
+    }
+
+    private UserWithdrawRequest withdrawRequest(String password) {
         try {
-            return OBJECT_MAPPER.readValue("{\"agreed\":true}", UserWithdrawRequest.class);
+            String json = password == null
+                ? "{\"agreed\":true}"
+                : "{\"agreed\":true,\"password\":\"" + password + "\"}";
+
+            return OBJECT_MAPPER.readValue(json, UserWithdrawRequest.class);
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
         }

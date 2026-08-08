@@ -29,6 +29,7 @@ import com.slatto.global.storage.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -49,12 +50,12 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class UserService {
 
-    private static final long MAX_PROFILE_IMAGE_SIZE = 10L * 1024 * 1024;
+    private static final long MAX_PROFILE_IMAGE_SIZE = 2L * 1024 * 1024;
     private static final String PROFILE_IMAGE_STORAGE_KEY_FORMAT = "users/%d/profile-images/%s.%s";
     private static final Map<String, Set<String>> ALLOWED_EXTENSIONS_BY_CONTENT_TYPE = Map.of(
         "image/jpeg", Set.of("jpg", "jpeg"),
         "image/png", Set.of("png"),
-        "image/webp", Set.of("webp")
+        "image/gif", Set.of("gif")
     );
 
     private final UserRepository userRepository;
@@ -64,6 +65,7 @@ public class UserService {
     private final UserPortfolioRepository userPortfolioRepository;
     private final RecruitmentRepository recruitmentRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
 
     @Value("${cloud.aws.s3.public-base-url:}")
@@ -277,6 +279,13 @@ public class UserService {
     @Transactional
     public void withdraw(Long userId, UserWithdrawRequest request) {
         Users user = getUserOrThrow(userId);
+
+        // 세션이 탈취된 상태에서 탈퇴까지 가능하면 계정을 통째로 지워버릴 수 있다.
+        if (user.hasPassword()
+            && !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new BaseException(UserErrorCode.WITHDRAW_PASSWORD_MISMATCH);
+        }
+
         LocalDateTime withdrawnAt = LocalDateTime.now();
 
         userPortfolioRepository.softDeleteAllByUserId(userId, withdrawnAt);
