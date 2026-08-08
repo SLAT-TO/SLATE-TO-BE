@@ -10,8 +10,29 @@ on:
 
 jobs:
   build:
-    name: Build and Docker Image Check
+    name: Migration, Build and Docker Image Check
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4.9
+        env:
+          MYSQL_DATABASE: slatto_ci
+          MYSQL_USER: slatto_ci
+          MYSQL_PASSWORD: ci-password
+          MYSQL_ROOT_PASSWORD: ci-root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      FLYWAY_URL: jdbc:mysql://127.0.0.1:3306/slatto_ci?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
+      FLYWAY_USER: slatto_ci
+      FLYWAY_PASSWORD: ci-password
 
     steps:
       - name: Checkout
@@ -26,6 +47,29 @@ jobs:
 
       - name: Make Gradle Wrapper executable
         run: chmod +x ./gradlew
+
+      - name: Load V8 baseline schema into CI MySQL
+        run: |
+          docker run --rm --network host \
+            -e MYSQL_PWD="$FLYWAY_PASSWORD" \
+            -i mysql:8.4.9 \
+            mysql --host=127.0.0.1 --user="$FLYWAY_USER" slatto_ci \
+            < .github/flyway/baseline-v8.sql
+
+      - name: Baseline and migrate CI MySQL
+        run: |
+          ./gradlew flywayBaseline --no-daemon
+          ./gradlew flywayInfo --no-daemon
+          ./gradlew flywayMigrate --no-daemon
+          ./gradlew flywayValidate --no-daemon
+
+      - name: Validate migrated schema against JPA entities
+        env:
+          FLYWAY_SCHEMA_VALIDATION: "true"
+        run: >-
+          ./gradlew test
+          --tests com.slatto.global.database.FlywaySchemaValidationTest
+          --no-daemon
 
       - name: Test and build Spring Boot jar
         run: ./gradlew clean test bootJar --no-daemon
