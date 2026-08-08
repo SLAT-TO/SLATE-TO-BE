@@ -14,6 +14,7 @@ import com.slatto.domain.recruitment.entity.RecruitmentApplication;
 import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
 import com.slatto.domain.recruitment.enums.RecruitmentSortType;
 import com.slatto.domain.recruitment.enums.RecruitmentStatus;
+import com.slatto.domain.recruitment.exception.RecruitmentErrorCode;
 import com.slatto.domain.recruitment.repository.RecruitmentApplicationRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentBookmarkRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentRepository;
@@ -106,6 +107,12 @@ public class RecruitmentService {
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         validateWriter(recruitment, currentUserId);
+
+        // 마감된 공고는 내용을 수정할 수 없다. 다만 다시 모집중으로 되돌리는 요청은 통과시킨다.
+        // 전면 차단하면 상태 변경도 같은 API 를 쓰므로 수동 마감을 취소할 방법이 사라진다.
+        if (isClosed(recruitment) && request.getStatus() != RecruitmentStatus.RECRUITING) {
+            throw new BaseException(RecruitmentErrorCode.RECRUITMENT_CLOSED_NOT_EDITABLE);
+        }
 
         recruitment.update(
             request.getTitle(),
@@ -397,6 +404,14 @@ public class RecruitmentService {
         List<UserRole> roles = userRoleRepository.findAllByUserIdOrderByIdAsc(userId);
 
         return roles.isEmpty() ? null : roles.get(0).getRoleName();
+    }
+
+    private boolean isClosed(Recruitment recruitment) {
+        return recruitmentConverter.resolveStatus(
+            recruitment.getClosedManually(),
+            recruitment.getDeadline(),
+            recruitmentConverter.currentDate()
+        ) == RecruitmentStatus.CLOSED;
     }
 
     private List<RegionName> getUserRegions(Long userId) {
