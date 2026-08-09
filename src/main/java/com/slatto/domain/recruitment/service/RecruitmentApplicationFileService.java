@@ -37,8 +37,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class RecruitmentApplicationFileService {
 
-    static final int MAX_FILE_COUNT = 10;
-
+    private static final int MAX_FILE_COUNT = 10;
     private static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
     private static final String STORAGE_KEY_FORMAT = "recruitments/%d/applications/%s.%s";
     // zip 은 브라우저와 OS 조합에 따라 MIME 이 갈려 둘 다 받는다.

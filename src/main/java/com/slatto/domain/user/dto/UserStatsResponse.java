@@ -16,13 +16,6 @@ public class UserStatsResponse {
 
     private List<RoleStat> roles;
 
-    public static UserStatsResponse empty() {
-        return UserStatsResponse.builder()
-            .projectTypes(List.of())
-            .roles(List.of())
-            .build();
-    }
-
     @Getter
     @Builder
     public static class ProjectTypeStat {
