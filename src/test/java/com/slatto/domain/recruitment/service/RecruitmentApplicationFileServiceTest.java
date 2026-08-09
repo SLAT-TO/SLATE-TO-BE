@@ -2,6 +2,7 @@ package com.slatto.domain.recruitment.service;
 
 import com.slatto.domain.recruitment.entity.Recruitment;
 import com.slatto.domain.recruitment.entity.RecruitmentApplication;
+import com.slatto.domain.recruitment.dto.RecruitmentApplicationFileResponse;
 import com.slatto.domain.recruitment.entity.RecruitmentApplicationFile;
 import com.slatto.domain.recruitment.exception.RecruitmentErrorCode;
 import com.slatto.domain.recruitment.repository.RecruitmentApplicationFileRepository;
@@ -9,6 +10,7 @@ import com.slatto.domain.recruitment.repository.RecruitmentApplicationRepository
 import com.slatto.domain.recruitment.repository.RecruitmentRepository;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.SocialType;
+import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import com.slatto.global.storage.StorageService;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -28,6 +31,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +52,9 @@ class RecruitmentApplicationFileServiceTest {
 
     @Mock
     private RecruitmentRepository recruitmentRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private StorageService storageService;
@@ -106,6 +114,66 @@ class RecruitmentApplicationFileServiceTest {
     }
 
     @Test
+    @DisplayName("확장자만 허용 형식이고 MIME 이 다르면 거부한다")
+    void rejectsWhenMimeDoesNotMatchExtension() {
+        // 확장자만 바꾼 실행 파일이 통과하면 안 된다.
+        givenApplicantCanUpload();
+
+        assertThatThrownBy(() -> recruitmentApplicationFileService.uploadApplicationFile(
+            APPLICANT_ID, RECRUITMENT_ID,
+            new MockMultipartFile("file", "이력서.pdf", "application/x-msdownload", "data".getBytes())
+        ))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(RecruitmentErrorCode.APPLICATION_FILE_INVALID_TYPE);
+    }
+
+    @Test
+    @DisplayName("MIME 만 허용 형식이고 확장자가 다르면 거부한다")
+    void rejectsWhenExtensionDoesNotMatchMime() {
+        givenApplicantCanUpload();
+
+        assertThatThrownBy(() -> recruitmentApplicationFileService.uploadApplicationFile(
+            APPLICANT_ID, RECRUITMENT_ID,
+            new MockMultipartFile("file", "이력서.exe", "application/pdf", "data".getBytes())
+        ))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(RecruitmentErrorCode.APPLICATION_FILE_INVALID_TYPE);
+    }
+
+    @Test
+    @DisplayName("허용 형식이면 S3 에 올리고 파일 정보를 돌려준다")
+    void uploadsAllowedFile() {
+        givenApplicantCanUpload();
+        when(recruitmentApplicationFileRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RecruitmentApplicationFileResponse response = recruitmentApplicationFileService.uploadApplicationFile(
+            APPLICANT_ID, RECRUITMENT_ID,
+            new MockMultipartFile("file", "이력서.pdf", "application/pdf", "data".getBytes())
+        );
+
+        assertThat(response.getFileName()).isEqualTo("이력서.pdf");
+        assertThat(response.getContentType()).isEqualTo("application/pdf");
+        verify(storageService).upload(any(), startsWith("recruitments/%d/applications/".formatted(RECRUITMENT_ID)));
+    }
+
+    @Test
+    @DisplayName("본인이 작성한 공고에는 첨부 파일을 올릴 수 없다")
+    void rejectsUploadByRecruitmentWriter() {
+        when(recruitmentRepository.findByIdAndDeletedAtIsNull(RECRUITMENT_ID))
+            .thenReturn(Optional.of(recruitment()));
+
+        assertThatThrownBy(() -> recruitmentApplicationFileService.uploadApplicationFile(
+            WRITER_ID, RECRUITMENT_ID,
+            new MockMultipartFile("file", "이력서.pdf", "application/pdf", "data".getBytes())
+        ))
+            .isInstanceOf(BaseException.class)
+            .extracting(exception -> ((BaseException) exception).getErrorCode())
+            .isEqualTo(RecruitmentErrorCode.RECRUITMENT_SELF_APPLICATION);
+    }
+
+    @Test
     @DisplayName("공고 작성자도 지원자도 아니면 첨부 파일을 받을 수 없다")
     void deniesDownloadToStranger() {
         when(recruitmentRepository.findByIdAndDeletedAtIsNull(RECRUITMENT_ID))
@@ -120,6 +188,13 @@ class RecruitmentApplicationFileServiceTest {
             .isInstanceOf(BaseException.class)
             .extracting(exception -> ((BaseException) exception).getErrorCode())
             .isEqualTo(CommonErrorCode.FORBIDDEN);
+    }
+
+    private void givenApplicantCanUpload() {
+        when(recruitmentRepository.findByIdAndDeletedAtIsNull(RECRUITMENT_ID))
+            .thenReturn(Optional.of(recruitment()));
+        when(userRepository.findByIdAndDeletedAtIsNull(APPLICANT_ID))
+            .thenReturn(Optional.of(user(APPLICANT_ID)));
     }
 
     private Recruitment recruitment() {

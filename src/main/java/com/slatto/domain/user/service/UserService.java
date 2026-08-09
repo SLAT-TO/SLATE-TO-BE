@@ -272,7 +272,7 @@ public class UserService {
             .primaryRole(roles.isEmpty() ? null : roles.get(0))
             .roles(roles)
             .categories(categories)
-            .stats(getStats(userId))
+            .stats(buildStats(userId))
             .build();
     }
 
@@ -280,6 +280,12 @@ public class UserService {
     public UserStatsResponse getStats(Long userId) {
         getUserOrThrow(userId);
 
+        return buildStats(userId);
+    }
+
+    // getPublicProfile 은 이미 유저를 검증했다. 여기서 다시 조회하면 파생 쿼리라
+    // 1차 캐시를 타지 않고 users 를 한 번 더 SELECT 한다.
+    private UserStatsResponse buildStats(Long userId) {
         return UserStatsResponse.builder()
             .projectTypes(toProjectTypeStats(userPortfolioRepository.findProjectTypeStatRowsByUserId(userId)))
             .roles(toRoleStats(userPortfolioRepository.findRoleStatRowsByUserId(userId)))

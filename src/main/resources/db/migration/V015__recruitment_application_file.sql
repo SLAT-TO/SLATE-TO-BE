@@ -34,10 +34,6 @@ CREATE TABLE recruitment_application_file
         FOREIGN KEY (uploader_id) REFERENCES users (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
--- 지원 상세에서 첨부 목록을 조회할 때 쓴다.
-CREATE INDEX idx_recruitment_application_file_application
-    ON recruitment_application_file (application_id);
-
--- 업로드했지만 지원에 연결되지 않은 파일을 소유자 기준으로 찾을 때 쓴다.
-CREATE INDEX idx_recruitment_application_file_uploader
-    ON recruitment_application_file (uploader_id);
+-- application_id / uploader_id 조회용 인덱스를 따로 만들지 않는다.
+-- InnoDB 는 FK 제약에 인덱스가 필요해 없으면 자동으로 생성하므로, 같은 컬럼에 CREATE INDEX 를
+-- 더하면 완전히 중복된 인덱스가 하나 더 생겨 INSERT/UPDATE 비용만 늘어난다.
