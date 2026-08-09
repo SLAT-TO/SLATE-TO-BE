@@ -28,21 +28,6 @@ public class UserPublicProfileResponse {
 
     private List<CategoryName> categories;
 
-    private Stats stats;
-
-    @Getter
-    @Builder
-    public static class Stats {
-
-        private List<Object> projectTypes;
-
-        private List<Object> roles;
-
-        public static Stats empty() {
-            return Stats.builder()
-                .projectTypes(List.of())
-                .roles(List.of())
-                .build();
-        }
-    }
+    // 포트폴리오 기준 유형·역할 분포다. 같은 값을 GET /users/{userId}/stats 로도 단독 조회할 수 있다.
+    private UserStatsResponse stats;
 }
