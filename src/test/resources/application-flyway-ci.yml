@@ -1,0 +1,19 @@
+spring:
+  config:
+    activate:
+      on-profile: flyway-ci
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${FLYWAY_URL}
+    username: ${FLYWAY_USER}
+    password: ${FLYWAY_PASSWORD}
+
+  jpa:
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: false
