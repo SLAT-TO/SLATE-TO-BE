@@ -1,7 +1,18 @@
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	dependencies {
+		classpath 'org.flywaydb:flyway-mysql:11.7.2'
+		classpath 'com.mysql:mysql-connector-j:9.7.0'
+	}
+}
+
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.15'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.flywaydb.flyway' version '11.7.2'
 }
 
 group = 'com.slatto'
@@ -16,6 +27,41 @@ java {
 
 repositories {
 	mavenCentral()
+}
+
+flyway {
+	url = providers.environmentVariable('FLYWAY_URL').orNull
+	user = providers.environmentVariable('FLYWAY_USER').orNull
+	password = providers.environmentVariable('FLYWAY_PASSWORD').orNull
+	locations = ['filesystem:src/main/resources/db/migration']
+	baselineOnMigrate = true
+	baselineVersion = '8'
+	baselineDescription = 'legacy-schema'
+	validateOnMigrate = true
+	cleanDisabled = true
+}
+
+def flywayDatabaseTasks = [
+	'flywayBaseline',
+	'flywayClean',
+	'flywayInfo',
+	'flywayMigrate',
+	'flywayRepair',
+	'flywayUndo',
+	'flywayValidate'
+]
+
+tasks.matching { it.name in flywayDatabaseTasks }.configureEach {
+	doFirst {
+		def missingVariables = ['FLYWAY_URL', 'FLYWAY_USER', 'FLYWAY_PASSWORD']
+			.findAll { !providers.environmentVariable(it).orNull?.trim() }
+
+		if (!missingVariables.isEmpty()) {
+			throw new GradleException(
+				"Flyway task requires explicit environment variables: ${missingVariables.join(', ')}"
+			)
+		}
+	}
 }
 
 dependencies {
