@@ -3,6 +3,8 @@ package com.slatto.domain.recruitment.converter;
 import com.slatto.domain.recruitment.dto.MyApplicationListResponse;
 import com.slatto.domain.recruitment.dto.MyRecruitmentListResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicantListResponse;
+import com.slatto.domain.recruitment.dto.RecruitmentApplicationDetailResponse;
+import com.slatto.domain.recruitment.dto.RecruitmentApplicationFileResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentBookmarkResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentCreateRequest;
@@ -198,6 +200,32 @@ public class RecruitmentConverter {
             .message(application.getMessage())
             .referenceLink(application.getReferenceLink())
             .appliedAt(application.getCreatedAt())
+            .build();
+    }
+
+    public RecruitmentApplicationDetailResponse toApplicationDetailResponse(
+        RecruitmentApplication application,
+        RoleName primaryRole,
+        List<RegionName> regions,
+        List<RecruitmentApplicationFileResponse> files
+    ) {
+        Users applicant = application.getUser();
+
+        return RecruitmentApplicationDetailResponse.builder()
+            .applicationId(application.getId())
+            .recruitmentId(application.getRecruitment().getId())
+            .applicationStatus(application.getStatus())
+            .message(application.getMessage())
+            .referenceLink(application.getReferenceLink())
+            .appliedAt(application.getCreatedAt())
+            .applicant(RecruitmentApplicationDetailResponse.ApplicantProfile.builder()
+                .id(applicant.getId())
+                .nickname(applicant.getNickname())
+                .profileImageUrl(applicant.getProfileImageUrl())
+                .primaryRole(primaryRole)
+                .locations(regions)
+                .build())
+            .files(files)
             .build();
     }
 

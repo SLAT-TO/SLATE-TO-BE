@@ -4,8 +4,11 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      # 서비스 코드의 개별 파일 한도(100MB)와 맞춘다. 여기가 더 작으면 요청이 컨트롤러에 닿기 전에
+      # 잘려 MaxUploadSizeExceededException 이 나가고 서비스의 검증 로직이 실행되지 않는다.
+      # request 는 파일 본문에 JSON 파트와 멀티파트 경계가 더해지므로 여유를 둔다.
+      max-file-size: 100MB
+      max-request-size: 105MB
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
