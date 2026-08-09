@@ -31,6 +31,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @Tag(name = "Recruitment", description = "구인구직 공고 API")
 @RestController
 @RequiredArgsConstructor
@@ -61,17 +63,28 @@ public class RecruitmentController {
 
     @Operation(
         summary = "구인구직 공고 목록 조회",
-        description = "필터는 AND 로 결합한다. nextCursor 는 공고 ID 이며 프론트는 해석하지 않고 그대로 되돌려준다. "
-            + "정렬이나 필터가 바뀌면 cursor 를 버리고 첫 페이지부터 다시 조회해야 한다."
+        description = """
+            필터는 AND 로 결합한다. nextCursor 는 공고 ID 이며 프론트는 해석하지 않고 그대로 되돌려준다.
+            정렬이나 필터가 바뀌면 cursor 를 버리고 첫 페이지부터 다시 조회해야 한다.
+
+            `category`, `recruitPart`, `location` 은 복수 선택이다. 같은 키를 반복해서 보낸다.
+
+            ```
+            GET /api/v1/recruitments?location=SEOUL&location=GYEONGGI&recruitPart=DIRECTOR
+            ```
+
+            같은 키 안의 값들은 OR 로, 서로 다른 키는 AND 로 묶인다. 위 예시는
+            (서울 또는 경기) 이면서 연출 파트인 공고다. 값을 하나도 보내지 않으면 해당 필터는 적용되지 않는다.
+            """
     )
     @GetMapping
     public ApiResponse<RecruitmentListResponse> getRecruitments(
         @AuthenticationPrincipal Long currentUserId,
         @RequestParam(required = false) String keyword,
-        @RequestParam(required = false) CategoryName category,
+        @RequestParam(required = false) List<CategoryName> category,
         @RequestParam(required = false) LengthType lengthType,
-        @RequestParam(required = false) RoleName recruitPart,
-        @RequestParam(required = false) RegionName location,
+        @RequestParam(required = false) List<RoleName> recruitPart,
+        @RequestParam(required = false) List<RegionName> location,
         @RequestParam(required = false) RecruitmentStatus status,
         @RequestParam(defaultValue = "LATEST") RecruitmentSortType sort,
         @RequestParam(required = false) Long cursor,

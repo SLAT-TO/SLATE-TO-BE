@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -144,10 +145,10 @@ public class RecruitmentService {
     public RecruitmentListResponse getRecruitments(
         Long currentUserId,
         String keyword,
-        CategoryName category,
+        List<CategoryName> categories,
         LengthType lengthType,
-        RoleName recruitPart,
-        RegionName location,
+        List<RoleName> recruitParts,
+        List<RegionName> locations,
         RecruitmentStatus status,
         RecruitmentSortType sort,
         Long cursor,
@@ -157,18 +158,23 @@ public class RecruitmentService {
         // 필터 바인딩과 표시 계산이 같은 날짜를 써야 목록 결과와 status 배지가 어긋나지 않는다.
         LocalDate today = recruitmentConverter.currentDate();
         String normalizedKeyword = normalizeKeyword(keyword);
+        List<CategoryName> categoryFilter = normalizeFilter(categories);
+        List<RoleName> recruitPartFilter = normalizeFilter(recruitParts);
+        List<RegionName> locationFilter = normalizeFilter(locations);
         Boolean openOnly = toOpenOnly(status);
         RecruitmentSortType sortType = sort == null ? RecruitmentSortType.LATEST : sort;
         Pageable pageable = PageRequest.of(0, pageSize + 1);
 
         List<Recruitment> recruitments = switch (sortType) {
             case LATEST -> recruitmentRepository.findPageOrderByLatest(
-                normalizedKeyword, category, lengthType, recruitPart, location, openOnly, today, cursor, pageable
+                normalizedKeyword, categoryFilter, lengthType, recruitPartFilter, locationFilter,
+                openOnly, today, cursor, pageable
             );
             case DEADLINE -> {
                 Recruitment cursorRecruitment = resolveCursorRecruitment(cursor);
                 yield recruitmentRepository.findPageOrderByDeadline(
-                    normalizedKeyword, category, lengthType, recruitPart, location, openOnly, today, cursor,
+                    normalizedKeyword, categoryFilter, lengthType, recruitPartFilter, locationFilter,
+                    openOnly, today, cursor,
                     getCursorClosed(cursorRecruitment, today),
                     cursorRecruitment == null ? null : cursorRecruitment.getDeadline(),
                     pageable
@@ -177,7 +183,8 @@ public class RecruitmentService {
             case POPULAR -> {
                 Recruitment cursorRecruitment = resolveCursorRecruitment(cursor);
                 yield recruitmentRepository.findPageOrderByPopular(
-                    normalizedKeyword, category, lengthType, recruitPart, location, openOnly, today, cursor,
+                    normalizedKeyword, categoryFilter, lengthType, recruitPartFilter, locationFilter,
+                    openOnly, today, cursor,
                     cursorRecruitment == null ? null : cursorRecruitment.getViewCount(),
                     pageable
                 );
@@ -334,6 +341,22 @@ public class RecruitmentService {
         }
 
         return keyword.trim();
+    }
+
+    // 빈 컬렉션을 in 절에 넘기면 1=0 으로 렌더링돼 필터를 걸지 않았는데도 0건이 된다.
+    // 파라미터를 아예 보내지 않은 경우와 빈 값으로 보낸 경우를 모두 null(필터 미적용)로 모은다.
+    // null 원소는 잘못 들어온 값이라 제거한다. 남은 게 없으면 역시 필터 미적용이다.
+    private <T> List<T> normalizeFilter(List<T> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+
+        List<T> filtered = values.stream()
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+
+        return filtered.isEmpty() ? null : filtered;
     }
 
     private Set<Long> getBookmarkedRecruitmentIds(Long currentUserId, List<Recruitment> recruitments) {
