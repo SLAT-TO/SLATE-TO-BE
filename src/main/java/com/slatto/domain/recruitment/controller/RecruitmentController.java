@@ -44,8 +44,9 @@ public class RecruitmentController {
     @Operation(
         summary = "구인구직 공고 작성",
         description = """
-            필수는 `title`, `recruitPart`, `description`, `contact` 네 개다.
-            `category`, `lengthType`, `location`, `shootingPeriod`, `pay`, `deadline` 은 비워도 등록된다.
+            필수는 `title`, `recruitPart`, `description` 세 개다.
+            `category`, `lengthType`, `location`, `shootingPeriod`, `pay`, `contact`, `deadline` 은 비워도 등록된다.
+            다만 값을 보낼 거면 공백만 채워 보낼 수는 없다.
 
             `title` 은 5~50자다. `deadline` 을 비우면 수동으로 마감할 때까지 모집이 유지된다.
             """
