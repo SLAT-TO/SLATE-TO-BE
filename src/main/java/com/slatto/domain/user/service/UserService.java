@@ -251,7 +251,13 @@ public class UserService {
     }
 
     public UserPublicProfileResponse getPublicProfile(Long userId) {
-        Users user = getUserOrThrow(userId);
+        return getPublicProfileOf(getUserOrThrow(userId));
+    }
+
+    // 탈퇴 여부를 판정하지 않는다. 지원 이력처럼 탈퇴한 유저의 프로필도 함께 보여야 하는 곳에서 쓴다.
+    // 탈퇴 유저를 걸러야 하는 호출자는 getPublicProfile(Long) 을 쓴다.
+    public UserPublicProfileResponse getPublicProfileOf(Users user) {
+        Long userId = user.getId();
 
         List<RoleName> roles = userRoleRepository.findAllByUserIdOrderByIdAsc(userId)
             .stream()

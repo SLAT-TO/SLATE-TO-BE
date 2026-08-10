@@ -152,6 +152,11 @@ public class PortfolioService {
     public PortfolioListResponse getPortfolios(Long userId, Long cursor, int size) {
         getUserOrThrow(userId);
 
+        return getPortfoliosOf(userId, cursor, size);
+    }
+
+    // 탈퇴 여부를 판정하지 않는다. 지원 상세처럼 탈퇴한 유저의 이력도 함께 보여야 하는 곳에서 쓴다.
+    public PortfolioListResponse getPortfoliosOf(Long userId, Long cursor, int size) {
         int pageSize = normalizePageSize(size);
         List<UserPortfolio> portfolios = userPortfolioRepository.findActivePortfoliosByCursor(
             userId,

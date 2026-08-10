@@ -12,6 +12,8 @@ import com.slatto.domain.recruitment.dto.RecruitmentDetailResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentListResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentRecommendationResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentSummary;
+import com.slatto.domain.user.dto.PortfolioListResponse;
+import com.slatto.domain.user.dto.UserPublicProfileResponse;
 import com.slatto.domain.recruitment.entity.Recruitment;
 import com.slatto.domain.recruitment.entity.RecruitmentApplication;
 import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
@@ -205,12 +207,10 @@ public class RecruitmentConverter {
 
     public RecruitmentApplicationDetailResponse toApplicationDetailResponse(
         RecruitmentApplication application,
-        RoleName primaryRole,
-        List<RegionName> regions,
+        UserPublicProfileResponse applicantProfile,
+        PortfolioListResponse portfolios,
         List<RecruitmentApplicationFileResponse> files
     ) {
-        Users applicant = application.getUser();
-
         return RecruitmentApplicationDetailResponse.builder()
             .applicationId(application.getId())
             .recruitmentId(application.getRecruitment().getId())
@@ -219,11 +219,16 @@ public class RecruitmentConverter {
             .referenceLink(application.getReferenceLink())
             .appliedAt(application.getCreatedAt())
             .applicant(RecruitmentApplicationDetailResponse.ApplicantProfile.builder()
-                .id(applicant.getId())
-                .nickname(applicant.getNickname())
-                .profileImageUrl(applicant.getProfileImageUrl())
-                .primaryRole(primaryRole)
-                .locations(regions)
+                .id(applicantProfile.getId())
+                .nickname(applicantProfile.getNickname())
+                .profileImageUrl(applicantProfile.getProfileImageUrl())
+                .bio(applicantProfile.getBio())
+                .primaryRole(applicantProfile.getPrimaryRole())
+                .roles(applicantProfile.getRoles())
+                .locations(applicantProfile.getLocations())
+                .categories(applicantProfile.getCategories())
+                .stats(applicantProfile.getStats())
+                .portfolios(portfolios)
                 .build())
             .files(files)
             .build();

@@ -87,9 +87,22 @@ public class RecruitmentApplicationController {
         description = """
             공고 작성자와 지원 본인만 조회할 수 있다. 그 외에는 403 이다.
 
-            지원자 프로필, 자기소개(`message`), 참고 링크, 첨부 파일 목록을 함께 반환한다.
+            지원자 프로필 화면에 필요한 값을 한 번에 반환한다.
+            이 API 하나로 끝나므로 `GET /users/{userId}` 와 `GET /users/{userId}/portfolios` 를
+            따로 부르지 않아도 된다.
+
+            - 지원 정보 — `message`, `referenceLink`, `files`
+            - 지원자 프로필 — `applicant` 에 자기소개·지역·역할·관심 카테고리·활동 통계
+            - 프로젝트 이력 — `applicant.portfolios` 에 최신 5건
+
+            `applicant.portfolios` 는 목록 API 와 같은 구조이며 `hasNext` 가 `true` 면
+            `GET /users/{userId}/portfolios` 로 이어서 조회한다. `nextCursor` 도 그대로 쓸 수 있다.
+
             `files` 에는 파일 본문이 아니라 메타데이터만 담긴다.
             실제 내려받기는 첨부 파일 다운로드 API 를 쓴다.
+
+            탈퇴한 지원자의 지원도 조회된다. 지원 이력이 사라지면 공고 작성자가 지원자 목록에서
+            본 항목을 열 수 없게 되기 때문이다.
             """
     )
     @GetMapping("/{applicationId}")
