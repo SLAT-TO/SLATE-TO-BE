@@ -251,7 +251,14 @@ public class UserService {
     }
 
     public UserPublicProfileResponse getPublicProfile(Long userId) {
-        Users user = getUserOrThrow(userId);
+        return getPublicProfileOf(getUserOrThrow(userId));
+    }
+
+    // 탈퇴 여부를 판정하지 않는다. 지원 상세처럼 목록에 남은 항목을 404 없이 열어야 하는 곳에서 쓴다.
+    // 탈퇴 시 닉네임·자기소개·프로필 이미지가 익명화되므로 그대로 내보내도 개인정보가 노출되지 않는다.
+    // 탈퇴 유저를 걸러야 하는 호출자는 getPublicProfile(Long) 을 쓴다.
+    public UserPublicProfileResponse getPublicProfileOf(Users user) {
+        Long userId = user.getId();
 
         List<RoleName> roles = userRoleRepository.findAllByUserIdOrderByIdAsc(userId)
             .stream()
