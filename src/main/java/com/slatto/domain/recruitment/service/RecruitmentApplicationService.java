@@ -4,6 +4,7 @@ import com.slatto.domain.recruitment.converter.RecruitmentConverter;
 import com.slatto.domain.recruitment.dto.MyApplicationListResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicantListResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationCreateRequest;
+import com.slatto.domain.recruitment.dto.RecruitmentApplicationDetailResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationStatusUpdateRequest;
 import com.slatto.domain.recruitment.entity.Recruitment;
@@ -55,6 +56,7 @@ public class RecruitmentApplicationService {
     private final LocationRepository locationRepository;
     private final RecruitmentConverter recruitmentConverter;
     private final RecruitmentNotificationDispatcher recruitmentNotificationDispatcher;
+    private final RecruitmentApplicationFileService recruitmentApplicationFileService;
 
     @Transactional
     public RecruitmentApplicationResponse applyToRecruitment(
@@ -81,6 +83,15 @@ public class RecruitmentApplicationService {
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         RecruitmentApplication saved = saveApplication(applicant, recruitment, request);
+
+        // 파일 연결이 실패하면 지원 자체를 롤백한다. 첨부를 의도한 지원이 첨부 없이 접수되면
+        // 지원자는 성공 응답을 받고도 서류가 빠진 상태가 된다.
+        recruitmentApplicationFileService.linkFilesToApplication(
+            currentUserId,
+            recruitmentId,
+            saved,
+            request.getFileIds()
+        );
 
         dispatchAppliedNotification(recruitment, applicant);
 
@@ -131,6 +142,33 @@ public class RecruitmentApplicationService {
             : null;
 
         return recruitmentConverter.toApplicantListResponse(items, nextCursor, hasNext);
+    }
+
+    // 지원 서류는 이력서 성격이라 공개 프로필 API 에 합치지 않는다. 공고 작성자와 지원 본인만 연다.
+    public RecruitmentApplicationDetailResponse getApplicationDetail(
+        Long currentUserId,
+        Long recruitmentId,
+        Long applicationId
+    ) {
+        Recruitment recruitment = recruitmentRepository.findByIdAndDeletedAtIsNull(recruitmentId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // recruitmentId 조건이 없으면 다른 공고의 applicationId 로 권한 검사를 우회할 수 있다.
+        RecruitmentApplication application = recruitmentApplicationRepository
+            .findByIdAndRecruitmentIdAndDeletedAtIsNull(applicationId, recruitmentId)
+            .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        validateApplicationAccess(recruitment, application, currentUserId);
+
+        Long applicantId = application.getUser().getId();
+        List<Long> applicantIds = List.of(applicantId);
+
+        return recruitmentConverter.toApplicationDetailResponse(
+            application,
+            getPrimaryRoleByUserId(applicantIds).get(applicantId),
+            getRegionsByUserId(applicantIds).getOrDefault(applicantId, List.of()),
+            recruitmentApplicationFileService.getFileResponses(List.of(applicationId))
+        );
     }
 
     @Transactional
@@ -272,6 +310,22 @@ public class RecruitmentApplicationService {
         if (!recruitment.isWriter(currentUserId)) {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
+    }
+
+    private void validateApplicationAccess(
+        Recruitment recruitment,
+        RecruitmentApplication application,
+        Long currentUserId
+    ) {
+        if (recruitment.isWriter(currentUserId)) {
+            return;
+        }
+
+        if (application.getUser().getId().equals(currentUserId)) {
+            return;
+        }
+
+        throw new BaseException(CommonErrorCode.FORBIDDEN);
     }
 
     // order by id asc + putIfAbsent 가 단건 조회의 "id ASC 첫 행" 규칙과 같은 값을 만든다.

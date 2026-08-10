@@ -7,6 +7,7 @@ import com.slatto.domain.user.dto.UserProfileUpdateRequest;
 import com.slatto.domain.user.dto.UserProfileUpdateResponse;
 import com.slatto.domain.user.dto.UserProfileImageResponse;
 import com.slatto.domain.user.dto.UserPublicProfileResponse;
+import com.slatto.domain.user.dto.UserStatsResponse;
 import com.slatto.domain.user.dto.UserWithdrawRequest;
 import com.slatto.domain.auth.repository.RefreshTokenRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentRepository;
@@ -271,8 +272,42 @@ public class UserService {
             .primaryRole(roles.isEmpty() ? null : roles.get(0))
             .roles(roles)
             .categories(categories)
-            .stats(UserPublicProfileResponse.Stats.empty())
+            .stats(buildStats(userId))
             .build();
+    }
+
+    // 포트폴리오 기준 집계다. 등록한 작업이 없으면 두 목록 모두 빈 배열로 나간다.
+    public UserStatsResponse getStats(Long userId) {
+        getUserOrThrow(userId);
+
+        return buildStats(userId);
+    }
+
+    // getPublicProfile 은 이미 유저를 검증했다. 여기서 다시 조회하면 파생 쿼리라
+    // 1차 캐시를 타지 않고 users 를 한 번 더 SELECT 한다.
+    private UserStatsResponse buildStats(Long userId) {
+        return UserStatsResponse.builder()
+            .projectTypes(toProjectTypeStats(userPortfolioRepository.findProjectTypeStatRowsByUserId(userId)))
+            .roles(toRoleStats(userPortfolioRepository.findRoleStatRowsByUserId(userId)))
+            .build();
+    }
+
+    private List<UserStatsResponse.ProjectTypeStat> toProjectTypeStats(List<Object[]> rows) {
+        return rows.stream()
+            .map(row -> UserStatsResponse.ProjectTypeStat.builder()
+                .type((CategoryName) row[0])
+                .count((Long) row[1])
+                .build())
+            .toList();
+    }
+
+    private List<UserStatsResponse.RoleStat> toRoleStats(List<Object[]> rows) {
+        return rows.stream()
+            .map(row -> UserStatsResponse.RoleStat.builder()
+                .role((RoleName) row[0])
+                .count((Long) row[1])
+                .build())
+            .toList();
     }
 
     // 유저 행은 남긴다. 프로젝트·공고 등 연관 데이터가 FK 로 참조하고 있어 지우면 이력이 끊긴다.

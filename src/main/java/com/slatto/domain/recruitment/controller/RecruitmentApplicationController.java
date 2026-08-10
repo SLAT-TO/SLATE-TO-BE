@@ -2,6 +2,7 @@ package com.slatto.domain.recruitment.controller;
 
 import com.slatto.domain.recruitment.dto.RecruitmentApplicantListResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationCreateRequest;
+import com.slatto.domain.recruitment.dto.RecruitmentApplicationDetailResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationStatusUpdateRequest;
 import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
@@ -32,7 +33,16 @@ public class RecruitmentApplicationController {
 
     private final RecruitmentApplicationService recruitmentApplicationService;
 
-    @Operation(summary = "구인구직 공고 지원")
+    @Operation(
+        summary = "구인구직 공고 지원",
+        description = """
+            `fileIds` 는 첨부 파일 업로드 API 가 돌려준 id 목록이다. 최대 10개이며 생략할 수 있다.
+
+            본인이 업로드했고, 이 공고에 올렸고, 아직 다른 지원에 쓰이지 않은 파일만 붙일 수 있다.
+            하나라도 조건에 맞지 않으면 `APPLICATION_FILE_LINK400` 으로 지원 전체가 실패한다.
+            첨부를 의도한 지원이 첨부 없이 접수되면 지원자는 성공 응답을 받고도 서류가 빠진 상태가 되기 때문이다.
+            """
+    )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RecruitmentApplicationResponse> applyToRecruitment(
@@ -67,6 +77,31 @@ public class RecruitmentApplicationController {
             status,
             cursor,
             size
+        );
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(
+        summary = "구인구직 공고 지원 상세 조회",
+        description = """
+            공고 작성자와 지원 본인만 조회할 수 있다. 그 외에는 403 이다.
+
+            지원자 프로필, 자기소개(`message`), 참고 링크, 첨부 파일 목록을 함께 반환한다.
+            `files` 에는 파일 본문이 아니라 메타데이터만 담긴다.
+            실제 내려받기는 첨부 파일 다운로드 API 를 쓴다.
+            """
+    )
+    @GetMapping("/{applicationId}")
+    public ApiResponse<RecruitmentApplicationDetailResponse> getApplicationDetail(
+        @AuthenticationPrincipal Long currentUserId,
+        @PathVariable Long recruitmentId,
+        @PathVariable Long applicationId
+    ) {
+        RecruitmentApplicationDetailResponse response = recruitmentApplicationService.getApplicationDetail(
+            currentUserId,
+            recruitmentId,
+            applicationId
         );
 
         return ApiResponse.success(CommonSuccessCode.OK, response);

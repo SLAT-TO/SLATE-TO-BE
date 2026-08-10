@@ -61,6 +61,9 @@ public interface RecruitmentRepository extends JpaRepository<Recruitment, Long> 
 
     // status 는 컬럼이 아니라 파생값이라 openOnly 로 받아 closed_manually + deadline 으로 전개한다.
     // RecruitmentConverter.resolveStatus 와 판정식이 일치해야 목록 필터와 응답 배지가 어긋나지 않는다.
+    //
+    // category/recruitPart/location 은 다중 선택이라 in 절이다. 빈 컬렉션은 1=0 으로 렌더링돼
+    // 결과가 0건이 되므로 호출부에서 반드시 null 로 정규화해서 넘긴다(RecruitmentService.normalizeFilter).
     @Query("""
         select r
         from Recruitment r
@@ -69,10 +72,10 @@ public interface RecruitmentRepository extends JpaRepository<Recruitment, Long> 
             and (:keyword is null
                 or :keyword = ''
                 or lower(r.title) like lower(concat('%', :keyword, '%')))
-            and (:category is null or r.category = :category)
+            and (:categories is null or r.category in :categories)
             and (:lengthType is null or r.lengthType = :lengthType)
-            and (:recruitPart is null or r.recruitPart = :recruitPart)
-            and (:location is null or r.location = :location)
+            and (:recruitParts is null or r.recruitPart in :recruitParts)
+            and (:locations is null or r.location in :locations)
             and (:openOnly is null
                 or (:openOnly = true
                     and r.closedManually = false
@@ -85,10 +88,10 @@ public interface RecruitmentRepository extends JpaRepository<Recruitment, Long> 
         """)
     List<Recruitment> findPageOrderByLatest(
         @Param("keyword") String keyword,
-        @Param("category") CategoryName category,
+        @Param("categories") List<CategoryName> categories,
         @Param("lengthType") LengthType lengthType,
-        @Param("recruitPart") RoleName recruitPart,
-        @Param("location") RegionName location,
+        @Param("recruitParts") List<RoleName> recruitParts,
+        @Param("locations") List<RegionName> locations,
         @Param("openOnly") Boolean openOnly,
         @Param("today") LocalDate today,
         @Param("cursorId") Long cursorId,
@@ -105,10 +108,10 @@ public interface RecruitmentRepository extends JpaRepository<Recruitment, Long> 
             and (:keyword is null
                 or :keyword = ''
                 or lower(r.title) like lower(concat('%', :keyword, '%')))
-            and (:category is null or r.category = :category)
+            and (:categories is null or r.category in :categories)
             and (:lengthType is null or r.lengthType = :lengthType)
-            and (:recruitPart is null or r.recruitPart = :recruitPart)
-            and (:location is null or r.location = :location)
+            and (:recruitParts is null or r.recruitPart in :recruitParts)
+            and (:locations is null or r.location in :locations)
             and (:openOnly is null
                 or (:openOnly = true
                     and r.closedManually = false
@@ -153,10 +156,10 @@ public interface RecruitmentRepository extends JpaRepository<Recruitment, Long> 
         """)
     List<Recruitment> findPageOrderByDeadline(
         @Param("keyword") String keyword,
-        @Param("category") CategoryName category,
+        @Param("categories") List<CategoryName> categories,
         @Param("lengthType") LengthType lengthType,
-        @Param("recruitPart") RoleName recruitPart,
-        @Param("location") RegionName location,
+        @Param("recruitParts") List<RoleName> recruitParts,
+        @Param("locations") List<RegionName> locations,
         @Param("openOnly") Boolean openOnly,
         @Param("today") LocalDate today,
         @Param("cursorId") Long cursorId,
@@ -173,10 +176,10 @@ public interface RecruitmentRepository extends JpaRepository<Recruitment, Long> 
             and (:keyword is null
                 or :keyword = ''
                 or lower(r.title) like lower(concat('%', :keyword, '%')))
-            and (:category is null or r.category = :category)
+            and (:categories is null or r.category in :categories)
             and (:lengthType is null or r.lengthType = :lengthType)
-            and (:recruitPart is null or r.recruitPart = :recruitPart)
-            and (:location is null or r.location = :location)
+            and (:recruitParts is null or r.recruitPart in :recruitParts)
+            and (:locations is null or r.location in :locations)
             and (:openOnly is null
                 or (:openOnly = true
                     and r.closedManually = false
@@ -193,10 +196,10 @@ public interface RecruitmentRepository extends JpaRepository<Recruitment, Long> 
         """)
     List<Recruitment> findPageOrderByPopular(
         @Param("keyword") String keyword,
-        @Param("category") CategoryName category,
+        @Param("categories") List<CategoryName> categories,
         @Param("lengthType") LengthType lengthType,
-        @Param("recruitPart") RoleName recruitPart,
-        @Param("location") RegionName location,
+        @Param("recruitParts") List<RoleName> recruitParts,
+        @Param("locations") List<RegionName> locations,
         @Param("openOnly") Boolean openOnly,
         @Param("today") LocalDate today,
         @Param("cursorId") Long cursorId,

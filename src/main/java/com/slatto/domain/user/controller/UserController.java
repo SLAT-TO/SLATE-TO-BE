@@ -7,6 +7,7 @@ import com.slatto.domain.user.dto.UserProfileUpdateRequest;
 import com.slatto.domain.user.dto.UserProfileUpdateResponse;
 import com.slatto.domain.user.dto.UserProfileImageResponse;
 import com.slatto.domain.user.dto.UserPublicProfileResponse;
+import com.slatto.domain.user.dto.UserStatsResponse;
 import com.slatto.domain.user.dto.UserWithdrawRequest;
 import com.slatto.domain.auth.support.AuthCookieFactory;
 import com.slatto.domain.user.service.UserService;
@@ -131,6 +132,33 @@ public class UserController {
             .ok()
             .header(HttpHeaders.SET_COOKIE, authCookieFactory.expiredRefreshToken().toString())
             .body(ApiResponse.<Void>success(CommonSuccessCode.OK, null));
+    }
+
+    @Operation(
+        summary = "내 프로필 통계 조회",
+        description = """
+            등록한 포트폴리오를 기준으로 많이 한 프로젝트 유형과 역할을 집계한다.
+
+            둘 다 건수 내림차순이고, 건수가 같으면 이름 오름차순이다.
+            삭제한 포트폴리오는 집계에서 빠지며, 등록한 작업이 없으면 두 목록 모두 빈 배열이다.
+            """
+    )
+    @GetMapping("/me/stats")
+    public ApiResponse<UserStatsResponse> getMyStats(@AuthenticationPrincipal Long userId) {
+        UserStatsResponse response = userService.getStats(userId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(
+        summary = "유저 프로필 통계 조회",
+        description = "다른 유저의 포트폴리오 기준 유형·역할 분포를 조회한다. 공개 프로필의 `stats` 와 같은 값이다."
+    )
+    @GetMapping("/{userId}/stats")
+    public ApiResponse<UserStatsResponse> getUserStats(@PathVariable Long userId) {
+        UserStatsResponse response = userService.getStats(userId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
     @Operation(summary = "공개 프로필 조회", description = "다른 유저의 공개 프로필을 조회한다. 이메일 등 비공개 필드는 제외된다.")

@@ -40,8 +40,8 @@ public class RecruitmentCreateRequest {
     @Size(max = 50, message = "급여는 최대 50자까지 입력할 수 있습니다.")
     private String pay;
 
-    // 지원자가 연락할 방법이 없으면 공고가 성립하지 않아 선택으로 열지 않는다.
-    @NotBlank(message = "연락처는 필수입니다.")
+    // 보내지 않으면 비워둔다. 다만 공백만 있는 값은 연락처가 있는 것처럼 보여 거부한다.
+    @Pattern(regexp = "(?s).*\\S.*", message = "연락처는 공백일 수 없습니다.")
     @Size(max = 100, message = "연락처는 최대 100자까지 입력할 수 있습니다.")
     private String contact;
 
