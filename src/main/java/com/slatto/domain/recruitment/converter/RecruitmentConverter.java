@@ -12,6 +12,8 @@ import com.slatto.domain.recruitment.dto.RecruitmentDetailResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentListResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentRecommendationResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentSummary;
+import com.slatto.domain.user.dto.PortfolioListResponse;
+import com.slatto.domain.user.dto.UserPublicProfileResponse;
 import com.slatto.domain.recruitment.entity.Recruitment;
 import com.slatto.domain.recruitment.entity.RecruitmentApplication;
 import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
@@ -186,6 +188,7 @@ public class RecruitmentConverter {
                 .id(applicant.getId())
                 .nickname(applicant.getNickname())
                 .profileImageUrl(applicant.getProfileImageUrl())
+                .bio(applicant.getBio())
                 .primaryRole(primaryRole)
                 .locations(regions)
                 .build())
@@ -203,14 +206,14 @@ public class RecruitmentConverter {
             .build();
     }
 
+    // 이메일은 공개 프로필에 없어 따로 받는다. 공개 프로필에 넣으면 로그인한 누구나 조회하게 된다.
     public RecruitmentApplicationDetailResponse toApplicationDetailResponse(
         RecruitmentApplication application,
-        RoleName primaryRole,
-        List<RegionName> regions,
+        UserPublicProfileResponse applicantProfile,
+        String applicantEmail,
+        PortfolioListResponse portfolios,
         List<RecruitmentApplicationFileResponse> files
     ) {
-        Users applicant = application.getUser();
-
         return RecruitmentApplicationDetailResponse.builder()
             .applicationId(application.getId())
             .recruitmentId(application.getRecruitment().getId())
@@ -219,11 +222,17 @@ public class RecruitmentConverter {
             .referenceLink(application.getReferenceLink())
             .appliedAt(application.getCreatedAt())
             .applicant(RecruitmentApplicationDetailResponse.ApplicantProfile.builder()
-                .id(applicant.getId())
-                .nickname(applicant.getNickname())
-                .profileImageUrl(applicant.getProfileImageUrl())
-                .primaryRole(primaryRole)
-                .locations(regions)
+                .id(applicantProfile.getId())
+                .nickname(applicantProfile.getNickname())
+                .email(applicantEmail)
+                .profileImageUrl(applicantProfile.getProfileImageUrl())
+                .bio(applicantProfile.getBio())
+                .primaryRole(applicantProfile.getPrimaryRole())
+                .roles(applicantProfile.getRoles())
+                .locations(applicantProfile.getLocations())
+                .categories(applicantProfile.getCategories())
+                .stats(applicantProfile.getStats())
+                .portfolios(portfolios)
                 .build())
             .files(files)
             .build();

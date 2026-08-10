@@ -21,6 +21,8 @@ import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.LocationRepository;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.domain.user.repository.UserRoleRepository;
+import com.slatto.domain.user.service.PortfolioService;
+import com.slatto.domain.user.service.UserService;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +49,8 @@ public class RecruitmentApplicationService {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;
+    // 지원 상세에 끼워 넣는 포트폴리오 건수다. 전체 목록은 GET /users/{userId}/portfolios 로 이어서 받는다.
+    private static final int APPLICANT_PORTFOLIO_SIZE = 5;
 
     private final RecruitmentRepository recruitmentRepository;
     private final RecruitmentApplicationRepository recruitmentApplicationRepository;
@@ -57,6 +61,8 @@ public class RecruitmentApplicationService {
     private final RecruitmentConverter recruitmentConverter;
     private final RecruitmentNotificationDispatcher recruitmentNotificationDispatcher;
     private final RecruitmentApplicationFileService recruitmentApplicationFileService;
+    private final UserService userService;
+    private final PortfolioService portfolioService;
 
     @Transactional
     public RecruitmentApplicationResponse applyToRecruitment(
@@ -160,13 +166,15 @@ public class RecruitmentApplicationService {
 
         validateApplicationAccess(recruitment, application, currentUserId);
 
-        Long applicantId = application.getUser().getId();
-        List<Long> applicantIds = List.of(applicantId);
+        // 탈퇴한 지원자도 목록에 남으므로 유저 검증이 들어간 조회를 쓰지 않는다.
+        // getPublicProfile(Long) 을 쓰면 목록에는 보이는데 상세만 404 가 된다.
+        Users applicant = application.getUser();
 
         return recruitmentConverter.toApplicationDetailResponse(
             application,
-            getPrimaryRoleByUserId(applicantIds).get(applicantId),
-            getRegionsByUserId(applicantIds).getOrDefault(applicantId, List.of()),
+            userService.getPublicProfileOf(applicant),
+            applicant.getEmail(),
+            portfolioService.getPortfoliosOf(applicant.getId(), null, APPLICANT_PORTFOLIO_SIZE),
             recruitmentApplicationFileService.getFileResponses(List.of(applicationId))
         );
     }

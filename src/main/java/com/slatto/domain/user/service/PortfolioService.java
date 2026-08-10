@@ -203,6 +203,13 @@ public class PortfolioService {
     public PortfolioListResponse getPortfolios(Long userId, Long cursor, int size) {
         getUserOrThrow(userId);
 
+        return getPortfoliosOf(userId, cursor, size);
+    }
+
+    // 탈퇴 여부를 판정하지 않는다. getPortfolios 를 쓰면 목록에는 보이는 지원이 상세에서만 404 가 된다.
+    // 탈퇴 시 포트폴리오도 함께 soft delete 되므로 탈퇴 유저의 이력 자체는 빈 목록으로 나간다.
+    // 닉네임·자기소개를 익명화하는 탈퇴 정책과 맞춘 동작이다.
+    public PortfolioListResponse getPortfoliosOf(Long userId, Long cursor, int size) {
         int pageSize = normalizePageSize(size);
         List<UserPortfolio> portfolios = userPortfolioRepository.findActivePortfoliosByCursor(
             userId,

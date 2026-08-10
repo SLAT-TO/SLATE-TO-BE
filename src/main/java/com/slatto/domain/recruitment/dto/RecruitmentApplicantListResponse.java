@@ -48,6 +48,8 @@ public class RecruitmentApplicantListResponse {
 
         private String profileImageUrl;
 
+        private String bio;
+
         private RoleName primaryRole;
 
         private List<RegionName> locations;
