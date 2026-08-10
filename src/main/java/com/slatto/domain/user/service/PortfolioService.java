@@ -7,6 +7,7 @@ import com.slatto.domain.user.dto.PortfolioListResponse;
 import com.slatto.domain.user.dto.PortfolioSummaryResponse;
 import com.slatto.domain.user.dto.PortfolioUpdateRequest;
 import com.slatto.domain.user.dto.PortfolioUpdateResponse;
+import com.slatto.domain.user.dto.ProjectPortfolioCreateCommand;
 import com.slatto.domain.user.entity.UserPortfolio;
 import com.slatto.domain.user.entity.UserPortfolioRole;
 import com.slatto.domain.user.entity.Users;
@@ -24,6 +25,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -56,7 +59,9 @@ public class PortfolioService {
             request.getDescription(),
             request.getComment(),
             request.getYoutubeUrl(),
-            extractThumbnailUrl(request.getYoutubeUrl())
+            extractThumbnailUrl(request.getYoutubeUrl()),
+            request.getStartDate(),
+            request.getEndDate()
         );
         UserPortfolio savedPortfolio = userPortfolioRepository.save(portfolio);
 
@@ -67,6 +72,39 @@ public class PortfolioService {
             .thumbnailUrl(savedPortfolio.getThumbnailUrl())
             .createdAt(savedPortfolio.getCreatedAt())
             .build();
+    }
+
+    // 프로젝트가 완료로 전환될 때 참여자 전원의 포트폴리오를 한 번에 만든다.
+    // 프로젝트에는 대표 영상 개념이 없어 영상 링크와 썸네일은 비운다. 각자 프로필에서 채운다.
+    // 유형이 ETC 여도 프로젝트에는 기타 유형명이 없어 비워두고, 필요하면 본인이 수정한다.
+    @Transactional
+    public void createProjectPortfolios(ProjectPortfolioCreateCommand command) {
+        List<UserPortfolioRole> roles = new ArrayList<>();
+
+        for (ProjectPortfolioCreateCommand.Participant participant : command.getParticipants()) {
+            UserPortfolio portfolio = userPortfolioRepository.save(UserPortfolio.create(
+                participant.getUser(),
+                command.getTitle(),
+                command.getType(),
+                null,
+                command.getKind(),
+                resolveClientName(command.getKind(), command.getClientName()),
+                command.getDescription(),
+                null,
+                null,
+                null,
+                command.getStartDate(),
+                command.getEndDate()
+            ));
+
+            participant.getRoles()
+                .stream()
+                .distinct()
+                .map(roleName -> UserPortfolioRole.create(portfolio, participant.getUser(), roleName))
+                .forEach(roles::add);
+        }
+
+        userPortfolioRoleRepository.saveAll(roles);
     }
 
     @Transactional
@@ -99,6 +137,17 @@ public class PortfolioService {
 
         if (request.getYoutubeUrl() != null) {
             portfolio.changeVideo(request.getYoutubeUrl(), extractThumbnailUrl(request.getYoutubeUrl()));
+        }
+
+        if (request.getStartDate() != null || request.getEndDate() != null) {
+            LocalDate startDate = request.getStartDate() != null
+                ? request.getStartDate()
+                : portfolio.getStartDate();
+            LocalDate endDate = request.getEndDate() != null
+                ? request.getEndDate()
+                : portfolio.getEndDate();
+
+            portfolio.changePeriod(startDate, endDate);
         }
 
         if (request.getRoles() != null) {
@@ -144,6 +193,8 @@ public class PortfolioService {
             .comment(portfolio.getComment())
             .youtubeUrl(portfolio.getYoutubeUrl())
             .thumbnailUrl(portfolio.getThumbnailUrl())
+            .startDate(portfolio.getStartDate())
+            .endDate(portfolio.getEndDate())
             .createdAt(portfolio.getCreatedAt())
             .updatedAt(portfolio.getUpdatedAt())
             .build();
@@ -176,6 +227,8 @@ public class PortfolioService {
                 .customTypeName(portfolio.getCustomTypeName())
                 .roles(rolesByPortfolioId.getOrDefault(portfolio.getId(), List.of()))
                 .thumbnailUrl(portfolio.getThumbnailUrl())
+                .startDate(portfolio.getStartDate())
+                .endDate(portfolio.getEndDate())
                 .createdAt(portfolio.getCreatedAt())
                 .build())
             .toList();

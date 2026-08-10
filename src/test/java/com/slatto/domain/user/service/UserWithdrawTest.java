@@ -108,7 +108,9 @@ class UserWithdrawTest {
             "웹드라마 연출",
             "감정선 중심으로 작업",
             "https://www.youtube.com/watch?v=abcdefghijk",
-            "https://img.youtube.com/vi/abcdefghijk/hqdefault.jpg"
+            "https://img.youtube.com/vi/abcdefghijk/hqdefault.jpg",
+            null,
+            null
         ));
         portfolioId = portfolio.getId();
 
