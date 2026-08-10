@@ -174,6 +174,15 @@ class ProjectCompletionPortfolioTest {
     }
 
     @Test
+    @DisplayName("완료 전환은 한 번만 성공한다")
+    void markCompleted_succeedsOnlyOnce() {
+        // 동시 요청을 직렬화하는 근거가 이 조건부 UPDATE 다. 두 번째 요청이 0을 받아야
+        // 포트폴리오가 두 벌 생기지 않는다.
+        assertThat(projectRepository.markCompleted(project.getId())).isEqualTo(1);
+        assertThat(projectRepository.markCompleted(project.getId())).isZero();
+    }
+
+    @Test
     @DisplayName("개인/외주 구분이 없으면 완료로 바꿀 수 없다")
     void completeProject_withoutKind_throws() {
         Project noKindProject = projectRepository.save(Project.create(
