@@ -188,6 +188,7 @@ public class RecruitmentConverter {
                 .id(applicant.getId())
                 .nickname(applicant.getNickname())
                 .profileImageUrl(applicant.getProfileImageUrl())
+                .bio(applicant.getBio())
                 .primaryRole(primaryRole)
                 .locations(regions)
                 .build())
