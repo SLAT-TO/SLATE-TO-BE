@@ -88,15 +88,15 @@ public class RecruitmentApplicationController {
             공고 작성자와 지원 본인만 조회할 수 있다. 그 외에는 403 이다.
 
             지원자 프로필 화면에 필요한 값을 한 번에 반환한다.
-            이 API 하나로 끝나므로 `GET /users/{userId}` 와 `GET /users/{userId}/portfolios` 를
-            따로 부르지 않아도 된다.
+            `GET /users/{userId}` 는 부를 필요가 없고, 프로젝트 이력도 최신 5건까지는 이 응답으로 끝난다.
 
             - 지원 정보 — `message`, `referenceLink`, `files`
             - 지원자 프로필 — `applicant` 에 자기소개·지역·역할·관심 카테고리·활동 통계
             - 프로젝트 이력 — `applicant.portfolios` 에 최신 5건
 
-            `applicant.portfolios` 는 목록 API 와 같은 구조이며 `hasNext` 가 `true` 면
-            `GET /users/{userId}/portfolios` 로 이어서 조회한다. `nextCursor` 도 그대로 쓸 수 있다.
+            `applicant.portfolios` 는 목록 API 와 같은 구조다.
+            이력이 5건을 넘을 때만 `hasNext` 가 `true` 이며, 전체를 보여줘야 한다면 그때 `nextCursor` 를
+            그대로 넘겨 `GET /users/{userId}/portfolios` 로 이어서 조회한다.
 
             `files` 에는 파일 본문이 아니라 메타데이터만 담긴다.
             실제 내려받기는 첨부 파일 다운로드 API 를 쓴다.
