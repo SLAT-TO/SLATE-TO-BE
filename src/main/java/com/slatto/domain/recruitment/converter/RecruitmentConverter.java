@@ -206,9 +206,11 @@ public class RecruitmentConverter {
             .build();
     }
 
+    // 이메일은 공개 프로필에 없어 따로 받는다. 공개 프로필에 넣으면 로그인한 누구나 조회하게 된다.
     public RecruitmentApplicationDetailResponse toApplicationDetailResponse(
         RecruitmentApplication application,
         UserPublicProfileResponse applicantProfile,
+        String applicantEmail,
         PortfolioListResponse portfolios,
         List<RecruitmentApplicationFileResponse> files
     ) {
@@ -222,6 +224,7 @@ public class RecruitmentConverter {
             .applicant(RecruitmentApplicationDetailResponse.ApplicantProfile.builder()
                 .id(applicantProfile.getId())
                 .nickname(applicantProfile.getNickname())
+                .email(applicantEmail)
                 .profileImageUrl(applicantProfile.getProfileImageUrl())
                 .bio(applicantProfile.getBio())
                 .primaryRole(applicantProfile.getPrimaryRole())

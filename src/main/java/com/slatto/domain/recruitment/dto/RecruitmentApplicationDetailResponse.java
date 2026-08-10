@@ -33,8 +33,10 @@ public class RecruitmentApplicationDetailResponse {
     // 파일 본문은 이 응답에 담기지 않는다. 다운로드 API 로 개별 조회한다.
     private List<RecruitmentApplicationFileResponse> files;
 
-    // 공개 프로필(GET /users/{userId})과 같은 항목을 담는다.
-    // 지원자 프로필 화면이 이 응답 하나로 완성되도록 모아둔 것이라 노출 범위는 공개 프로필과 동일하다.
+    // 공개 프로필(GET /users/{userId}) 항목에 이메일을 더한 것이다.
+    // 이메일은 공개 프로필에 없다. 수락한 지원자에게 연락할 수단이 필요해 여기에만 담으며,
+    // 이 응답은 공고 작성자와 지원 본인만 열 수 있어 노출 범위가 제한된다.
+    // 목록 응답에는 넣지 않는다. 한 번의 조회로 지원자 전원의 이메일이 넘어가기 때문이다.
     @Getter
     @Builder
     public static class ApplicantProfile {
@@ -42,6 +44,8 @@ public class RecruitmentApplicationDetailResponse {
         private Long id;
 
         private String nickname;
+
+        private String email;
 
         private String profileImageUrl;
 

@@ -173,6 +173,7 @@ public class RecruitmentApplicationService {
         return recruitmentConverter.toApplicationDetailResponse(
             application,
             userService.getPublicProfileOf(applicant),
+            applicant.getEmail(),
             portfolioService.getPortfoliosOf(applicant.getId(), null, APPLICANT_PORTFOLIO_SIZE),
             recruitmentApplicationFileService.getFileResponses(List.of(applicationId))
         );

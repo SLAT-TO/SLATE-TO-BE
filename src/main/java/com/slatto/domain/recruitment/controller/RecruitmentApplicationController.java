@@ -94,6 +94,9 @@ public class RecruitmentApplicationController {
             - 지원자 프로필 — `applicant` 에 자기소개·지역·역할·관심 카테고리·활동 통계
             - 프로젝트 이력 — `applicant.portfolios` 에 최신 5건
 
+            `applicant.email` 은 이 API 에만 있다. 공개 프로필과 지원자 목록에는 담기지 않으며,
+            수락한 지원자에게 연락할 수단으로 공고 작성자와 지원 본인에게만 열린다.
+
             `applicant.portfolios` 는 목록 API 와 같은 구조다.
             이력이 5건을 넘을 때만 `hasNext` 가 `true` 이며, 전체를 보여줘야 한다면 그때 `nextCursor` 를
             그대로 넘겨 `GET /users/{userId}/portfolios` 로 이어서 조회한다.
