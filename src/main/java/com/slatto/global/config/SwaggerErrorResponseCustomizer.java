@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.springdoc.core.customizers.OperationCustomizer;
@@ -31,6 +32,7 @@ import java.util.Map;
 public class SwaggerErrorResponseCustomizer implements OperationCustomizer {
 
 	private static final String JSON = org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+	private static final String MULTIPART = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 	private static final String PATH_PARAMETER = "path";
 
 	@Override
@@ -55,6 +57,16 @@ public class SwaggerErrorResponseCustomizer implements OperationCustomizer {
 		// 404 는 경로로 리소스를 찾는 엔드포인트에서만 발생한다.
 		if (hasPathParameter(operation)) {
 			addIfAbsent(responses, CommonErrorCode.NOT_FOUND, singleExampleContent(CommonErrorCode.NOT_FOUND));
+		}
+
+		// 413 은 multipart 본문을 받는 엔드포인트에서만 발생한다.
+		// 한도를 넘긴 요청은 본문을 읽는 단계에서 끊겨 컨트롤러에 닿지도 않는다.
+		if (consumesMultipart(operation)) {
+			addIfAbsent(
+				responses,
+				CommonErrorCode.PAYLOAD_TOO_LARGE,
+				singleExampleContent(CommonErrorCode.PAYLOAD_TOO_LARGE)
+			);
 		}
 
 		// 500 은 처리되지 않은 예외를 잡는 핸들러가 있어 모든 엔드포인트에서 가능하다.
@@ -133,6 +145,16 @@ public class SwaggerErrorResponseCustomizer implements OperationCustomizer {
 		List<Parameter> parameters = operation.getParameters();
 
 		return parameters != null && !parameters.isEmpty();
+	}
+
+	private boolean consumesMultipart(Operation operation) {
+		RequestBody requestBody = operation.getRequestBody();
+
+		if (requestBody == null || requestBody.getContent() == null) {
+			return false;
+		}
+
+		return requestBody.getContent().keySet().stream().anyMatch(mediaType -> mediaType.startsWith(MULTIPART));
 	}
 
 	private boolean hasPathParameter(Operation operation) {

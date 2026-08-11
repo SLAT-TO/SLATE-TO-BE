@@ -121,6 +121,24 @@ class OpenApiDocumentationTest {
 		assertThat(missing).isEmpty();
 	}
 
+	// 413 은 업로드 한도를 서블릿 컨테이너가 강제하는 multipart 경로에서만 난다.
+	// 다른 엔드포인트에 붙으면 실제로 나지 않는 상태 코드가 문서에 실린다.
+	@Test
+	@DisplayName("413 은 multipart 본문을 받는 엔드포인트에만 문서화된다")
+	void payloadTooLargeIsDocumentedOnlyOnMultipartOperations() {
+		List<String> wrong = new ArrayList<>();
+
+		forEachOperation((path, httpMethod, operation) -> {
+			boolean documentsPayloadTooLarge = operation.path("responses").has("413");
+
+			if (consumesMultipart(operation) != documentsPayloadTooLarge) {
+				wrong.add(httpMethod.toUpperCase() + " " + path);
+			}
+		});
+
+		assertThat(wrong).isEmpty();
+	}
+
 	// 401 을 일괄로 붙이면 인증 없이 열린 경로에도 발생하지 않는 상태 코드가 실린다.
 	// 자물쇠 표시와 401 문서화는 항상 같은 판정에서 나와야 한다.
 	@Test
@@ -260,6 +278,11 @@ class OpenApiDocumentationTest {
 
 	private boolean requiresAuthentication(JsonNode operation) {
 		return !allowsAnonymous(operation);
+	}
+
+	private boolean consumesMultipart(JsonNode operation) {
+		return fieldNames(operation.path("requestBody").path("content")).stream()
+			.anyMatch(mediaType -> mediaType.startsWith("multipart/form-data"));
 	}
 
 	private boolean hasPathParameter(JsonNode operation) {
