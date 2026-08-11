@@ -7,6 +7,7 @@ import com.slatto.domain.project.dto.ProjectFileResponse;
 import com.slatto.domain.project.dto.ProjectFileUpdateRequest;
 import com.slatto.domain.project.dto.ProjectFileUploadRequest;
 import com.slatto.domain.project.service.ProjectFileService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,6 +49,7 @@ public class ProjectFileController {
             고정된 파일이 먼저 오고, keyword 로 파일명을 검색할 수 있다.
             cursor 기반 페이지네이션이며 size 는 기본 20, 최대 50이다."""
     )
+    @ApiErrorCodes("PROJECT403")
     @GetMapping
     public ApiResponse<ProjectFileListResponse> getProjectFiles(
         @AuthenticationPrincipal Long currentUserId,
@@ -73,6 +75,7 @@ public class ProjectFileController {
             multipart/form-data 로 보낸다. 최대 100MB 이며 pdf, jpg, jpeg, png, doc, docx 만 허용한다.
             확장자와 Content-Type 이 서로 맞지 않으면 거부한다. 업로드하면 다른 멤버에게 알림이 간다."""
     )
+    @ApiErrorCodes("PROJECT403")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ProjectFileResponse> uploadProjectFile(
@@ -95,6 +98,7 @@ public class ProjectFileController {
         summary = "프로젝트 파일 수정",
         description = "업로더 본인 또는 ADMIN 만 수정할 수 있다. 보내지 않은 필드는 기존 값이 유지된다."
     )
+    @ApiErrorCodes("PROJECT403")
     @PatchMapping("/{fileId}")
     public ApiResponse<ProjectFileResponse> updateProjectFile(
         @AuthenticationPrincipal Long currentUserId,
@@ -118,6 +122,7 @@ public class ProjectFileController {
             업로더 본인 또는 ADMIN 만 삭제할 수 있다.
             삭제 표시만 남기며 저장소의 파일 자체는 지우지 않는다."""
     )
+    @ApiErrorCodes("PROJECT403")
     @DeleteMapping("/{fileId}")
     public ApiResponse<Void> deleteProjectFile(
         @AuthenticationPrincipal Long currentUserId,
@@ -135,6 +140,7 @@ public class ProjectFileController {
             파일 고정은 프로젝트 멤버 모두에게 함께 보인다. 개인별로 적용되는 프로젝트 고정과 다르다.
             업로더 본인 또는 ADMIN 만 할 수 있다."""
     )
+    @ApiErrorCodes("PROJECT403")
     @PostMapping("/{fileId}/pin")
     public ApiResponse<ProjectFilePinResponse> pinProjectFile(
         @AuthenticationPrincipal Long currentUserId,
@@ -154,6 +160,7 @@ public class ProjectFileController {
         summary = "프로젝트 파일 고정 해제",
         description = "업로더 본인 또는 ADMIN 만 할 수 있다."
     )
+    @ApiErrorCodes("PROJECT403")
     @DeleteMapping("/{fileId}/pin")
     public ApiResponse<ProjectFilePinResponse> unpinProjectFile(
         @AuthenticationPrincipal Long currentUserId,
@@ -173,6 +180,7 @@ public class ProjectFileController {
         summary = "프로젝트 파일 다운로드",
         description = "공통 응답 래퍼가 아니라 파일 본문을 그대로 반환한다. Content-Disposition 이 attachment 로 내려간다."
     )
+    @ApiErrorCodes("PROJECT403")
     @GetMapping("/{fileId}/download")
     public ResponseEntity<InputStreamResource> downloadProjectFile(
         @AuthenticationPrincipal Long currentUserId,

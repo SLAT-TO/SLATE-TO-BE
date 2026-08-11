@@ -11,6 +11,7 @@ import com.slatto.domain.user.dto.UserStatsResponse;
 import com.slatto.domain.user.dto.UserWithdrawRequest;
 import com.slatto.domain.auth.support.AuthCookieFactory;
 import com.slatto.domain.user.service.UserService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,6 +60,7 @@ public class UserController {
             `nickname` 은 특수문자 없이 2~20자, `bio` 는 200자 이하다.
             """
     )
+    @ApiErrorCodes("ONBOARDING409")
     @PostMapping("/onboarding")
     public ApiResponse<UserOnboardingResponse> completeOnboarding(
         @AuthenticationPrincipal Long userId,

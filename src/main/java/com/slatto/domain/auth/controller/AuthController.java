@@ -13,6 +13,7 @@ import com.slatto.domain.auth.dto.PasswordResetRequest;
 import com.slatto.domain.auth.service.AuthService;
 import com.slatto.domain.auth.service.EmailVerificationService;
 import com.slatto.domain.auth.support.AuthCookieFactory;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -121,6 +122,7 @@ public class AuthController {
 			"""
 	)
 	@SecurityRequirements
+	@ApiErrorCodes({"AUTH_SIGNUP_DUPLICATE409", "AUTH_SIGNUP_SOCIAL409"})
 	@PostMapping("/signup")
 	public ResponseEntity<ApiResponse<EmailAuthResponse>> signup(
 		@Valid @RequestBody EmailSignupRequest request
@@ -170,6 +172,7 @@ public class AuthController {
 	)
 	@SecurityRequirements
 	@ResponseStatus(HttpStatus.CREATED)
+	@ApiErrorCodes({"AUTH_VERIFICATION_LIMIT429", "AUTH_VERIFICATION_RESEND429"})
 	@PostMapping("/email/verification-codes")
 	public ApiResponse<EmailVerificationSendResponse> sendEmailVerificationCode(
 		@Valid @RequestBody EmailVerificationSendRequest request

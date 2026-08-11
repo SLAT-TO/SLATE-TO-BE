@@ -148,6 +148,19 @@ class OpenApiDocumentationTest {
 		assertThat(wrong).isEmpty();
 	}
 
+	// 아래 검증은 모두 @ApiErrorCodes 를 훑는다. 애노테이션이 한 곳도 없으면 훑을 것이 없어 전부 통과한다.
+	@Test
+	@DisplayName("도메인 에러를 표기한 엔드포인트가 존재한다")
+	void declaresDomainErrorCodesSomewhere() {
+		List<String> declarations = new ArrayList<>();
+
+		forEachDeclaration((path, httpMethod, code) -> declarations.add(httpMethod + " " + path + " → " + code));
+
+		assertThat(declarations)
+			.as("@ApiErrorCodes 로 표기된 도메인 에러")
+			.isNotEmpty();
+	}
+
 	// 코드를 문자열로 적기 때문에 오타를 컴파일러가 잡지 못한다.
 	// 오타가 나면 문서에 응답이 조용히 빠지므로, 여기서 해석해보고 깨뜨린다.
 	@Test

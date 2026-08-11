@@ -6,6 +6,7 @@ import com.slatto.domain.project.dto.ProjectNoticeReadResponse;
 import com.slatto.domain.project.dto.ProjectNoticeResponse;
 import com.slatto.domain.project.dto.ProjectNoticeUpdateRequest;
 import com.slatto.domain.project.service.ProjectNoticeService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +40,7 @@ public class ProjectNoticeController {
             각 항목에 내가 읽었는지 여부가 함께 담긴다.
             cursor 기반 페이지네이션이며 size 는 기본 20, 최대 50이다."""
     )
+    @ApiErrorCodes("PROJECT403")
     @GetMapping
     public ApiResponse<ProjectNoticeListResponse> getProjectNotices(
         @AuthenticationPrincipal Long currentUserId,
@@ -60,6 +62,7 @@ public class ProjectNoticeController {
         summary = "프로젝트 공지 상세 조회",
         description = "조회만으로는 읽음 처리되지 않는다. 읽음 처리는 별도 엔드포인트를 호출해야 한다."
     )
+    @ApiErrorCodes("PROJECT403")
     @GetMapping("/{noticeId}")
     public ApiResponse<ProjectNoticeResponse> getProjectNotice(
         @AuthenticationPrincipal Long currentUserId,
@@ -81,6 +84,7 @@ public class ProjectNoticeController {
             프로젝트 멤버면 누구나 등록할 수 있다.
             작성자 본인은 처음부터 읽음 상태이며, 나머지 멤버에게는 알림이 간다."""
     )
+    @ApiErrorCodes("PROJECT403")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ProjectNoticeResponse> createProjectNotice(
@@ -101,6 +105,7 @@ public class ProjectNoticeController {
         summary = "프로젝트 공지 수정",
         description = "작성자 본인 또는 ADMIN 만 수정할 수 있다. 제목과 내용을 모두 덮어쓴다."
     )
+    @ApiErrorCodes("PROJECT403")
     @PatchMapping("/{noticeId}")
     public ApiResponse<ProjectNoticeResponse> updateProjectNotice(
         @AuthenticationPrincipal Long currentUserId,
@@ -122,6 +127,7 @@ public class ProjectNoticeController {
         summary = "프로젝트 공지 삭제",
         description = "작성자 본인 또는 ADMIN 만 삭제할 수 있다. 삭제 표시만 남긴다."
     )
+    @ApiErrorCodes("PROJECT403")
     @DeleteMapping("/{noticeId}")
     public ApiResponse<Void> deleteProjectNotice(
         @AuthenticationPrincipal Long currentUserId,
@@ -139,6 +145,7 @@ public class ProjectNoticeController {
             읽음은 호출한 사람에게만 기록된다.
             이미 읽은 공지에 다시 호출해도 실패하지 않고, 읽은 시각만 갱신된다."""
     )
+    @ApiErrorCodes("PROJECT403")
     @PatchMapping("/{noticeId}/read")
     public ApiResponse<ProjectNoticeReadResponse> readProjectNotice(
         @AuthenticationPrincipal Long currentUserId,

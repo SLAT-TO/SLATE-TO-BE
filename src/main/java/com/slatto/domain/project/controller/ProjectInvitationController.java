@@ -6,6 +6,7 @@ import com.slatto.domain.project.dto.ProjectInvitationCreateRequest;
 import com.slatto.domain.project.dto.ProjectInvitationCreateResponse;
 import com.slatto.domain.project.dto.ProjectInvitationDetailResponse;
 import com.slatto.domain.project.service.ProjectInvitationService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +39,7 @@ public class ProjectInvitationController {
             원본 토큰은 응답의 inviteUrl 에만 담기고 서버에는 해시로 저장된다.
             응답을 잃으면 서버에서 원본 토큰을 되찾거나 같은 링크를 다시 받을 수 없고, 새로 만들어야 한다."""
     )
+    @ApiErrorCodes({"PROJECT403", "PROJECT_ADMIN403"})
     @PostMapping("/projects/{projectId}/invitations")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ProjectInvitationCreateResponse> createInvitation(
@@ -76,6 +78,7 @@ public class ProjectInvitationController {
             수락할 때 맡을 역할을 함께 보낸다.
             한 번 수락한 링크는 다시 쓸 수 없고, 기간이 지났거나 이미 멤버인 경우에도 실패한다."""
     )
+    @ApiErrorCodes({"PROJECT_INVITATION409", "PROJECT_MEMBER409"})
     @PostMapping("/project-invitations/{token}/accept")
     public ApiResponse<ProjectInvitationAcceptResponse> acceptInvitation(
         @AuthenticationPrincipal Long currentUserId,
