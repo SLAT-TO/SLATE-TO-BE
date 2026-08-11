@@ -1,12 +1,10 @@
 <!-- @format -->
 
-# SLATE-TO Backend
+# SLAT-TO Backend
 
 <div align="center">
 
-<!-- TODO: 배너 이미지를 docs/assets/readme-banner.png 경로에 추가한 뒤 아래 주석을 해제합니다. -->
-<!-- <img width="100%" alt="SLATE-TO Backend Banner" src="./docs/assets/readme-banner.png" /> -->
-<img width="1920" height="1080" alt="Frame 2147229304" src="https://github.com/user-attachments/assets/fbe510e1-01c9-4b1a-b400-38a5297a1efa" />
+<img width="1920" height="1080" alt="SLAT-TO Backend Banner" src="https://github.com/user-attachments/assets/fbe510e1-01c9-4b1a-b400-38a5297a1efa" />
 
 <h3>영상 제작 협업을 위한 프로젝트 관리 및 피드백 플랫폼</h3>
 
@@ -16,7 +14,7 @@
 
 ## 프로젝트 소개
 
-SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간에서 작업물을 공유하고, 피드백을 남기며, 일정과 파일을 관리할 수 있도록 돕는 협업 서비스입니다.
+SLAT-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간에서 작업물을 공유하고, 피드백을 남기며, 일정과 파일을 관리할 수 있도록 돕는 협업 서비스입니다.
 
 ## 팀원 소개
 
@@ -76,17 +74,20 @@ SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간
 
 ## 주요 기능
 
-| 도메인   | 기능                                                                       |
-| -------- | -------------------------------------------------------------------------- |
-| 인증     | Google OAuth 로그인, JWT 기반 인증, 토큰 재발급                            |
-| 프로젝트 | 프로젝트 생성/수정/삭제, 목록/상세 조회, 프로젝트 고정                     |
-| 멤버     | 초대 링크 생성/조회/수락, 멤버 목록/상세 조회, 역할 수정, 멤버 삭제/나가기 |
-| 영상     | YouTube URL 기반 영상 등록, 영상 목록/상세 조회, 진행 상태 관리            |
-| 피드백   | 영상 타임코드 기반 피드백, 답글, 해결 처리                                 |
-| 파일     | 프로젝트 파일 업로드/다운로드, 검색, 수정/삭제, 파일 고정                  |
-| 공지     | 프로젝트 공지 등록/조회/수정/삭제, 읽음 처리                               |
-| 일정     | 개인 일정과 프로젝트 일정 관리                                             |
-| 알림     | 프로젝트 활동 기반 알림 조회 및 읽음 처리                                  |
+| 도메인 | 기능 |
+| --- | --- |
+| 인증 | Google OAuth 및 이메일 기반 로그인, JWT 인증, 이메일 인증, 비밀번호 재설정 |
+| 회원 | 온보딩, 프로필 조회/수정, 프로필 이미지 업로드, 공개 프로필 조회 |
+| 포트폴리오 | 프로젝트 이력 등록/조회/수정/삭제, 영상 링크 기반 썸네일 관리 |
+| 프로젝트 | 프로젝트 생성/조회/수정/삭제, 상태 관리, 프로젝트 고정 |
+| 멤버 | 초대 링크 기반 프로젝트 참여, 멤버 역할/권한 관리 |
+| 영상 | YouTube 영상 등록/검증, 진행 상태 관리, 북마크, 참고 파일 관리 |
+| 피드백 | 타임코드 기반 피드백 작성, 답글, 상태 변경 및 해결 처리 |
+| 공유 링크 | 외부 게스트용 영상 공유 링크 생성, 게스트 등록, 링크 활성화 관리 |
+| 파일/공지 | 프로젝트 파일 업로드/다운로드, 공지 등록/조회, 읽음 처리 |
+| 일정 | 개인/프로젝트 일정 관리, 캘린더 조회, 개인 메모 |
+| 모집 | 구인구직 공고 등록/조회, 조건별 필터링, 추천 공고, 지원/북마크 |
+| 알림 | 알림 조회/읽음 처리, 알림 설정, 최근 활동, 오늘 브리핑 |
 
 ## 기술 스택
 
@@ -108,6 +109,7 @@ SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간
   <img src="https://img.shields.io/badge/MYSQL_8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
   <img src="https://img.shields.io/badge/AWS_S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white" alt="AWS S3" />
   <img src="https://img.shields.io/badge/H2_TEST_DB-09476B?style=for-the-badge&logo=h2database&logoColor=white" alt="H2" />
+  <img src="https://img.shields.io/badge/FLYWAY-CC0200?style=for-the-badge&logo=flyway&logoColor=white" alt="Flyway" />
 </p>
 
 ### Infra & Deploy
@@ -116,6 +118,7 @@ SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간
   <img src="https://img.shields.io/badge/AWS_EC2-FF9900?style=for-the-badge&logo=amazonec2&logoColor=white" alt="AWS EC2" />
   <img src="https://img.shields.io/badge/GITHUB_ACTIONS-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions" />
   <img src="https://img.shields.io/badge/GRADLE-02303A?style=for-the-badge&logo=gradle&logoColor=white" alt="Gradle" />
+  <img src="https://img.shields.io/badge/DOCKER-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
 </p>
 
 ### API & External
@@ -130,7 +133,8 @@ SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간
 
 ## 시스템 구성
 
-<img width="1309" height="1201" alt="slat_infra" src="https://github.com/user-attachments/assets/97a66797-34f1-4ce4-96a1-aea0913b504b" />
+<img width="1381" height="1139" alt="slat_to_infra" src="https://github.com/user-attachments/assets/106b2f50-cd4d-45f4-a3f6-f9981d427967" />
+
 
 ## 협업 방식
 
@@ -180,6 +184,7 @@ feature/{이슈번호}-{기능명}
 | `docs`     | 문서 수정                |
 | `test`     | 테스트 코드 추가/수정    |
 | `chore`    | 빌드, 설정, 기타 작업    |
+| `deploy`   | 배포 및 인프라 관련 작업 |
 
 ### Pull Request
 
@@ -223,5 +228,5 @@ Java 21 기준으로 실행합니다.
 ---
 
 <div align="center">
-  SLATE-TO Backend
+  SLAT-TO Backend
 </div>
