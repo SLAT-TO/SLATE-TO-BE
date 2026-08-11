@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.slatto.global.response.ApiResponse;
+import com.slatto.global.response.code.BaseCode;
 import com.slatto.global.response.code.CommonErrorCode;
+import com.slatto.global.response.code.ErrorCodeRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -41,6 +44,12 @@ class OpenApiDocumentationTest {
 
 	@Autowired
 	private ObjectMapper objectMapper;
+
+	@Autowired
+	private ErrorCodeRegistry errorCodeRegistry;
+
+	@Autowired
+	private RequestMappingHandlerMapping handlerMapping;
 
 	private JsonNode apiDocs;
 
@@ -137,6 +146,102 @@ class OpenApiDocumentationTest {
 		});
 
 		assertThat(wrong).isEmpty();
+	}
+
+	// 코드를 문자열로 적기 때문에 오타를 컴파일러가 잡지 못한다.
+	// 오타가 나면 문서에 응답이 조용히 빠지므로, 여기서 해석해보고 깨뜨린다.
+	@Test
+	@DisplayName("@ApiErrorCodes 에 적힌 코드는 모두 실제로 존재한다")
+	void declaredErrorCodesExist() {
+		List<String> unknown = new ArrayList<>();
+
+		forEachDeclaration((path, httpMethod, code) -> {
+			if (!errorCodeRegistry.contains(code)) {
+				unknown.add(httpMethod + " " + path + " → " + code);
+			}
+		});
+
+		assertThat(unknown)
+			.as("에러 코드 enum 에 없는 코드 문자열")
+			.isEmpty();
+	}
+
+	// 애노테이션만 붙고 문서에 반영되지 않으면 표기해둔 의미가 없다.
+	// 상태 코드와 예시가 실제 생성 결과에 있는지 확인한다.
+	@Test
+	@DisplayName("@ApiErrorCodes 에 적힌 코드는 문서에 해당 상태의 예시로 실린다")
+	void declaredErrorCodesAppearInDocument() {
+		List<String> missing = new ArrayList<>();
+
+		forEachDeclaration((path, httpMethod, code) -> {
+			BaseCode errorCode = errorCodeRegistry.find(code);
+			String status = String.valueOf(errorCode.getHttpStatus().value());
+
+			JsonNode example = apiDocs.path("paths").path(path).path(httpMethod.toLowerCase())
+				.path("responses").path(status)
+				.path("content").path("application/json")
+				.path("examples").path(code).path("value");
+
+			if (example.isMissingNode()) {
+				missing.add(httpMethod + " " + path + " → " + status + " / " + code);
+			}
+		});
+
+		assertThat(missing)
+			.as("애노테이션에는 있으나 문서에 실리지 않은 도메인 에러 응답")
+			.isEmpty();
+	}
+
+	// 예시 본문을 커스터마이저가 손으로 조립하기 때문에 실제 응답과 갈라질 수 있다.
+	@Test
+	@DisplayName("도메인 에러 예시는 실제 실패 응답 값과 일치한다")
+	void domainErrorExamplesMatchActualResponse() {
+		List<String> mismatched = new ArrayList<>();
+
+		forEachDeclaration((path, httpMethod, code) -> {
+			BaseCode errorCode = errorCodeRegistry.find(code);
+			String status = String.valueOf(errorCode.getHttpStatus().value());
+
+			JsonNode example = apiDocs.path("paths").path(path).path(httpMethod.toLowerCase())
+				.path("responses").path(status)
+				.path("content").path("application/json")
+				.path("examples").path(code).path("value");
+
+			if (example.isMissingNode()) {
+				return;
+			}
+
+			Map<String, Object> documented = objectMapper.convertValue(example, new TypeReference<>() {
+			});
+
+			if (!documented.equals(actualResponse(errorCode))) {
+				mismatched.add(httpMethod + " " + path + " → " + code);
+			}
+		});
+
+		assertThat(mismatched).isEmpty();
+	}
+
+	// 도메인 예시를 얹을 때 공통 예시를 examples 로 옮기는데, 이 이사가 실패하면
+	// OpenAPI 규칙상 example 이 무시돼 공통 실패 응답이 문서에서 사라진다.
+	@Test
+	@DisplayName("실패 응답은 example 과 examples 를 함께 갖지 않는다")
+	void errorResponsesDoNotMixExampleAndExamples() {
+		List<String> mixed = new ArrayList<>();
+
+		forEachOperation((path, httpMethod, operation) -> {
+			JsonNode responses = operation.path("responses");
+
+			responses.fieldNames().forEachRemaining(status -> {
+				JsonNode mediaType = responses.path(status).path("content").path("application/json");
+
+				if (mediaType.has("example") && mediaType.has("examples")) {
+					mixed.add(httpMethod.toUpperCase() + " " + path + " → " + status);
+				}
+			});
+		});
+
+		assertThat(mixed).isEmpty();
 	}
 
 	// 401 을 일괄로 붙이면 인증 없이 열린 경로에도 발생하지 않는 상태 코드가 실린다.
@@ -245,7 +350,7 @@ class OpenApiDocumentationTest {
 	}
 
 	// 실제 응답을 직렬화해서 비교한다. 필드명을 테스트에 적어두면 그 하드코딩도 같이 낡는다.
-	private Map<String, Object> actualResponse(CommonErrorCode errorCode) {
+	private Map<String, Object> actualResponse(BaseCode errorCode) {
 		return objectMapper.convertValue(ApiResponse.failure(errorCode), new TypeReference<>() {
 		});
 	}
@@ -302,6 +407,25 @@ class OpenApiDocumentationTest {
 		return names;
 	}
 
+	// 문서가 아니라 핸들러에서 애노테이션을 읽는다.
+	// 문서에서 읽으면 "문서에 실린 것이 문서에 실렸다" 를 확인하게 된다.
+	private void forEachDeclaration(DeclarationVisitor visitor) {
+		handlerMapping.getHandlerMethods().forEach((mappingInfo, handlerMethod) -> {
+			ApiErrorCodes declared = handlerMethod.getMethodAnnotation(ApiErrorCodes.class);
+
+			if (declared == null || mappingInfo.getPathPatternsCondition() == null) {
+				return;
+			}
+
+			mappingInfo.getPathPatternsCondition().getPatterns().forEach(pattern ->
+				mappingInfo.getMethodsCondition().getMethods().forEach(httpMethod -> {
+					for (String code : declared.value()) {
+						visitor.visit(pattern.getPatternString(), httpMethod.name(), code);
+					}
+				}));
+		});
+	}
+
 	private void forEachOperation(OperationVisitor visitor) {
 		JsonNode paths = apiDocs.path("paths");
 
@@ -320,6 +444,13 @@ class OpenApiDocumentationTest {
 	private interface OperationVisitor {
 
 		void visit(String path, String httpMethod, JsonNode operation);
+
+	}
+
+	@FunctionalInterface
+	private interface DeclarationVisitor {
+
+		void visit(String path, String httpMethod, String errorCode);
 
 	}
 

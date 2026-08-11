@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
@@ -27,13 +28,20 @@ import java.util.Map;
  *
  * <p>실제로 발생할 수 있는 상태 코드만 붙인다. 문서에 있는 상태 코드가 실제로 나지 않으면
  * 명세와 구현이 어긋난 것과 같기 때문에, 조건 없이 전부 붙이지 않는다.
+ *
+ * <p>도메인 에러는 {@link DomainErrorResponses} 가 공통 응답을 다 붙인 뒤에 얹는다.
+ * 커스터마이저를 둘로 나눠 등록하면 springdoc 이 부르는 순서를 이쪽에서 정할 수 없어
+ * 도메인 응답이 먼저 자리를 잡고 공통 예시가 통째로 빠지는 일이 생긴다.
  */
 @Component
+@RequiredArgsConstructor
 public class SwaggerErrorResponseCustomizer implements OperationCustomizer {
 
 	private static final String JSON = org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 	private static final String MULTIPART = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 	private static final String PATH_PARAMETER = "path";
+
+	private final DomainErrorResponses domainErrorResponses;
 
 	@Override
 	public Operation customize(Operation operation, HandlerMethod handlerMethod) {
@@ -76,6 +84,8 @@ public class SwaggerErrorResponseCustomizer implements OperationCustomizer {
 			singleExampleContent(CommonErrorCode.INTERNAL_SERVER_ERROR)
 		);
 
+		domainErrorResponses.apply(operation, handlerMethod);
+
 		return operation;
 	}
 
@@ -113,18 +123,11 @@ public class SwaggerErrorResponseCustomizer implements OperationCustomizer {
 	}
 
 	private Schema<?> errorSchemaRef() {
-		return new Schema<>().$ref(SwaggerConfig.ERROR_RESPONSE_SCHEMA_REF);
+		return ErrorResponseExamples.schemaRef();
 	}
 
-	// 예시를 손으로 적으면 코드나 메시지가 바뀔 때 문서만 조용히 낡는다. enum 에서 그대로 가져온다.
 	private Map<String, Object> errorExample(CommonErrorCode errorCode) {
-		Map<String, Object> example = new LinkedHashMap<>();
-		example.put("isSuccess", false);
-		example.put("code", errorCode.getCode());
-		example.put("message", errorCode.getMessage());
-		example.put("result", null);
-
-		return example;
+		return ErrorResponseExamples.of(errorCode);
 	}
 
 	private Map<String, Object> validationFailureExample() {
