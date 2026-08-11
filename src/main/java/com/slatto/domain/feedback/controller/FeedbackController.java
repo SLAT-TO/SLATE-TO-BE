@@ -8,6 +8,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResD
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
 import com.slatto.domain.feedback.service.FeedbackService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.config.OptionalAuthentication;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -30,6 +31,7 @@ public class FeedbackController {
 
     @Operation(summary = "피드백 작성")
     @OptionalAuthentication
+    @ApiErrorCodes({"PROJECT403", "SHARELINK403", "SHARELINK410"})
     @PostMapping("/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<FeedbackCreateResDTO>> createFeedback(
             @PathVariable Long videoId,
@@ -45,6 +47,7 @@ public class FeedbackController {
 
     @Operation(summary = "피드백 수정")
     @OptionalAuthentication
+    @ApiErrorCodes({"FEEDBACK403", "PROJECT403", "SHARELINK403", "SHARELINK410"})
     @PatchMapping("/feedbacks/{feedbackId}")
     public ResponseEntity<ApiResponse<FeedbackUpdateResDTO>> updateFeedback(
             @PathVariable Long feedbackId,
@@ -59,6 +62,7 @@ public class FeedbackController {
 
     @Operation(summary = "피드백 삭제")
     @OptionalAuthentication
+    @ApiErrorCodes({"FEEDBACK403", "PROJECT403", "SHARELINK403", "SHARELINK410"})
     @DeleteMapping("/feedbacks/{feedbackId}")
     public ResponseEntity<ApiResponse<Void>> deleteFeedback(
             @PathVariable Long feedbackId,
@@ -73,6 +77,7 @@ public class FeedbackController {
 
     @Operation(summary = "피드백 목록 조회")
     @OptionalAuthentication
+    @ApiErrorCodes({"PROJECT403", "SHARELINK403", "SHARELINK410"})
     @GetMapping("/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<FeedbackListResDTO>> getFeedbackList(
             @PathVariable Long videoId,
@@ -91,6 +96,7 @@ public class FeedbackController {
         summary = "피드백 해결 상태 변경",
         description = "활성 프로젝트 멤버만 변경할 수 있다. 다른 피드백 API 와 달리 게스트는 호출할 수 없다."
     )
+    @ApiErrorCodes("PROJECT403")
     @PatchMapping("/feedbacks/{feedbackId}/status")
     public ResponseEntity<ApiResponse<FeedbackStatusResDTO>> changeFeedbackStatus(
             @PathVariable Long feedbackId,

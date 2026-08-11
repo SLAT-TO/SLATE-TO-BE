@@ -8,6 +8,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdat
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyStatusReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyStatusResDTO;
 import com.slatto.domain.feedback.service.FeedbackDetailService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.config.OptionalAuthentication;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
@@ -30,6 +31,7 @@ public class FeedbackDetailController {
 
     @Operation(summary = "답글 작성")
     @OptionalAuthentication
+    @ApiErrorCodes({"PROJECT403", "SHARELINK403", "SHARELINK410"})
     @PostMapping("/feedbacks/{feedbackId}/replies")
     public ResponseEntity<ApiResponse<ReplyCreateResDTO>> createReply(
             @PathVariable Long feedbackId,
@@ -46,6 +48,7 @@ public class FeedbackDetailController {
 
     @Operation(summary = "답글 목록 조회")
     @OptionalAuthentication
+    @ApiErrorCodes({"PROJECT403", "SHARELINK403", "SHARELINK410"})
     @GetMapping("/feedbacks/{feedbackId}/replies")
     public ResponseEntity<ApiResponse<ReplyListResDTO>> getReplyList(
             @PathVariable Long feedbackId,
@@ -63,6 +66,7 @@ public class FeedbackDetailController {
 
     @Operation(summary = "답글 수정")
     @OptionalAuthentication
+    @ApiErrorCodes({"FEEDBACK_REPLY403", "PROJECT403", "SHARELINK403", "SHARELINK410"})
     @PatchMapping("/replies/{replyId}")
     public ResponseEntity<ApiResponse<ReplyUpdateResDTO>> updateReply(
             @PathVariable Long replyId,
@@ -78,6 +82,7 @@ public class FeedbackDetailController {
 
     @Operation(summary = "답글 삭제")
     @OptionalAuthentication
+    @ApiErrorCodes({"FEEDBACK_REPLY403", "PROJECT403", "SHARELINK403", "SHARELINK410"})
     @DeleteMapping("/replies/{replyId}")
     public ResponseEntity<ApiResponse<Void>> deleteReply(
             @PathVariable Long replyId,
@@ -95,6 +100,7 @@ public class FeedbackDetailController {
         summary = "답글 해결 상태 변경",
         description = "활성 프로젝트 멤버만 변경할 수 있다. 다른 답글 API 와 달리 게스트는 호출할 수 없다."
     )
+    @ApiErrorCodes("PROJECT403")
     @PatchMapping("/replies/{replyId}/status")
     public ResponseEntity<ApiResponse<ReplyStatusResDTO>> changeReplyStatus(
             @PathVariable Long replyId,
