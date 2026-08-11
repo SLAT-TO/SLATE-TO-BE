@@ -22,6 +22,7 @@ import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoUpdateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.YoutubeValidateResDTO;
 import com.slatto.domain.video.entity.Video;
+import com.slatto.domain.video.exception.VideoErrorCode;
 import com.slatto.domain.video.repository.VideoBookmarkRepository;
 import com.slatto.domain.video.repository.VideoProjectAccessRepository;
 import com.slatto.domain.video.repository.VideoRepository;
@@ -117,7 +118,7 @@ public class VideoService {
 
         String youtubeVideoId = youtubeUrlParser.extractVideoId(request.youtubeUrl());
         if (videoRepository.existsByProjectIdAndYoutubeVideoId(request.projectId(), youtubeVideoId)) {
-            throw new BaseException(CommonErrorCode.CONFLICT);
+            throw new BaseException(VideoErrorCode.VIDEO_ALREADY_REGISTERED);
         }
 
         YoutubeVideoInfo videoInfo = youtubeApiClient.getVideo(youtubeVideoId)
@@ -145,7 +146,7 @@ public class VideoService {
 
         String youtubeVideoId = youtubeUrlParser.extractVideoId(request.youtubeUrl());
         if (videoRepository.existsByProjectIdAndYoutubeVideoId(projectId, youtubeVideoId)) {
-            throw new BaseException(CommonErrorCode.CONFLICT);
+            throw new BaseException(VideoErrorCode.VIDEO_ALREADY_REGISTERED);
         }
 
         YoutubeVideoInfo videoInfo = youtubeApiClient.getVideo(youtubeVideoId)
@@ -172,7 +173,7 @@ public class VideoService {
             videoRepository.flush();
             return VideoCreateResDTO.from(savedVideo);
         } catch (DataIntegrityViolationException exception) {
-            throw new BaseException(CommonErrorCode.CONFLICT);
+            throw new BaseException(VideoErrorCode.VIDEO_ALREADY_REGISTERED);
         }
     }
 

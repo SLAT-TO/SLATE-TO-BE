@@ -418,7 +418,7 @@ public class RecruitmentService {
 
     private void validateWriter(Recruitment recruitment, Long currentUserId) {
         if (!recruitment.isWriter(currentUserId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(RecruitmentErrorCode.RECRUITMENT_WRITER_ONLY);
         }
     }
 

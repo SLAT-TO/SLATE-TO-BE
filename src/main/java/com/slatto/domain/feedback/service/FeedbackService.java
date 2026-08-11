@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.slatto.domain.feedback.entity.Feedback;
+import com.slatto.domain.feedback.exception.FeedbackErrorCode;
 import com.slatto.domain.feedback.repository.FeedbackRepository;
 import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.sharelink.entity.ShareLink;
@@ -153,7 +154,7 @@ public class FeedbackService {
 
         // 4. 본인 확인
         if (!feedback.isWriter(userId, req.guestId())) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(FeedbackErrorCode.FEEDBACK_WRITER_ONLY);
         }
 
         // 5. 수정
@@ -230,7 +231,7 @@ public class FeedbackService {
 
         // 4. 본인 확인
         if (!feedback.isWriter(userId, guestId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(FeedbackErrorCode.FEEDBACK_WRITER_ONLY);
         }
 
         // 5. soft delete

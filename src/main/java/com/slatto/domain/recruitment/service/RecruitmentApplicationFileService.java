@@ -183,7 +183,7 @@ public class RecruitmentApplicationFileService {
             return;
         }
 
-        throw new BaseException(CommonErrorCode.FORBIDDEN);
+        throw new BaseException(RecruitmentErrorCode.APPLICATION_ACCESS_DENIED);
     }
 
     private List<Long> normalizeFileIds(List<Long> fileIds) {

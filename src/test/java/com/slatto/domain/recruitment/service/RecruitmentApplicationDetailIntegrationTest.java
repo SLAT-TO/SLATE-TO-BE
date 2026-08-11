@@ -3,6 +3,7 @@ package com.slatto.domain.recruitment.service;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationDetailResponse;
 import com.slatto.domain.recruitment.entity.Recruitment;
 import com.slatto.domain.recruitment.entity.RecruitmentApplication;
+import com.slatto.domain.recruitment.exception.RecruitmentErrorCode;
 import com.slatto.domain.recruitment.repository.RecruitmentApplicationRepository;
 import com.slatto.domain.recruitment.repository.RecruitmentRepository;
 import com.slatto.domain.user.entity.UserPortfolio;
@@ -16,7 +17,6 @@ import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.UserPortfolioRepository;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
-import com.slatto.global.response.code.CommonErrorCode;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -128,7 +128,7 @@ class RecruitmentApplicationDetailIntegrationTest {
         ))
             .isInstanceOf(BaseException.class)
             .extracting(exception -> ((BaseException) exception).getErrorCode())
-            .isEqualTo(CommonErrorCode.FORBIDDEN);
+            .isEqualTo(RecruitmentErrorCode.APPLICATION_ACCESS_DENIED);
     }
 
     private Users saveUser(String email, String nickname, String socialId) {

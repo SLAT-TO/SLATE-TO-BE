@@ -12,7 +12,6 @@ import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.SocialType;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.global.exception.BaseException;
-import com.slatto.global.response.code.CommonErrorCode;
 import com.slatto.global.storage.StorageService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -187,7 +186,7 @@ class RecruitmentApplicationFileServiceTest {
         ))
             .isInstanceOf(BaseException.class)
             .extracting(exception -> ((BaseException) exception).getErrorCode())
-            .isEqualTo(CommonErrorCode.FORBIDDEN);
+            .isEqualTo(RecruitmentErrorCode.APPLICATION_ACCESS_DENIED);
     }
 
     private void givenApplicantCanUpload() {

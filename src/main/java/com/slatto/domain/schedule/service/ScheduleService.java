@@ -20,6 +20,7 @@ import com.slatto.domain.schedule.entity.ScheduleParticipant;
 import com.slatto.domain.schedule.entity.SchedulePrivateMemo;
 import com.slatto.domain.schedule.enums.ScheduleQueryScope;
 import com.slatto.domain.schedule.enums.ScheduleScope;
+import com.slatto.domain.schedule.exception.ScheduleErrorCode;
 import com.slatto.domain.schedule.repository.ScheduleParticipantRepository;
 import com.slatto.domain.schedule.repository.SchedulePrivateMemoRepository;
 import com.slatto.domain.schedule.repository.ScheduleRepository;
@@ -407,7 +408,7 @@ public class ScheduleService {
 
     private void validateWriter(Schedule schedule, Long currentUserId) {
         if (!schedule.isWriter(currentUserId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ScheduleErrorCode.SCHEDULE_WRITER_ONLY);
         }
     }
 
