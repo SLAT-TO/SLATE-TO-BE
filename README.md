@@ -1,10 +1,10 @@
 <!-- @format -->
 
-# SLAT-TO Backend
+# SLATE-TO Backend
 
 <div align="center">
 
-<img width="1920" height="1080" alt="SLAT-TO Backend Banner" src="https://github.com/user-attachments/assets/fbe510e1-01c9-4b1a-b400-38a5297a1efa" />
+<img width="1920" height="1080" alt="SLATE-TO Backend Banner" src="https://github.com/user-attachments/assets/fbe510e1-01c9-4b1a-b400-38a5297a1efa" />
 
 <h3>영상 제작 협업을 위한 프로젝트 관리 및 피드백 플랫폼</h3>
 
@@ -14,7 +14,7 @@
 
 ## 프로젝트 소개
 
-SLAT-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간에서 작업물을 공유하고, 피드백을 남기며, 일정과 파일을 관리할 수 있도록 돕는 협업 서비스입니다.
+SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간에서 작업물을 공유하고, 피드백을 남기며, 일정과 파일을 관리할 수 있도록 돕는 협업 서비스입니다.
 
 ## 팀원 소개
 
@@ -228,5 +228,5 @@ Java 21 기준으로 실행합니다.
 ---
 
 <div align="center">
-  SLAT-TO Backend
+  SLATE-TO Backend
 </div>
