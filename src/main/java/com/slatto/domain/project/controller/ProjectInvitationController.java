@@ -9,6 +9,7 @@ import com.slatto.domain.project.service.ProjectInvitationService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,7 @@ public class ProjectInvitationController {
     }
 
     @Operation(summary = "프로젝트 초대 링크 정보 조회")
+    @SecurityRequirements
     @GetMapping("/project-invitations/{token}")
     public ApiResponse<ProjectInvitationDetailResponse> getInvitation(
         @PathVariable String token

@@ -4,6 +4,7 @@ import com.slatto.global.health.dto.HealthCheckResponse;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthCheckController {
 
 	@Operation(summary = "서버 상태 확인")
+	@SecurityRequirements
 	@GetMapping("/api/v1/health")
 	public ApiResponse<HealthCheckResponse> checkHealth() {
 		return ApiResponse.success(CommonSuccessCode.OK, new HealthCheckResponse("OK"));

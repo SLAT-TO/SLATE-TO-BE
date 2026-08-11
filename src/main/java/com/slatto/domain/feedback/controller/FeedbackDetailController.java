@@ -8,6 +8,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdat
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyStatusReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyStatusResDTO;
 import com.slatto.domain.feedback.service.FeedbackDetailService;
+import com.slatto.global.config.OptionalAuthentication;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,7 @@ public class FeedbackDetailController {
     private final FeedbackDetailService feedbackDetailService;
 
     @Operation(summary = "답글 작성")
+    @OptionalAuthentication
     @PostMapping("/feedbacks/{feedbackId}/replies")
     public ResponseEntity<ApiResponse<ReplyCreateResDTO>> createReply(
             @PathVariable Long feedbackId,
@@ -42,6 +44,7 @@ public class FeedbackDetailController {
     }
 
     @Operation(summary = "답글 목록 조회")
+    @OptionalAuthentication
     @GetMapping("/feedbacks/{feedbackId}/replies")
     public ResponseEntity<ApiResponse<ReplyListResDTO>> getReplyList(
             @PathVariable Long feedbackId,
@@ -57,6 +60,7 @@ public class FeedbackDetailController {
     }
 
     @Operation(summary = "답글 수정")
+    @OptionalAuthentication
     @PatchMapping("/replies/{replyId}")
     public ResponseEntity<ApiResponse<ReplyUpdateResDTO>> updateReply(
             @PathVariable Long replyId,
@@ -70,6 +74,7 @@ public class FeedbackDetailController {
     }
 
     @Operation(summary = "답글 삭제")
+    @OptionalAuthentication
     @DeleteMapping("/replies/{replyId}")
     public ResponseEntity<ApiResponse<Void>> deleteReply(
             @PathVariable Long replyId,

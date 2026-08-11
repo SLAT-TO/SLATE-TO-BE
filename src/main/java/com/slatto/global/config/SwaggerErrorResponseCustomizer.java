@@ -46,6 +46,12 @@ public class SwaggerErrorResponseCustomizer implements OperationCustomizer {
 			addIfAbsent(responses, CommonErrorCode.BAD_REQUEST, badRequestContent());
 		}
 
+		// 401 은 토큰이 필수인 엔드포인트에서만 발생한다.
+		// 게스트 참여 경로는 토큰이 없어도 통과하기 때문에 여기서 제외된다.
+		if (EndpointAuthentication.isRequired(handlerMethod)) {
+			addIfAbsent(responses, CommonErrorCode.UNAUTHORIZED, singleExampleContent(CommonErrorCode.UNAUTHORIZED));
+		}
+
 		// 404 는 경로로 리소스를 찾는 엔드포인트에서만 발생한다.
 		if (hasPathParameter(operation)) {
 			addIfAbsent(responses, CommonErrorCode.NOT_FOUND, singleExampleContent(CommonErrorCode.NOT_FOUND));
