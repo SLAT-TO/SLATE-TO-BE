@@ -38,15 +38,18 @@ public class ShareLinkConverter {
         );
     }
 
-    public Guest toGuest(ShareLink shareLink, String name) {
-        return Guest.create(shareLink, name);
+    // 해시를 받아 Guest 생성. 원문은 서비스가 보관.
+    public Guest toGuest(ShareLink shareLink, String name, String sessionTokenHash) {
+        return Guest.create(shareLink, name, sessionTokenHash);
     }
 
-    public GuestCreateResDTO toGuestCreateResponse(Guest guest) {
+    // 원문 토큰은 이 응답에서만 노출. 엔티티엔 해시만 있으므로 rawSessionToken을 따로 받음.
+    public GuestCreateResDTO toGuestCreateResponse(Guest guest, String rawSessionToken) {
         return new GuestCreateResDTO(
                 guest.getId(),
                 guest.getShareLink().getId(),
                 guest.getName(),
+                rawSessionToken,   // DB엔 없음, 응답 1회성
                 guest.getCreatedAt()
         );
     }

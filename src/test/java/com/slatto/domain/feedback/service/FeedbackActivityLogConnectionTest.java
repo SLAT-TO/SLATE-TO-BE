@@ -18,6 +18,8 @@ import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.domain.video.entity.Video;
 import com.slatto.domain.notification.service.NotificationService;
+import com.slatto.global.exception.BaseException;
+import com.slatto.global.util.TokenHasher;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,18 +27,23 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class FeedbackActivityLogConnectionTest {
 
     @Mock private FeedbackRepository feedbackRepository;
@@ -52,8 +59,13 @@ class FeedbackActivityLogConnectionTest {
     @Mock private ActivityLogService activityLogService;
     @Mock private NotificationService notificationService;
 
+    // 해시 비교가 실제로 돌아야 하므로 mock이 아닌 실제 인스턴스
+    private final TokenHasher tokenHasher = new TokenHasher();
+
     private FeedbackService feedbackService;
     private FeedbackDetailService feedbackDetailService;
+
+    private static final String GUEST_TOKEN = "test-guest-token";
 
     @BeforeEach
     void setUp() {
@@ -66,7 +78,8 @@ class FeedbackActivityLogConnectionTest {
                 projectMemberRepository,
                 feedbackDetailRepository,
                 notificationService,
-                activityLogService
+                activityLogService,
+                tokenHasher
         );
         feedbackDetailService = new FeedbackDetailService(
                 feedbackDetailRepository,
@@ -76,7 +89,8 @@ class FeedbackActivityLogConnectionTest {
                 feedbackDetailConverter,
                 projectMemberRepository,
                 notificationService,
-                activityLogService
+                activityLogService,
+                tokenHasher
         );
     }
 
@@ -89,10 +103,12 @@ class FeedbackActivityLogConnectionTest {
 
         stubVideoLookup(video);
         given(userRepository.findByIdAndDeletedAtIsNull(1L)).willReturn(Optional.of(user));
+        // 정상 회원은 프로젝트 멤버 — 멤버 검증 통과하도록 stub
+        given(projectMemberRepository.existsByProjectIdAndUserIdAndLeftAtIsNull(101L, 1L)).willReturn(true);
         given(feedbackConverter.toFeedback(eq(video), eq(user), eq(null), any())).willReturn(feedback);
         given(feedbackRepository.save(feedback)).willReturn(feedback);
 
-        feedbackService.createFeedback(11L, 1L, new FeedbackCreateReqDTO(null, "색감을 조정해주세요", 20L, 25L));
+        feedbackService.createFeedback(11L, 1L, null, new FeedbackCreateReqDTO(null, "색감을 조정해주세요", 20L, 25L));
 
         verify(activityLogService).createVideoFeedbackCommentedLog(101L, 1L, 11L, "1차 편집본");
     }
@@ -107,13 +123,15 @@ class FeedbackActivityLogConnectionTest {
 
         stubVideoLookup(video);
         given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
+        // 저장값은 원문이 아니라 해시 — 검증 시 tokenHasher.hash(원문)과 비교됨
+        given(guest.getSessionToken()).willReturn(tokenHasher.hash(GUEST_TOKEN));
         given(guest.getShareLink()).willReturn(shareLink);
         given(shareLink.isUsable()).willReturn(true);
         given(shareLink.getVideo()).willReturn(video);
         given(feedbackConverter.toFeedback(eq(video), eq(null), eq(guest), any())).willReturn(feedback);
         given(feedbackRepository.save(feedback)).willReturn(feedback);
 
-        feedbackService.createFeedback(11L, null, new FeedbackCreateReqDTO(2L, "클라이언트 피드백입니다", 20L, 25L));
+        feedbackService.createFeedback(11L, null, GUEST_TOKEN, new FeedbackCreateReqDTO(2L, "클라이언트 피드백입니다", 20L, 25L));
 
         verify(activityLogService).createGuestVideoFeedbackCommentedLog(101L, guest, 11L, "1차 편집본");
     }
@@ -130,10 +148,12 @@ class FeedbackActivityLogConnectionTest {
         given(feedback.getDeletedAt()).willReturn(null);
         given(feedback.getVideo()).willReturn(video);
         given(userRepository.findByIdAndDeletedAtIsNull(1L)).willReturn(Optional.of(user));
+        // 정상 회원은 프로젝트 멤버 — 멤버 검증 통과하도록 stub
+        given(projectMemberRepository.existsByProjectIdAndUserIdAndLeftAtIsNull(101L, 1L)).willReturn(true);
         given(feedbackDetailConverter.toFeedbackDetail(eq(feedback), eq(user), eq(null), any())).willReturn(reply);
         given(feedbackDetailRepository.save(reply)).willReturn(reply);
 
-        feedbackDetailService.createReply(31L, 1L, new ReplyCreateReqDTO(null, "반영하겠습니다"));
+        feedbackDetailService.createReply(31L, 1L, null, new ReplyCreateReqDTO(null, "반영하겠습니다"));
 
         verify(activityLogService).createVideoFeedbackCommentedLog(101L, 1L, 11L, "1차 편집본");
     }
@@ -151,15 +171,77 @@ class FeedbackActivityLogConnectionTest {
         given(feedback.getDeletedAt()).willReturn(null);
         given(feedback.getVideo()).willReturn(video);
         given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
+        // 저장값은 해시
+        given(guest.getSessionToken()).willReturn(tokenHasher.hash(GUEST_TOKEN));
         given(guest.getShareLink()).willReturn(shareLink);
         given(shareLink.isUsable()).willReturn(true);
         given(shareLink.getVideo()).willReturn(video);
         given(feedbackDetailConverter.toFeedbackDetail(eq(feedback), eq(null), eq(guest), any())).willReturn(reply);
         given(feedbackDetailRepository.save(reply)).willReturn(reply);
 
-        feedbackDetailService.createReply(31L, null, new ReplyCreateReqDTO(2L, "게스트 답글입니다"));
+        feedbackDetailService.createReply(31L, null, GUEST_TOKEN, new ReplyCreateReqDTO(2L, "게스트 답글입니다"));
 
         verify(activityLogService).createGuestVideoFeedbackCommentedLog(101L, guest, 11L, "1차 편집본");
+    }
+
+    @Test
+    void 게스트_토큰이_틀리면_피드백_등록이_차단된다() {
+        // 사칭 방지: guestId는 맞아도 세션 토큰이 다르면 예외로 막히고 저장이 일어나지 않아야 한다.
+        Video video = video(11L, "1차 편집본", 101L);
+        Guest guest = mock(Guest.class);
+
+        stubVideoLookup(video);
+        given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
+        // DB엔 올바른 토큰의 해시가 저장돼 있음
+        given(guest.getSessionToken()).willReturn(tokenHasher.hash(GUEST_TOKEN));
+
+        // 요청엔 엉뚱한 토큰 → 해시 비교 실패 → 차단
+        assertThatThrownBy(() ->
+                feedbackService.createFeedback(11L, null, "wrong-token",
+                        new FeedbackCreateReqDTO(2L, "사칭 시도", 20L, 25L))
+        ).isInstanceOf(BaseException.class);
+
+        verify(feedbackRepository, never()).save(any());
+        verify(activityLogService, never())
+                .createGuestVideoFeedbackCommentedLog(any(), any(), any(), any());
+    }
+
+    @Test
+    void 게스트_토큰이_없으면_피드백_등록이_차단된다() {
+        // 토큰 헤더 누락(null)도 사칭 간주 → 차단.
+        Video video = video(11L, "1차 편집본", 101L);
+        Guest guest = mock(Guest.class);
+
+        stubVideoLookup(video);
+        given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
+
+        assertThatThrownBy(() ->
+                feedbackService.createFeedback(11L, null, null,
+                        new FeedbackCreateReqDTO(2L, "토큰 없는 시도", 20L, 25L))
+        ).isInstanceOf(BaseException.class);
+
+        verify(feedbackRepository, never()).save(any());
+    }
+
+    @Test
+    void 게스트_토큰이_틀리면_답글_등록이_차단된다() {
+        // 답글 경로도 동일하게 토큰 불일치 시 차단돼야 한다.
+        Video video = video(11L, "1차 편집본", 101L);
+        Feedback feedback = mock(Feedback.class);
+        Guest guest = mock(Guest.class);
+
+        given(feedbackRepository.findById(31L)).willReturn(Optional.of(feedback));
+        given(feedback.getDeletedAt()).willReturn(null);
+        given(feedback.getVideo()).willReturn(video);
+        given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
+        given(guest.getSessionToken()).willReturn(tokenHasher.hash(GUEST_TOKEN));
+
+        assertThatThrownBy(() ->
+                feedbackDetailService.createReply(31L, null, "wrong-token",
+                        new ReplyCreateReqDTO(2L, "사칭 답글"))
+        ).isInstanceOf(BaseException.class);
+
+        verify(feedbackDetailRepository, never()).save(any());
     }
 
     private void stubVideoLookup(Video video) {

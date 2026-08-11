@@ -139,7 +139,7 @@ class RecruitmentApplicationDetailIntegrationTest {
 
     private void savePortfolio(CategoryName type, RoleName roleName) {
         UserPortfolio portfolio = userPortfolioRepository.save(UserPortfolio.create(
-            applicant, "작업 제목", type, null, Kind.PERSONAL, null, null, null, null, null
+            applicant, "작업 제목", type, null, Kind.PERSONAL, null, null, null, null, null, null, null
         ));
         entityManager.persist(UserPortfolioRole.create(portfolio, applicant, roleName));
         entityManager.flush();

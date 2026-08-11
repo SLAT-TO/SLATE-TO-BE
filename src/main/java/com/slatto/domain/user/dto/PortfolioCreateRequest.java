@@ -11,6 +11,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter
@@ -44,4 +45,9 @@ public class PortfolioCreateRequest {
     @NotBlank(message = "영상 링크는 필수입니다.")
     @Size(max = 500, message = "영상 링크는 500자 이하로 입력해야 합니다.")
     private String youtubeUrl;
+
+    // 참여 기간은 선택 입력이다. 기간을 모르는 예전 작업도 등록할 수 있어야 한다.
+    private LocalDate startDate;
+
+    private LocalDate endDate;
 }

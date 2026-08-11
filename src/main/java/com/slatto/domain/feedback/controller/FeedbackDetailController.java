@@ -34,9 +34,10 @@ public class FeedbackDetailController {
     public ResponseEntity<ApiResponse<ReplyCreateResDTO>> createReply(
             @PathVariable Long feedbackId,
             @AuthenticationPrincipal Long userId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @Valid @RequestBody ReplyCreateReqDTO request
     ) {
-        ReplyCreateResDTO result = feedbackDetailService.createReply(feedbackId, userId, request);
+        ReplyCreateResDTO result = feedbackDetailService.createReply(feedbackId, userId, guestToken, request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -50,10 +51,11 @@ public class FeedbackDetailController {
             @PathVariable Long feedbackId,
             @AuthenticationPrincipal Long userId,
             @RequestParam(required = false) Long guestId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @RequestParam(required = false) Long cursor,
             @RequestParam(required = false) Integer size
     ) {
-        ReplyListResDTO result = feedbackDetailService.getReplyList(feedbackId, userId, guestId, cursor, size);
+        ReplyListResDTO result = feedbackDetailService.getReplyList(feedbackId, userId, guestId, guestToken, cursor, size);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
@@ -65,9 +67,10 @@ public class FeedbackDetailController {
     public ResponseEntity<ApiResponse<ReplyUpdateResDTO>> updateReply(
             @PathVariable Long replyId,
             @AuthenticationPrincipal Long userId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @Valid @RequestBody ReplyUpdateReqDTO request
     ) {
-        ReplyUpdateResDTO result = feedbackDetailService.updateReply(replyId, userId, request);
+        ReplyUpdateResDTO result = feedbackDetailService.updateReply(replyId, userId, guestToken, request);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
@@ -79,9 +82,10 @@ public class FeedbackDetailController {
     public ResponseEntity<ApiResponse<Void>> deleteReply(
             @PathVariable Long replyId,
             @AuthenticationPrincipal Long userId,
-            @RequestParam(required = false) Long guestId
+            @RequestParam(required = false) Long guestId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken
     ) {
-        feedbackDetailService.deleteReply(replyId, userId, guestId);
+        feedbackDetailService.deleteReply(replyId, userId, guestId, guestToken);
 
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, null));

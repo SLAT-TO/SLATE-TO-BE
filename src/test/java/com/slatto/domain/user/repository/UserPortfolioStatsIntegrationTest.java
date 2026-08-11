@@ -113,7 +113,7 @@ class UserPortfolioStatsIntegrationTest {
 
     private UserPortfolio savePortfolio(CategoryName type) {
         return userPortfolioRepository.save(UserPortfolio.create(
-            user, "작업 제목", type, null, Kind.PERSONAL, null, null, null, null, null
+            user, "작업 제목", type, null, Kind.PERSONAL, null, null, null, null, null, null, null
         ));
     }
 
