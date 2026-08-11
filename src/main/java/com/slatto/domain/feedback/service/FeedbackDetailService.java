@@ -65,6 +65,8 @@ public class FeedbackDetailService {
         if (userId != null) {
             user = userRepository.findByIdAndDeletedAtIsNull(userId)
                     .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+            // 회원이 원 피드백 영상의 프로젝트 멤버인지 검증
+            validateMemberAccess(userId, feedback.getVideo().getProject().getId());
         } else {
             // 게스트: 원 피드백의 영상에 접근할 자격이 있는지 검증 후 Guest 확보
             guest = validateGuestAccess(req.guestId(), feedback.getVideo().getId());
@@ -130,6 +132,16 @@ public class FeedbackDetailService {
         }
     }
 
+    // 회원이 해당 프로젝트의 활성 멤버인지 검증
+    // 게스트의 validateGuestAccess와 대칭 — 회원은 프로젝트 멤버 자격으로 접근 인가
+    private void validateMemberAccess(Long userId, Long projectId) {
+        boolean isMember = projectMemberRepository
+                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
+        if (!isMember) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
+        }
+    }
+
     // 게스트가 해당 영상에 접근할 자격이 있는지 검증하고, 검증된 Guest를 반환
     // Guest → ShareLink → Video 체인으로 소유 여부 확인
     private Guest validateGuestAccess(Long guestId, Long videoId) {
@@ -159,9 +171,11 @@ public class FeedbackDetailService {
                 .filter(f -> f.getDeletedAt() == null)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        // 2. 게스트가 조회하는 경우 원 피드백의 영상에 접근 자격이 있는지 검증
-        //    회원이 아니면 guestId 필수 — 익명(둘 다 null) 조회 차단
-        if (userId == null) {
+        // 2. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 공유링크 소유
+        //    회원도 게스트도 아니면(둘 다 null) 익명 조회 차단
+        if (userId != null) {
+            validateMemberAccess(userId, feedback.getVideo().getProject().getId());
+        } else {
             if (guestId == null) {
                 throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
             }
@@ -204,8 +218,10 @@ public class FeedbackDetailService {
         // 2. 작성자 검증
         validateWriter(userId, req.guestId());
 
-        // 3. 게스트면 이 답글의 영상에 접근 자격이 있는지 검증 (답글 → 피드백 → 영상)
-        if (userId == null) {
+        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 공유링크 소유 (답글 → 피드백 → 영상)
+        if (userId != null) {
+            validateMemberAccess(userId, reply.getFeedback().getVideo().getProject().getId());
+        } else {
             validateGuestAccess(req.guestId(), reply.getFeedback().getVideo().getId());
         }
 
@@ -234,8 +250,10 @@ public class FeedbackDetailService {
         // 2. 작성자 검증
         validateWriter(userId, guestId);
 
-        // 3. 게스트면 이 답글의 영상에 접근 자격이 있는지 검증 (답글 → 피드백 → 영상)
-        if (userId == null) {
+        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 공유링크 소유 (답글 → 피드백 → 영상)
+        if (userId != null) {
+            validateMemberAccess(userId, reply.getFeedback().getVideo().getProject().getId());
+        } else {
             validateGuestAccess(guestId, reply.getFeedback().getVideo().getId());
         }
 

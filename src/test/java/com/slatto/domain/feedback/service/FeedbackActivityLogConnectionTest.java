@@ -89,6 +89,8 @@ class FeedbackActivityLogConnectionTest {
 
         stubVideoLookup(video);
         given(userRepository.findByIdAndDeletedAtIsNull(1L)).willReturn(Optional.of(user));
+        // 정상 회원은 프로젝트 멤버 — 멤버 검증 통과하도록 stub
+        given(projectMemberRepository.existsByProjectIdAndUserIdAndLeftAtIsNull(101L, 1L)).willReturn(true);
         given(feedbackConverter.toFeedback(eq(video), eq(user), eq(null), any())).willReturn(feedback);
         given(feedbackRepository.save(feedback)).willReturn(feedback);
 
@@ -130,6 +132,8 @@ class FeedbackActivityLogConnectionTest {
         given(feedback.getDeletedAt()).willReturn(null);
         given(feedback.getVideo()).willReturn(video);
         given(userRepository.findByIdAndDeletedAtIsNull(1L)).willReturn(Optional.of(user));
+        // 정상 회원은 프로젝트 멤버 — 멤버 검증 통과하도록 stub
+        given(projectMemberRepository.existsByProjectIdAndUserIdAndLeftAtIsNull(101L, 1L)).willReturn(true);
         given(feedbackDetailConverter.toFeedbackDetail(eq(feedback), eq(user), eq(null), any())).willReturn(reply);
         given(feedbackDetailRepository.save(reply)).willReturn(reply);
 
