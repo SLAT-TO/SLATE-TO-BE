@@ -46,7 +46,7 @@ public class ScheduleController {
         summary = "특정 날짜 일정 조회",
         description = "선택한 날짜에 표시할 일정 목록을 조회합니다. 응답에는 일정 대상자, 공용 메모, 로그인한 사용자의 개인 메모, 수정 가능 여부가 포함됩니다."
     )
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @GetMapping("/daily")
     public ApiResponse<ScheduleDailyResponse> getDailySchedules(
         @AuthenticationPrincipal Long currentUserId,
@@ -71,7 +71,7 @@ public class ScheduleController {
         summary = "통합 캘린더 일정 조회",
         description = "캘린더에 표시할 일정 목록을 기간 기준으로 조회합니다. 프로젝트 캘린더 조회 시 scope=PROJECT와 projectId를 함께 전달합니다."
     )
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @GetMapping
     public ApiResponse<ScheduleCalendarResponse> getCalendarSchedules(
         @AuthenticationPrincipal Long currentUserId,
@@ -99,7 +99,7 @@ public class ScheduleController {
         summary = "일정 생성",
         description = "개인 일정 또는 프로젝트 일정을 생성합니다. PERSONAL 일정은 projectId와 participantIds를 전달하지 않고, PROJECT 일정은 projectId와 participantIds가 필요합니다."
     )
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ScheduleResponse> createSchedule(

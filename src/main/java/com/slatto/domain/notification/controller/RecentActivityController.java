@@ -30,7 +30,7 @@ public class RecentActivityController {
             프로젝트 멤버만 조회할 수 있다. 각 항목에 내가 읽었는지 여부가 함께 담긴다.
             cursor 는 응답의 nextCursor 를 그대로 넘기는 문자열이며 size 는 기본 20, 최대 50이다."""
     )
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @GetMapping
     public ApiResponse<ActivityLogListResponse> getRecentActivities(
         @AuthenticationPrincipal Long currentUserId,
@@ -52,7 +52,7 @@ public class RecentActivityController {
         summary = "프로젝트 최근활동 단건 읽음 처리",
         description = "읽음은 호출한 사람에게만 기록된다. 이미 읽은 활동에 다시 호출해도 실패하지 않는다."
     )
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @PatchMapping("/{activityId}/read")
     public ApiResponse<Void> markActivityAsRead(
         @AuthenticationPrincipal Long currentUserId,
@@ -68,7 +68,7 @@ public class RecentActivityController {
         summary = "프로젝트 최근활동 전체 읽음 처리",
         description = "해당 프로젝트의 활동만 읽음 처리한다. 다른 프로젝트에는 영향이 없다."
     )
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @PatchMapping("/read-all")
     public ApiResponse<Void> markAllActivitiesAsRead(
         @AuthenticationPrincipal Long currentUserId,

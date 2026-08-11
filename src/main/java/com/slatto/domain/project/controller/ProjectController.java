@@ -76,7 +76,7 @@ public class ProjectController {
         summary = "프로젝트 상세 조회",
         description = "프로젝트 멤버만 조회할 수 있다."
     )
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @GetMapping("/{projectId}")
     public ApiResponse<ProjectDetailResponse> getProject(
         @AuthenticationPrincipal Long currentUserId,
@@ -107,7 +107,7 @@ public class ProjectController {
             `title` 은 생성·수정 요청 모두 필수라 실제로는 `kind` 만 이 조건에 걸린다.
             """
     )
-    @ApiErrorCodes({"PROJECT403", "PROJECT_ADMIN403", "PROJECT_COMPLETED409"})
+    @ApiErrorCodes({"PROJECT403", "PROJECT_ADMIN403", "PROJECT404", "PROJECT_COMPLETED409"})
     @PatchMapping("/{projectId}")
     public ApiResponse<ProjectResponse> updateProject(
         @AuthenticationPrincipal Long currentUserId,
@@ -123,7 +123,7 @@ public class ProjectController {
         summary = "프로젝트 삭제",
         description = "ADMIN 만 삭제할 수 있다. 실제로 지우지 않고 삭제 표시만 남긴다."
     )
-    @ApiErrorCodes({"PROJECT403", "PROJECT_ADMIN403"})
+    @ApiErrorCodes({"PROJECT403", "PROJECT_ADMIN403", "PROJECT404"})
     @DeleteMapping("/{projectId}")
     public ApiResponse<Void> deleteProject(
         @AuthenticationPrincipal Long currentUserId,
@@ -140,7 +140,7 @@ public class ProjectController {
             고정은 호출한 사람에게만 적용되며 다른 멤버의 목록 순서에는 영향을 주지 않는다.
             이미 고정한 프로젝트에 다시 호출해도 실패하지 않는다."""
     )
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @PostMapping("/{projectId}/pin")
     public ApiResponse<ProjectPinResponse> pinProject(
         @AuthenticationPrincipal Long currentUserId,
@@ -155,7 +155,7 @@ public class ProjectController {
         summary = "프로젝트 고정 해제",
         description = "고정하지 않은 프로젝트에 호출해도 실패하지 않는다."
     )
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @DeleteMapping("/{projectId}/pin")
     public ApiResponse<ProjectPinResponse> unpinProject(
         @AuthenticationPrincipal Long currentUserId,

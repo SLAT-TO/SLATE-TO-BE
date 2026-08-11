@@ -38,7 +38,7 @@ public class VideoReferenceFileController {
 
     private final VideoReferenceFileService videoReferenceFileService;
 
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @GetMapping
     @Operation(
         summary = "영상 참조 파일 목록 조회",
@@ -70,7 +70,7 @@ public class VideoReferenceFileController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @ApiErrorCodes({"PROJECT403", "VIDEO_REFERENCE_FILE409"})
+    @ApiErrorCodes({"PROJECT403", "PROJECT404", "VIDEO_REFERENCE_FILE409"})
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
@@ -95,7 +95,7 @@ public class VideoReferenceFileController {
         return ApiResponse.success(CommonSuccessCode.CREATED, response);
     }
 
-    @ApiErrorCodes("PROJECT403")
+    @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @DeleteMapping("/{referenceFileId}")
     @Operation(
         summary = "영상 참조 파일 연결 제거",

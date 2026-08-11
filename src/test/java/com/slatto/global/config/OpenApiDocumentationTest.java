@@ -257,6 +257,39 @@ class OpenApiDocumentationTest {
 		assertThat(mixed).isEmpty();
 	}
 
+	// 404 는 공통 응답과 도메인 응답이 겹치는 유일한 상태다.
+	// 도메인 예시를 얹는 쪽이 공통 예시를 밀어내도 example 과 examples 가 섞이지는 않아
+	// 위 검증은 통과하면서 공통 예시만 조용히 사라진다.
+	//
+	// 경로 변수가 있는 엔드포인트에만 공통 404 가 깔리므로, 겹침도 그쪽에서만 일어난다.
+	@Test
+	@DisplayName("도메인 예시를 얹은 404 도 공통 예시를 그대로 갖는다")
+	void notFoundKeepsCommonExampleAlongsideDomainExamples() {
+		List<String> merged = new ArrayList<>();
+		List<String> dropped = new ArrayList<>();
+
+		forEachOperation((path, httpMethod, operation) -> {
+			JsonNode examples = operation.path("responses").path("404")
+				.path("content").path("application/json").path("examples");
+
+			if (examples.isMissingNode() || !hasPathParameter(operation)) {
+				return;
+			}
+
+			String endpoint = httpMethod.toUpperCase() + " " + path;
+			merged.add(endpoint);
+
+			if (!examples.has(CommonErrorCode.NOT_FOUND.getCode())) {
+				dropped.add(endpoint);
+			}
+		});
+
+		assertThat(merged).as("공통 404 와 도메인 404 가 함께 실린 응답").isNotEmpty();
+		assertThat(dropped)
+			.as("도메인 예시에 밀려 공통 404 예시가 사라진 응답")
+			.isEmpty();
+	}
+
 	// 401 을 일괄로 붙이면 인증 없이 열린 경로에도 발생하지 않는 상태 코드가 실린다.
 	// 자물쇠 표시와 401 문서화는 항상 같은 판정에서 나와야 한다.
 	@Test
