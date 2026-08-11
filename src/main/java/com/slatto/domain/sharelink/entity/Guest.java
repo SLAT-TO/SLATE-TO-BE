@@ -6,8 +6,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Entity
 @Table(name = "guest")
 @Getter
@@ -26,17 +24,18 @@ public class Guest extends BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    // 게스트 본인 확인용 세션 토큰. 등록 시 발급되며, 이후 요청 시 이 값과 일치해야 본인으로 인정한다.
-    @Column(name = "session_token", nullable = false, unique = true, length = 36)
+    // 세션 토큰의 SHA-256 해시(64자 hex). 원문은 저장하지 않는다.
+    @Column(name = "session_token", nullable = false, unique = true, length = 64)
     private String sessionToken;
 
-    private Guest(ShareLink shareLink, String name, String sessionToken) {
+    private Guest(ShareLink shareLink, String name, String sessionTokenHash) {
         this.shareLink = shareLink;
         this.name = name;
-        this.sessionToken = sessionToken;
+        this.sessionToken = sessionTokenHash;
     }
 
-    public static Guest create(ShareLink shareLink, String name) {
-        return new Guest(shareLink, name, UUID.randomUUID().toString());
+    // 원문이 아니라 '해시'를 받아 저장한다. 원문 생성은 서비스가 담당.
+    public static Guest create(ShareLink shareLink, String name, String sessionTokenHash) {
+        return new Guest(shareLink, name, sessionTokenHash);
     }
 }

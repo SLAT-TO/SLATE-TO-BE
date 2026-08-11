@@ -14,6 +14,7 @@ import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.slatto.domain.notification.service.NotificationService;
+import com.slatto.global.util.TokenHasher;
 
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +50,7 @@ public class FeedbackService {
     private final FeedbackDetailRepository feedbackDetailRepository;
     private final NotificationService notificationService;
     private final ActivityLogService activityLogService;
+    private final TokenHasher tokenHasher;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;
@@ -187,7 +189,8 @@ public class FeedbackService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 0. 세션 토큰으로 본인 확인 — 없거나 불일치면 사칭으로 간주해 차단
-        if (guestToken == null || !guestToken.equals(guest.getSessionToken())) {
+        // 들어온 원문 토큰을 해시해서 저장된 해시와 비교. null이면 즉시 차단.
+        if (guestToken == null || !guest.getSessionToken().equals(tokenHasher.hash(guestToken))) {
             throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
         }
 

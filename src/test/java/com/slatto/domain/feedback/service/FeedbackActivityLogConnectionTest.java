@@ -18,6 +18,7 @@ import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.domain.video.entity.Video;
 import com.slatto.domain.notification.service.NotificationService;
+import com.slatto.global.util.TokenHasher;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +53,9 @@ class FeedbackActivityLogConnectionTest {
     @Mock private ActivityLogService activityLogService;
     @Mock private NotificationService notificationService;
 
+    // 해시 비교가 실제로 돌아야 하므로 mock이 아닌 실제 인스턴스
+    private final TokenHasher tokenHasher = new TokenHasher();
+
     private FeedbackService feedbackService;
     private FeedbackDetailService feedbackDetailService;
 
@@ -68,7 +72,8 @@ class FeedbackActivityLogConnectionTest {
                 projectMemberRepository,
                 feedbackDetailRepository,
                 notificationService,
-                activityLogService
+                activityLogService,
+                tokenHasher
         );
         feedbackDetailService = new FeedbackDetailService(
                 feedbackDetailRepository,
@@ -78,7 +83,8 @@ class FeedbackActivityLogConnectionTest {
                 feedbackDetailConverter,
                 projectMemberRepository,
                 notificationService,
-                activityLogService
+                activityLogService,
+                tokenHasher
         );
     }
 
@@ -111,7 +117,8 @@ class FeedbackActivityLogConnectionTest {
 
         stubVideoLookup(video);
         given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
-        given(guest.getSessionToken()).willReturn(GUEST_TOKEN);
+        // 저장값은 원문이 아니라 해시 — 검증 시 tokenHasher.hash(원문)과 비교됨
+        given(guest.getSessionToken()).willReturn(tokenHasher.hash(GUEST_TOKEN));
         given(guest.getShareLink()).willReturn(shareLink);
         given(shareLink.isUsable()).willReturn(true);
         given(shareLink.getVideo()).willReturn(video);
@@ -158,7 +165,8 @@ class FeedbackActivityLogConnectionTest {
         given(feedback.getDeletedAt()).willReturn(null);
         given(feedback.getVideo()).willReturn(video);
         given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
-        given(guest.getSessionToken()).willReturn(GUEST_TOKEN);
+        // 저장값은 해시
+        given(guest.getSessionToken()).willReturn(tokenHasher.hash(GUEST_TOKEN));
         given(guest.getShareLink()).willReturn(shareLink);
         given(shareLink.isUsable()).willReturn(true);
         given(shareLink.getVideo()).willReturn(video);

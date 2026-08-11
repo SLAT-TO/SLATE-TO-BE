@@ -30,6 +30,7 @@ import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.slatto.global.util.TokenHasher;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +44,7 @@ public class FeedbackDetailService {
     private final ProjectMemberRepository projectMemberRepository;
     private final NotificationService notificationService;
     private final ActivityLogService activityLogService;
+    private final TokenHasher tokenHasher;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;
@@ -144,7 +146,7 @@ public class FeedbackDetailService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 0. 세션 토큰으로 본인 확인 — 없거나 불일치면 사칭으로 간주해 차단
-        if (guestToken == null || !guestToken.equals(guest.getSessionToken())) {
+        if (guestToken == null || !guest.getSessionToken().equals(tokenHasher.hash(guestToken))) {
             throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
         }
 
