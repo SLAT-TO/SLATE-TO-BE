@@ -24,12 +24,18 @@ public class Guest extends BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    private Guest(ShareLink shareLink, String name) {
+    // 세션 토큰의 SHA-256 해시(64자 hex). 원문은 저장하지 않는다.
+    @Column(name = "session_token", nullable = false, unique = true, length = 64)
+    private String sessionToken;
+
+    private Guest(ShareLink shareLink, String name, String sessionTokenHash) {
         this.shareLink = shareLink;
         this.name = name;
+        this.sessionToken = sessionTokenHash;
     }
 
-    public static Guest create(ShareLink shareLink, String name) {
-        return new Guest(shareLink, name);
+    // 원문이 아니라 '해시'를 받아 저장한다. 원문 생성은 서비스가 담당.
+    public static Guest create(ShareLink shareLink, String name, String sessionTokenHash) {
+        return new Guest(shareLink, name, sessionTokenHash);
     }
 }

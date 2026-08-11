@@ -30,6 +30,7 @@ import com.slatto.global.response.code.CommonErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.slatto.global.util.TokenHasher;
 
 @Service
 @RequiredArgsConstructor
@@ -43,12 +44,13 @@ public class FeedbackDetailService {
     private final ProjectMemberRepository projectMemberRepository;
     private final NotificationService notificationService;
     private final ActivityLogService activityLogService;
+    private final TokenHasher tokenHasher;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
-    private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
+    private static final int MAX_PAGE_SIZE = 50;
 
     @Transactional
-    public ReplyCreateResDTO createReply(Long feedbackId, Long userId, ReplyCreateReqDTO req) {
+    public ReplyCreateResDTO createReply(Long feedbackId, Long userId, String guestToken, ReplyCreateReqDTO req) {
 
         // 1. 원 피드백 조회 (삭제된 건 제외)
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -68,8 +70,8 @@ public class FeedbackDetailService {
             // 회원이 원 피드백 영상의 프로젝트 멤버인지 검증
             validateMemberAccess(userId, feedback.getVideo().getProject().getId());
         } else {
-            // 게스트: 원 피드백의 영상에 접근할 자격이 있는지 검증 후 Guest 확보
-            guest = validateGuestAccess(req.guestId(), feedback.getVideo().getId());
+            // 게스트: 토큰 + 원 피드백 영상 소유 검증 후 Guest 확보
+            guest = validateGuestAccess(req.guestId(), feedback.getVideo().getId(), guestToken);
         }
 
         // 4. 저장
@@ -77,7 +79,6 @@ public class FeedbackDetailService {
         FeedbackDetail saved = feedbackDetailRepository.save(reply);
 
         // 5. 프로젝트 멤버에게 답글 알림 발송 (작성자 본인은 actorUserId로 제외)
-        //    알림 문구 조합용 작성자명 — 회원이면 유저명, 게스트면 게스트명
         String commenterName = (user != null) ? user.getNickname() : guest.getName();
         sendReplyNotification(feedback.getVideo(), userId, commenterName);
 
@@ -102,12 +103,9 @@ public class FeedbackDetailService {
     }
 
     // 답글 생성 시 프로젝트 멤버에게 알림 발송
-    // 문구 조합/저장/그룹핑/작성자 제외는 알림 도메인이 처리하므로 재료(영상명·작성자명)만 준비해 호출한다.
-    // 원 피드백의 영상 기준으로 그룹핑되므로 targetId는 videoId가 사용된다.
     private void sendReplyNotification(Video video, Long actorUserId, String commenterName) {
         Long projectId = video.getProject().getId();
 
-        // 프로젝트 활성 멤버 전체를 수신자로 (작성자 제외는 actorUserId로 알림 도메인이 처리)
         List<Long> recipientIds = projectMemberRepository
                 .findAllActiveMembersByProjectId(projectId)
                 .stream()
@@ -117,10 +115,10 @@ public class FeedbackDetailService {
         notificationService.createVideoFeedbackCommentedNotifications(
                 projectId,
                 video.getId(),
-                video.getTitle(),   // 영상명 → 알림 도메인이 문구 조합에 사용
-                commenterName,       // 작성자명 → 알림 도메인이 문구 조합에 사용
+                video.getTitle(),
+                commenterName,
                 recipientIds,
-                actorUserId          // 게스트면 null → 제외 대상 없음
+                actorUserId
         );
     }
 
@@ -133,7 +131,6 @@ public class FeedbackDetailService {
     }
 
     // 회원이 해당 프로젝트의 활성 멤버인지 검증
-    // 게스트의 validateGuestAccess와 대칭 — 회원은 프로젝트 멤버 자격으로 접근 인가
     private void validateMemberAccess(Long userId, Long projectId) {
         boolean isMember = projectMemberRepository
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
@@ -143,10 +140,15 @@ public class FeedbackDetailService {
     }
 
     // 게스트가 해당 영상에 접근할 자격이 있는지 검증하고, 검증된 Guest를 반환
-    // Guest → ShareLink → Video 체인으로 소유 여부 확인
-    private Guest validateGuestAccess(Long guestId, Long videoId) {
+    // 세션 토큰으로 본인 확인 + Guest → ShareLink → Video 소유 확인
+    private Guest validateGuestAccess(Long guestId, Long videoId, String guestToken) {
         Guest guest = guestRepository.findById(guestId)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // 0. 세션 토큰으로 본인 확인 — 없거나 불일치면 사칭으로 간주해 차단
+        if (guestToken == null || !guest.getSessionToken().equals(tokenHasher.hash(guestToken))) {
+            throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
+        }
 
         ShareLink shareLink = guest.getShareLink();
 
@@ -164,14 +166,14 @@ public class FeedbackDetailService {
     }
 
     @Transactional(readOnly = true)
-    public ReplyListResDTO getReplyList(Long feedbackId, Long userId, Long guestId, Long cursor, Integer size) {
+    public ReplyListResDTO getReplyList(Long feedbackId, Long userId, Long guestId, String guestToken, Long cursor, Integer size) {
 
         // 1. 원 피드백 존재 확인
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .filter(f -> f.getDeletedAt() == null)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        // 2. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 공유링크 소유
+        // 2. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유
         //    회원도 게스트도 아니면(둘 다 null) 익명 조회 차단
         if (userId != null) {
             validateMemberAccess(userId, feedback.getVideo().getProject().getId());
@@ -179,14 +181,14 @@ public class FeedbackDetailService {
             if (guestId == null) {
                 throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
             }
-            validateGuestAccess(guestId, feedback.getVideo().getId());
+            validateGuestAccess(guestId, feedback.getVideo().getId(), guestToken);
         }
 
         // 3. size 기본값 + 상한 처리
         int pageSize = (size == null || size <= 0)
                 ? DEFAULT_PAGE_SIZE
                 : Math.min(size, MAX_PAGE_SIZE);
-        Pageable pageable = PageRequest.of(0, pageSize + 1);   // hasNext 판단용 +1
+        Pageable pageable = PageRequest.of(0, pageSize + 1);
 
         // 4. 조회
         List<FeedbackDetail> replies = (cursor == null)
@@ -208,7 +210,7 @@ public class FeedbackDetailService {
     }
 
     @Transactional
-    public ReplyUpdateResDTO updateReply(Long replyId, Long userId, ReplyUpdateReqDTO req) {
+    public ReplyUpdateResDTO updateReply(Long replyId, Long userId, String guestToken, ReplyUpdateReqDTO req) {
 
         // 1. 답글 조회 (삭제된 건 제외)
         FeedbackDetail reply = feedbackDetailRepository.findById(replyId)
@@ -218,11 +220,11 @@ public class FeedbackDetailService {
         // 2. 작성자 검증
         validateWriter(userId, req.guestId());
 
-        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 공유링크 소유 (답글 → 피드백 → 영상)
+        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유 (답글 → 피드백 → 영상)
         if (userId != null) {
             validateMemberAccess(userId, reply.getFeedback().getVideo().getProject().getId());
         } else {
-            validateGuestAccess(req.guestId(), reply.getFeedback().getVideo().getId());
+            validateGuestAccess(req.guestId(), reply.getFeedback().getVideo().getId(), guestToken);
         }
 
         // 4. 본인 확인
@@ -230,7 +232,7 @@ public class FeedbackDetailService {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        // 5. 수정 (더티 체킹)
+        // 5. 수정
         reply.update(req.content());
 
         // 6. updatedAt 갱신 반영
@@ -240,7 +242,7 @@ public class FeedbackDetailService {
     }
 
     @Transactional
-    public void deleteReply(Long replyId, Long userId, Long guestId) {
+    public void deleteReply(Long replyId, Long userId, Long guestId, String guestToken) {
 
         // 1. 답글 조회 (이미 삭제된 건 제외)
         FeedbackDetail reply = feedbackDetailRepository.findById(replyId)
@@ -250,11 +252,11 @@ public class FeedbackDetailService {
         // 2. 작성자 검증
         validateWriter(userId, guestId);
 
-        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 공유링크 소유 (답글 → 피드백 → 영상)
+        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유 (답글 → 피드백 → 영상)
         if (userId != null) {
             validateMemberAccess(userId, reply.getFeedback().getVideo().getProject().getId());
         } else {
-            validateGuestAccess(guestId, reply.getFeedback().getVideo().getId());
+            validateGuestAccess(guestId, reply.getFeedback().getVideo().getId(), guestToken);
         }
 
         // 4. 본인 확인
@@ -262,7 +264,7 @@ public class FeedbackDetailService {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        // 5. soft delete (더티 체킹)
+        // 5. soft delete
         reply.softDelete();
     }
 
@@ -284,7 +286,7 @@ public class FeedbackDetailService {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        // 3. 상태 변경 (더티 체킹)
+        // 3. 상태 변경
         reply.changeStatus(req.status());
 
         // 4. updatedAt 갱신 반영

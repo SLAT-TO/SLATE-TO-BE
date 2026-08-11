@@ -17,6 +17,8 @@ import com.slatto.domain.sharelink.repository.ShareLinkRepository;
 import com.slatto.domain.video.entity.Video;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
+import com.slatto.global.util.TokenHasher;
+import java.util.UUID;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -34,6 +36,7 @@ public class ShareLinkService {
     private final ProjectMemberRepository projectMemberRepository;
     private final ObjectProvider<EntityManager> entityManagerProvider;
     private final GuestRepository guestRepository;
+    private final TokenHasher tokenHasher;
 
     @Transactional
     public ShareLinkCreateResDTO createShareLink(Long videoId, Long userId, ShareLinkCreateReqDTO req) {
@@ -100,11 +103,16 @@ public class ShareLinkService {
             throw new BaseException(ShareLinkErrorCode.SHARE_LINK_UNAVAILABLE);
         }
 
-        // 3. 게스트 생성
-        Guest guest = shareLinkConverter.toGuest(shareLink, req.name());
+        // 3. 세션 토큰 발급 — 원문은 응답에만, DB에는 해시 저장
+        String rawSessionToken = UUID.randomUUID().toString();
+        String sessionTokenHash = tokenHasher.hash(rawSessionToken);
+
+        // 4. 게스트 생성 (해시 저장)
+        Guest guest = shareLinkConverter.toGuest(shareLink, req.name(), sessionTokenHash);
         Guest saved = guestRepository.save(guest);
 
-        return shareLinkConverter.toGuestCreateResponse(saved);
+        // 5. 응답에 원문 토큰 포함 (이후 요청 시 X-Guest-Token 헤더로 재전송)
+        return shareLinkConverter.toGuestCreateResponse(saved, rawSessionToken);
     }
 
     @Transactional(readOnly = true)

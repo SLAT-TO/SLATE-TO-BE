@@ -14,6 +14,7 @@ import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.slatto.domain.notification.service.NotificationService;
+import com.slatto.global.util.TokenHasher;
 
 import java.util.HashMap;
 import java.util.List;
@@ -49,12 +50,13 @@ public class FeedbackService {
     private final FeedbackDetailRepository feedbackDetailRepository;
     private final NotificationService notificationService;
     private final ActivityLogService activityLogService;
+    private final TokenHasher tokenHasher;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
-    private static final int MAX_PAGE_SIZE = 50;   // 페이지 크기 상한
+    private static final int MAX_PAGE_SIZE = 50;
 
     @Transactional
-    public FeedbackCreateResDTO createFeedback(Long videoId, Long userId, FeedbackCreateReqDTO req) {
+    public FeedbackCreateResDTO createFeedback(Long videoId, Long userId, String guestToken, FeedbackCreateReqDTO req) {
 
         // 1. 영상 조회
         Video video = entityManagerProvider.getObject().createQuery("""
@@ -78,8 +80,8 @@ public class FeedbackService {
             // 회원이 이 영상의 프로젝트 멤버인지 검증
             validateMemberAccess(userId, video.getProject().getId());
         } else {
-            // 게스트: 이 영상에 접근할 자격이 있는지 검증 후 Guest 확보
-            guest = validateGuestAccess(req.guestId(), videoId);
+            // 게스트: 토큰 + 소유 검증 후 Guest 확보
+            guest = validateGuestAccess(req.guestId(), videoId, guestToken);
         }
 
         // 4. 저장
@@ -87,7 +89,6 @@ public class FeedbackService {
         Feedback saved = feedbackRepository.save(feedback);
 
         // 5. 프로젝트 멤버에게 피드백 알림 발송 (작성자 본인은 actorUserId로 제외)
-        //    알림 문구 조합용 작성자명 — 회원이면 유저명, 게스트면 게스트명
         String commenterName = (user != null) ? user.getNickname() : guest.getName();
         sendFeedbackNotification(video, userId, commenterName);
 
@@ -112,11 +113,9 @@ public class FeedbackService {
     }
 
     // 피드백/답글 생성 시 프로젝트 멤버에게 알림을 보낸다.
-    // 문구 조합/저장/그룹핑/작성자 제외는 알림 도메인이 처리하므로 재료(영상명·작성자명)만 준비해 호출한다.
     private void sendFeedbackNotification(Video video, Long actorUserId, String commenterName) {
         Long projectId = video.getProject().getId();
 
-        // 프로젝트 활성 멤버 전체를 수신자로 (작성자 제외는 actorUserId로 알림 도메인이 처리)
         List<Long> recipientIds = projectMemberRepository
                 .findAllActiveMembersByProjectId(projectId)
                 .stream()
@@ -126,15 +125,15 @@ public class FeedbackService {
         notificationService.createVideoFeedbackCommentedNotifications(
                 projectId,
                 video.getId(),
-                video.getTitle(),   // 영상명 → 알림 도메인이 문구 조합에 사용
-                commenterName,       // 작성자명 → 알림 도메인이 문구 조합에 사용
+                video.getTitle(),
+                commenterName,
                 recipientIds,
-                actorUserId          // 게스트면 null → 제외 대상 없음
+                actorUserId
         );
     }
 
     @Transactional
-    public FeedbackUpdateResDTO updateFeedback(Long feedbackId, Long userId, FeedbackUpdateReqDTO req) {
+    public FeedbackUpdateResDTO updateFeedback(Long feedbackId, Long userId, String guestToken, FeedbackUpdateReqDTO req) {
 
         // 1. 피드백 조회 (삭제된 건 제외)
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -144,11 +143,11 @@ public class FeedbackService {
         // 2. 작성자 검증
         validateWriter(userId, req.guestId());
 
-        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 공유링크 소유
+        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유
         if (userId != null) {
             validateMemberAccess(userId, feedback.getVideo().getProject().getId());
         } else {
-            validateGuestAccess(req.guestId(), feedback.getVideo().getId());
+            validateGuestAccess(req.guestId(), feedback.getVideo().getId(), guestToken);
         }
 
         // 4. 본인 확인
@@ -156,10 +155,10 @@ public class FeedbackService {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        // 5. 수정 (status 전달 안 함 — 해결 상태는 전용 API에서만 변경)
+        // 5. 수정
         feedback.update(req.content(), req.startTime(), req.endTime());
 
-        // 6. updatedAt 갱신을 응답에 반영하기 위해 flush
+        // 6. updatedAt 갱신 반영
         feedbackRepository.flush();
 
         return feedbackConverter.toUpdateResponse(feedback);
@@ -169,13 +168,12 @@ public class FeedbackService {
     private void validateWriter(Long userId, Long guestId) {
         boolean hasUser = (userId != null);
         boolean hasGuest = (guestId != null);
-        if (hasUser == hasGuest) {   // 둘 다 있거나 둘 다 없으면
+        if (hasUser == hasGuest) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
     }
 
     // 회원이 해당 프로젝트의 활성 멤버인지 검증
-    // 게스트의 validateGuestAccess와 대칭 — 회원은 프로젝트 멤버 자격으로 접근 인가
     private void validateMemberAccess(Long userId, Long projectId) {
         boolean isMember = projectMemberRepository
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
@@ -185,10 +183,16 @@ public class FeedbackService {
     }
 
     // 게스트가 해당 영상에 접근할 자격이 있는지 검증하고, 검증된 Guest를 반환
-    // Guest → ShareLink → Video 체인으로 소유 여부 확인
-    private Guest validateGuestAccess(Long guestId, Long videoId) {
+    // 세션 토큰으로 본인 확인 + Guest → ShareLink → Video 소유 확인
+    private Guest validateGuestAccess(Long guestId, Long videoId, String guestToken) {
         Guest guest = guestRepository.findById(guestId)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        // 0. 세션 토큰으로 본인 확인 — 없거나 불일치면 사칭으로 간주해 차단
+        // 들어온 원문 토큰을 해시해서 저장된 해시와 비교. null이면 즉시 차단.
+        if (guestToken == null || !guest.getSessionToken().equals(tokenHasher.hash(guestToken))) {
+            throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
+        }
 
         ShareLink shareLink = guest.getShareLink();
 
@@ -206,7 +210,7 @@ public class FeedbackService {
     }
 
     @Transactional
-    public void deleteFeedback(Long feedbackId, Long userId, Long guestId) {
+    public void deleteFeedback(Long feedbackId, Long userId, Long guestId, String guestToken) {
 
         // 1. 피드백 조회 (이미 삭제된 건 제외)
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -216,11 +220,11 @@ public class FeedbackService {
         // 2. 작성자 검증
         validateWriter(userId, guestId);
 
-        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 공유링크 소유
+        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유
         if (userId != null) {
             validateMemberAccess(userId, feedback.getVideo().getProject().getId());
         } else {
-            validateGuestAccess(guestId, feedback.getVideo().getId());
+            validateGuestAccess(guestId, feedback.getVideo().getId(), guestToken);
         }
 
         // 4. 본인 확인
@@ -228,12 +232,12 @@ public class FeedbackService {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        // 5. soft delete (더티 체킹으로 자동 반영)
+        // 5. soft delete
         feedback.softDelete();
     }
 
     @Transactional(readOnly = true)
-    public FeedbackListResDTO getFeedbackList(Long videoId, Long userId, Long guestId, String cursor, Integer size) {
+    public FeedbackListResDTO getFeedbackList(Long videoId, Long userId, Long guestId, String guestToken, String cursor, Integer size) {
 
         // 1. 영상 존재 확인
         boolean videoExists = entityManagerProvider.getObject().createQuery("""
@@ -246,7 +250,7 @@ public class FeedbackService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
 
-        // 2. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 공유링크 소유
+        // 2. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유
         //    회원도 게스트도 아니면(둘 다 null) 익명 조회 차단
         if (userId != null) {
             Long projectId = entityManagerProvider.getObject().createQuery("""
@@ -259,14 +263,14 @@ public class FeedbackService {
             if (guestId == null) {
                 throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
             }
-            validateGuestAccess(guestId, videoId);
+            validateGuestAccess(guestId, videoId, guestToken);
         }
 
         // 3. size 기본값 + 상한 처리
         int pageSize = (size == null || size <= 0)
                 ? DEFAULT_PAGE_SIZE
                 : Math.min(size, MAX_PAGE_SIZE);
-        Pageable pageable = PageRequest.of(0, pageSize + 1);   // hasNext 판단용으로 1개 더
+        Pageable pageable = PageRequest.of(0, pageSize + 1);
 
         // 4. 커서에 따라 조회
         List<Feedback> feedbacks;
@@ -331,7 +335,7 @@ public class FeedbackService {
                 .filter(f -> f.getDeletedAt() == null)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        // 2. 프로젝트 멤버인지 확인 (피드백 → 영상 → 프로젝트)
+        // 2. 프로젝트 멤버인지 확인
         Long projectId = feedback.getVideo().getProject().getId();
 
         boolean isMember = projectMemberRepository
@@ -341,7 +345,7 @@ public class FeedbackService {
             throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
-        // 3. 상태 변경 (더티 체킹)
+        // 3. 상태 변경
         feedback.changeStatus(req.status());
 
         // 4. updatedAt 갱신 반영
