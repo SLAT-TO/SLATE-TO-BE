@@ -10,6 +10,7 @@ import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqD
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
 import com.slatto.domain.feedback.repository.FeedbackDetailRepository;
 import com.slatto.domain.notification.service.ActivityLogService;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -178,7 +179,7 @@ public class FeedbackService {
         boolean isMember = projectMemberRepository
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
     }
 
@@ -342,7 +343,7 @@ public class FeedbackService {
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         // 3. 상태 변경

@@ -4,6 +4,7 @@ import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.entity.ProjectMember;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.project.service.ProjectAccessValidator;
 import com.slatto.domain.schedule.converter.ScheduleConverter;
@@ -422,7 +423,7 @@ public class ScheduleService {
                 project.getId(),
                 currentUserId
             )) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
     }
 

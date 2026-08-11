@@ -3,6 +3,7 @@ package com.slatto.domain.video.service;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.domain.project.enums.LengthType;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.Kind;
 import com.slatto.domain.user.enums.RoleName;
@@ -65,7 +66,7 @@ public class VideoService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
         if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
@@ -92,7 +93,7 @@ public class VideoService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
         if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
@@ -111,7 +112,7 @@ public class VideoService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
         if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, request.projectId())) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         String youtubeVideoId = youtubeUrlParser.extractVideoId(request.youtubeUrl());
@@ -139,7 +140,7 @@ public class VideoService {
         Project project = projectAccessRepository.findProjectById(projectId)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
         if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         String youtubeVideoId = youtubeUrlParser.extractVideoId(request.youtubeUrl());
@@ -180,7 +181,7 @@ public class VideoService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
         if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         int size = requestedSize == null ? DEFAULT_SIZE : Math.min(requestedSize, MAX_SIZE);
@@ -220,7 +221,7 @@ public class VideoService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
         if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
@@ -242,7 +243,7 @@ public class VideoService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
         if (!projectAccessRepository.existsByMemberIdAndProjectId(memberId, projectId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
