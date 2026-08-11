@@ -35,7 +35,8 @@ public class ProjectInvitationController {
         summary = "프로젝트 초대 링크 생성",
         description = """
             ADMIN 만 만들 수 있다. expirationPeriod 로 유효기간을 정하며 기본값은 72시간이다.
-            원본 토큰은 응답의 inviteUrl 에만 담기고 서버에는 해시로 저장되므로, 같은 링크를 나중에 다시 조회할 수 없다."""
+            원본 토큰은 응답의 inviteUrl 에만 담기고 서버에는 해시로 저장된다.
+            응답을 잃으면 서버에서 원본 토큰을 되찾거나 같은 링크를 다시 받을 수 없고, 새로 만들어야 한다."""
     )
     @PostMapping("/projects/{projectId}/invitations")
     @ResponseStatus(HttpStatus.CREATED)
