@@ -74,10 +74,21 @@ jobs:
 
             SOURCE="/home/ubuntu/deploy/infra/nginx/conf.d/upload-limits.conf"
             TARGET="/etc/nginx/conf.d/upload-limits.conf"
+            # conf.d 안에 두면 include 대상이 될 수 있어 밖에 백업한다.
+            BACKUP="/tmp/upload-limits.conf.bak"
 
             if sudo cmp -s "$SOURCE" "$TARGET"; then
               echo "nginx 설정 변경 없음. reload 를 건너뜁니다."
               exit 0
+            fi
+
+            # 검사에 실패했을 때 지워버리면, 실행 중인 nginx 는 멀쩡해도 다음 reload 때
+            # 한도 설정이 통째로 사라진다. 되돌릴 수 있게 원본을 먼저 남긴다.
+            if sudo test -e "$TARGET"; then
+              sudo cp "$TARGET" "$BACKUP"
+              HAD_TARGET=1
+            else
+              HAD_TARGET=0
             fi
 
             sudo cp "$SOURCE" "$TARGET"
@@ -85,10 +96,15 @@ jobs:
             # 문법 검사를 통과할 때만 reload 한다. 실패하면 실행 중인 nginx 는 그대로 둔다.
             if ! sudo nginx -t; then
               echo "nginx 설정 검사 실패. 이전 설정으로 되돌립니다."
-              sudo rm -f "$TARGET"
+              if [ "$HAD_TARGET" -eq 1 ]; then
+                sudo mv "$BACKUP" "$TARGET"
+              else
+                sudo rm -f "$TARGET"
+              fi
               exit 1
             fi
 
+            sudo rm -f "$BACKUP"
             sudo systemctl reload nginx
             echo "nginx 설정 반영 완료"
 
