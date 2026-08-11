@@ -60,6 +60,7 @@ public class AuthController {
 			"""
 	)
 	@SecurityRequirements
+	@ResponseStatus(HttpStatus.FOUND)
 	@GetMapping("/login/google")
 	public ResponseEntity<Void> loginWithGoogle(
 		@RequestParam(name = "redirectTo", required = false) String redirectTo
@@ -122,6 +123,7 @@ public class AuthController {
 			"""
 	)
 	@SecurityRequirements
+	@ResponseStatus(HttpStatus.CREATED)
 	@ApiErrorCodes({"AUTH_SIGNUP_DUPLICATE409", "AUTH_SIGNUP_SOCIAL409"})
 	@PostMapping("/signup")
 	public ResponseEntity<ApiResponse<EmailAuthResponse>> signup(

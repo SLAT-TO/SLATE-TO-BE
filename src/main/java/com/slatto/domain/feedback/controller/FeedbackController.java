@@ -31,6 +31,7 @@ public class FeedbackController {
 
     @Operation(summary = "피드백 작성")
     @OptionalAuthentication
+    @ResponseStatus(HttpStatus.CREATED)
     @ApiErrorCodes({"PROJECT403", "SHARELINK403", "SHARELINK410"})
     @PostMapping("/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<FeedbackCreateResDTO>> createFeedback(
