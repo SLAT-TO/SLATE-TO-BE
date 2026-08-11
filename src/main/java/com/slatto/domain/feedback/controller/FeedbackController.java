@@ -87,7 +87,10 @@ public class FeedbackController {
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
 
-    @Operation(summary = "피드백 해결 상태 변경")
+    @Operation(
+        summary = "피드백 해결 상태 변경",
+        description = "활성 프로젝트 멤버만 변경할 수 있다. 다른 피드백 API 와 달리 게스트는 호출할 수 없다."
+    )
     @PatchMapping("/feedbacks/{feedbackId}/status")
     public ResponseEntity<ApiResponse<FeedbackStatusResDTO>> changeFeedbackStatus(
             @PathVariable Long feedbackId,

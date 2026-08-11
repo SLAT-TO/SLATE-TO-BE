@@ -87,7 +87,10 @@ public class FeedbackDetailController {
                 .ok(ApiResponse.success(CommonSuccessCode.OK, null));
     }
 
-    @Operation(summary = "답글 해결 상태 변경")
+    @Operation(
+        summary = "답글 해결 상태 변경",
+        description = "활성 프로젝트 멤버만 변경할 수 있다. 다른 답글 API 와 달리 게스트는 호출할 수 없다."
+    )
     @PatchMapping("/replies/{replyId}/status")
     public ResponseEntity<ApiResponse<ReplyStatusResDTO>> changeReplyStatus(
             @PathVariable Long replyId,
