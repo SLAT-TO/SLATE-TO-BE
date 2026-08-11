@@ -55,6 +55,8 @@ class FeedbackActivityLogConnectionTest {
     private FeedbackService feedbackService;
     private FeedbackDetailService feedbackDetailService;
 
+    private static final String GUEST_TOKEN = "test-guest-token";
+
     @BeforeEach
     void setUp() {
         feedbackService = new FeedbackService(
@@ -94,7 +96,7 @@ class FeedbackActivityLogConnectionTest {
         given(feedbackConverter.toFeedback(eq(video), eq(user), eq(null), any())).willReturn(feedback);
         given(feedbackRepository.save(feedback)).willReturn(feedback);
 
-        feedbackService.createFeedback(11L, 1L, new FeedbackCreateReqDTO(null, "색감을 조정해주세요", 20L, 25L));
+        feedbackService.createFeedback(11L, 1L, null, new FeedbackCreateReqDTO(null, "색감을 조정해주세요", 20L, 25L));
 
         verify(activityLogService).createVideoFeedbackCommentedLog(101L, 1L, 11L, "1차 편집본");
     }
@@ -109,13 +111,14 @@ class FeedbackActivityLogConnectionTest {
 
         stubVideoLookup(video);
         given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
+        given(guest.getSessionToken()).willReturn(GUEST_TOKEN);
         given(guest.getShareLink()).willReturn(shareLink);
         given(shareLink.isUsable()).willReturn(true);
         given(shareLink.getVideo()).willReturn(video);
         given(feedbackConverter.toFeedback(eq(video), eq(null), eq(guest), any())).willReturn(feedback);
         given(feedbackRepository.save(feedback)).willReturn(feedback);
 
-        feedbackService.createFeedback(11L, null, new FeedbackCreateReqDTO(2L, "클라이언트 피드백입니다", 20L, 25L));
+        feedbackService.createFeedback(11L, null, GUEST_TOKEN, new FeedbackCreateReqDTO(2L, "클라이언트 피드백입니다", 20L, 25L));
 
         verify(activityLogService).createGuestVideoFeedbackCommentedLog(101L, guest, 11L, "1차 편집본");
     }
@@ -137,7 +140,7 @@ class FeedbackActivityLogConnectionTest {
         given(feedbackDetailConverter.toFeedbackDetail(eq(feedback), eq(user), eq(null), any())).willReturn(reply);
         given(feedbackDetailRepository.save(reply)).willReturn(reply);
 
-        feedbackDetailService.createReply(31L, 1L, new ReplyCreateReqDTO(null, "반영하겠습니다"));
+        feedbackDetailService.createReply(31L, 1L, null, new ReplyCreateReqDTO(null, "반영하겠습니다"));
 
         verify(activityLogService).createVideoFeedbackCommentedLog(101L, 1L, 11L, "1차 편집본");
     }
@@ -155,13 +158,14 @@ class FeedbackActivityLogConnectionTest {
         given(feedback.getDeletedAt()).willReturn(null);
         given(feedback.getVideo()).willReturn(video);
         given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
+        given(guest.getSessionToken()).willReturn(GUEST_TOKEN);
         given(guest.getShareLink()).willReturn(shareLink);
         given(shareLink.isUsable()).willReturn(true);
         given(shareLink.getVideo()).willReturn(video);
         given(feedbackDetailConverter.toFeedbackDetail(eq(feedback), eq(null), eq(guest), any())).willReturn(reply);
         given(feedbackDetailRepository.save(reply)).willReturn(reply);
 
-        feedbackDetailService.createReply(31L, null, new ReplyCreateReqDTO(2L, "게스트 답글입니다"));
+        feedbackDetailService.createReply(31L, null, GUEST_TOKEN, new ReplyCreateReqDTO(2L, "게스트 답글입니다"));
 
         verify(activityLogService).createGuestVideoFeedbackCommentedLog(101L, guest, 11L, "1차 편집본");
     }

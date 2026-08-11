@@ -50,6 +50,10 @@ public class ShareLinkResponse {
             @Schema(example = "홍길동")
             String name,
 
+            @Schema(example = "3f2a1c9e-4b7d-4a1e-9c2a-8e1f2b3c4d5e",
+                    description = "게스트 본인 확인용 세션 토큰. 이후 게스트 요청 시 X-Guest-Token 헤더로 전송")
+            String sessionToken,
+
             @Schema(example = "2026-07-24T14:00:00")
             LocalDateTime createdAt
     ) { }

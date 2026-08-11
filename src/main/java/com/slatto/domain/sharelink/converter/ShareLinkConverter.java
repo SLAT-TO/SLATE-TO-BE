@@ -47,6 +47,7 @@ public class ShareLinkConverter {
                 guest.getId(),
                 guest.getShareLink().getId(),
                 guest.getName(),
+                guest.getSessionToken(),   // 발급된 세션 토큰을 응답에 포함
                 guest.getCreatedAt()
         );
     }

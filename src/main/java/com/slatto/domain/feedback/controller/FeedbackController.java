@@ -32,10 +32,10 @@ public class FeedbackController {
     public ResponseEntity<ApiResponse<FeedbackCreateResDTO>> createFeedback(
             @PathVariable Long videoId,
             @AuthenticationPrincipal Long userId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @Valid @RequestBody FeedbackCreateReqDTO request
     ) {
-        FeedbackCreateResDTO result = feedbackService.createFeedback(videoId, userId, request);
-
+        FeedbackCreateResDTO result = feedbackService.createFeedback(videoId, userId, guestToken, request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(CommonSuccessCode.CREATED, result));
@@ -46,10 +46,10 @@ public class FeedbackController {
     public ResponseEntity<ApiResponse<FeedbackUpdateResDTO>> updateFeedback(
             @PathVariable Long feedbackId,
             @AuthenticationPrincipal Long userId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @Valid @RequestBody FeedbackUpdateReqDTO request
     ) {
-        FeedbackUpdateResDTO result = feedbackService.updateFeedback(feedbackId, userId, request);
-
+        FeedbackUpdateResDTO result = feedbackService.updateFeedback(feedbackId, userId, guestToken, request);
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
@@ -59,10 +59,10 @@ public class FeedbackController {
     public ResponseEntity<ApiResponse<Void>> deleteFeedback(
             @PathVariable Long feedbackId,
             @AuthenticationPrincipal Long userId,
-            @RequestParam(required = false) Long guestId
+            @RequestParam(required = false) Long guestId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken
     ) {
-        feedbackService.deleteFeedback(feedbackId, userId, guestId);
-
+        feedbackService.deleteFeedback(feedbackId, userId, guestId, guestToken);
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, null));
     }
@@ -73,11 +73,11 @@ public class FeedbackController {
             @PathVariable Long videoId,
             @AuthenticationPrincipal Long userId,
             @RequestParam(required = false) Long guestId,
+            @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer size
     ) {
-        FeedbackListResDTO result = feedbackService.getFeedbackList(videoId, userId, guestId, cursor, size);
-
+        FeedbackListResDTO result = feedbackService.getFeedbackList(videoId, userId, guestId, guestToken, cursor, size);
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
