@@ -3,6 +3,7 @@ package com.slatto.domain.recruitment.controller;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationFileDownloadResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationFileResponse;
 import com.slatto.domain.recruitment.service.RecruitmentApplicationFileService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -71,6 +72,7 @@ public class RecruitmentApplicationFileController {
         summary = "지원 첨부 파일 다운로드",
         description = "공고 작성자와 지원 본인만 받을 수 있다. 그 외에는 403 이다."
     )
+    @ApiErrorCodes("APPLICATION403")
     @GetMapping("/applications/{applicationId}/files/{fileId}/download")
     public ResponseEntity<InputStreamResource> downloadApplicationFile(
         @AuthenticationPrincipal Long currentUserId,

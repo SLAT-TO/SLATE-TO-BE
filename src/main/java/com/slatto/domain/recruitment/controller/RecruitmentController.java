@@ -12,6 +12,7 @@ import com.slatto.domain.recruitment.service.RecruitmentService;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.RegionName;
 import com.slatto.domain.user.enums.RoleName;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -153,6 +154,7 @@ public class RecruitmentController {
             공고를 되살리려면 `deadline` 도 함께 보내야 한다.
             """
     )
+    @ApiErrorCodes("RECRUITMENT403")
     @PatchMapping("/{recruitmentId}")
     public ApiResponse<RecruitmentDetailResponse> updateRecruitment(
         @AuthenticationPrincipal Long currentUserId,
@@ -172,6 +174,7 @@ public class RecruitmentController {
         summary = "구인구직 공고 삭제",
         description = "작성자 본인만 삭제할 수 있다. 삭제 표시만 남긴다."
     )
+    @ApiErrorCodes("RECRUITMENT403")
     @DeleteMapping("/{recruitmentId}")
     public ApiResponse<Void> deleteRecruitment(
         @AuthenticationPrincipal Long currentUserId,

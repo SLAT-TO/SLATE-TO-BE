@@ -7,6 +7,7 @@ import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.GuestCreateReqDT
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkToggleResDTO;
+import com.slatto.global.config.ApiErrorCodes;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.slatto.domain.sharelink.service.ShareLinkService;
 import com.slatto.global.response.ApiResponse;
@@ -29,6 +30,7 @@ public class ShareLinkController {
 
     @Operation(summary = "공유 링크 생성", description = "영상당 1개만 생성 가능하며, 이미 있으면 409를 반환합니다.")
     @ResponseStatus(HttpStatus.CREATED)
+    @ApiErrorCodes({"PROJECT403", "SHARELINK409"})
     @PostMapping("/videos/{videoId}/share-links")
     public ApiResponse<ShareLinkCreateResDTO> createShareLink(
             @PathVariable Long videoId,
@@ -43,6 +45,7 @@ public class ShareLinkController {
 
     @Operation(summary = "공유 링크 진입 검증", description = "게스트가 링크로 접근했을 때 유효성을 확인합니다. 인증이 필요 없습니다.")
     @SecurityRequirements
+    @ApiErrorCodes("SHARELINK410")
     @GetMapping("/share-links/{token}")
     public ApiResponse<ShareLinkEntryResDTO> getShareLinkByToken(
             @PathVariable String token
@@ -56,6 +59,7 @@ public class ShareLinkController {
     @Operation(summary = "게스트 등록", description = "링크로 진입한 게스트가 이름을 등록하고 guestId를 발급받습니다. 인증이 필요 없습니다.")
     @ResponseStatus(HttpStatus.CREATED)
     @SecurityRequirements
+    @ApiErrorCodes("SHARELINK410")
     @PostMapping("/share-links/{token}/guests")
     public ApiResponse<GuestCreateResDTO> registerGuest(
             @PathVariable String token,
@@ -68,6 +72,7 @@ public class ShareLinkController {
     }
 
     @Operation(summary = "공유 링크 조회 (소유자용)", description = "영상의 공유 링크를 조회합니다. 프로젝트 멤버만 가능합니다.")
+    @ApiErrorCodes("PROJECT403")
     @GetMapping("/videos/{videoId}/share-links")
     public ApiResponse<
             ShareLinkInfoResDTO> getShareLinkByVideo(
@@ -81,6 +86,7 @@ public class ShareLinkController {
     }
 
     @Operation(summary = "공유 링크 활성/비활성 토글", description = "공유 링크의 활성 상태를 뒤집습니다. 프로젝트 멤버만 가능합니다.")
+    @ApiErrorCodes("PROJECT403")
     @PatchMapping("/share-links/{shareLinkId}")
     public ApiResponse<ShareLinkToggleResDTO> toggleShareLink(
             @PathVariable Long shareLinkId,
