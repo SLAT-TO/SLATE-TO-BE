@@ -71,7 +71,23 @@ public class ProjectController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로젝트 수정")
+    @Operation(
+        summary = "프로젝트 수정",
+        description = """
+            `status` 를 `COMPLETED` 로 바꾸면 참여 중인 멤버 전원의 포트폴리오에 이 프로젝트가 생성된다.
+            프로젝트명·유형·개인외주 구분·설명·기간이 그대로 옮겨가고, 각자 맡은 역할이 함께 채워진다.
+            생성된 뒤에는 본인이 프로필에서 수정·삭제할 수 있다.
+
+            나간 멤버와 탈퇴한 유저는 대상에서 빠진다.
+
+            `COMPLETED` 는 최종 상태다. 완료한 뒤에는 다른 단계로 되돌릴 수 없고
+            시도하면 `PROJECT_COMPLETED409` 가 나간다. 이력이 두 번 생기는 것을 막기 위해서다.
+
+            `title` 또는 `kind` 가 비어 있으면 포트폴리오를 만들 수 없어 완료로 바꿀 수 없다.
+            이때는 `PROJECT_COMPLETION400` 이 나간다.
+            `title` 은 생성·수정 요청 모두 필수라 실제로는 `kind` 만 이 조건에 걸린다.
+            """
+    )
     @PatchMapping("/{projectId}")
     public ApiResponse<ProjectResponse> updateProject(
         @AuthenticationPrincipal Long currentUserId,

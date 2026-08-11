@@ -20,9 +20,11 @@ import com.slatto.domain.project.repository.ProjectUserRoleRepository;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
 import com.slatto.domain.notification.repository.ProjectLatestActivityProjection;
 import com.slatto.domain.notification.service.ActivityLogService;
+import com.slatto.domain.user.dto.ProjectPortfolioCreateCommand;
 import com.slatto.domain.user.entity.Users;
 import com.slatto.domain.user.enums.RoleName;
 import com.slatto.domain.user.repository.UserRepository;
+import com.slatto.domain.user.service.PortfolioService;
 import com.slatto.domain.video.repository.VideoRepository;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
@@ -30,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -55,6 +58,7 @@ public class ProjectService {
     private final VideoRepository videoRepository;
     private final ProjectConverter projectConverter;
     private final ProjectAccessValidator projectAccessValidator;
+    private final PortfolioService portfolioService;
     private final ActivityLogService activityLogService;
     private final ActivityLogRepository activityLogRepository;
 
@@ -175,6 +179,14 @@ public class ProjectService {
         projectAccessValidator.getCurrentAdminOrThrow(projectId, currentUserId);
         ProjectStatus previousStatus = project.getStatus();
 
+        // 완료는 최종 상태다. 참여자 포트폴리오가 이미 만들어졌기 때문에 되돌리면
+        // 다시 완료할 때 같은 이력이 두 번 생긴다.
+        if (previousStatus == ProjectStatus.COMPLETED
+            && request.getStatus() != null
+            && request.getStatus() != ProjectStatus.COMPLETED) {
+            throw new BaseException(ProjectErrorCode.PROJECT_ALREADY_COMPLETED);
+        }
+
         project.updateInfo(
             request.getTitle(),
             request.getType(),
@@ -185,7 +197,10 @@ public class ProjectService {
             request.getKind()
         );
 
-        if (request.getStatus() != null) {
+        // 같은 요청에서 바뀐 제목·종류로 검증해야 하므로 updateInfo 다음에 처리한다.
+        if (request.getStatus() == ProjectStatus.COMPLETED && previousStatus != ProjectStatus.COMPLETED) {
+            completeProject(project);
+        } else if (request.getStatus() != null) {
             project.changeStatus(request.getStatus());
         }
 
@@ -201,6 +216,68 @@ public class ProjectService {
         }
 
         return projectConverter.toResponse(project);
+    }
+
+    // 완료 전환과 포트폴리오 생성을 한 트랜잭션에서 처리한다.
+    // 포트폴리오 생성이 실패하면 완료 전환도 함께 롤백되어야 한다.
+    private void completeProject(Project project) {
+        if (!StringUtils.hasText(project.getTitle()) || project.getKind() == null) {
+            throw new BaseException(ProjectErrorCode.PROJECT_COMPLETION_INFO_REQUIRED);
+        }
+
+        if (projectRepository.markCompleted(project.getId()) == 0) {
+            throw new BaseException(ProjectErrorCode.PROJECT_ALREADY_COMPLETED);
+        }
+
+        // 벌크 UPDATE 는 영속성 컨텍스트를 거치지 않는다. 메모리 상태를 맞추지 않으면
+        // 커밋 시점의 더티 체킹 UPDATE 가 예전 status 로 덮어쓴다.
+        project.changeStatus(ProjectStatus.COMPLETED);
+
+        portfolioService.createProjectPortfolios(toPortfolioCommand(project));
+    }
+
+    private ProjectPortfolioCreateCommand toPortfolioCommand(Project project) {
+        // 나간 멤버와 탈퇴한 유저는 이력을 받지 않는다.
+        List<ProjectMember> members = projectMemberRepository
+            .findAllActiveMembersByProjectId(project.getId())
+            .stream()
+            .filter(member -> member.getUser().getDeletedAt() == null)
+            .toList();
+
+        Map<Long, List<RoleName>> roleNamesByMemberId = findRoleNamesByMemberIds(
+            members.stream().map(ProjectMember::getId).toList()
+        );
+
+        List<ProjectPortfolioCreateCommand.Participant> participants = members.stream()
+            .map(member -> ProjectPortfolioCreateCommand.Participant.builder()
+                .user(member.getUser())
+                .roles(roleNamesByMemberId.getOrDefault(member.getId(), List.of()))
+                .build())
+            .toList();
+
+        return ProjectPortfolioCreateCommand.builder()
+            .title(project.getTitle())
+            .type(project.getType())
+            .kind(project.getKind())
+            .clientName(project.getClientName())
+            .description(project.getDescription())
+            .startDate(project.getStartDate())
+            .endDate(project.getEndDate())
+            .participants(participants)
+            .build();
+    }
+
+    private Map<Long, List<RoleName>> findRoleNamesByMemberIds(List<Long> memberIds) {
+        if (memberIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return projectUserRoleRepository.findAllByProjectMemberIdIn(memberIds)
+            .stream()
+            .collect(Collectors.groupingBy(
+                role -> role.getProjectMember().getId(),
+                Collectors.mapping(ProjectUserRole::getRoleName, Collectors.toList())
+            ));
     }
 
     @Transactional

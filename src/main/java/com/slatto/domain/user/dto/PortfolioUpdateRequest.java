@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter
@@ -37,4 +38,9 @@ public class PortfolioUpdateRequest {
 
     @Size(max = 500, message = "영상 링크는 500자 이하로 입력해야 합니다.")
     private String youtubeUrl;
+
+    // 다른 필드와 같이 null 은 "바꾸지 않음"이다. 한쪽만 보내면 나머지는 기존 값을 유지한다.
+    private LocalDate startDate;
+
+    private LocalDate endDate;
 }

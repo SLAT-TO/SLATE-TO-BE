@@ -3,11 +3,14 @@ package com.slatto.domain.user.entity;
 import com.slatto.domain.common.entity.BaseEntity;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.Kind;
+import com.slatto.domain.user.exception.UserErrorCode;
+import com.slatto.global.exception.BaseException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -54,6 +57,13 @@ public class UserPortfolio extends BaseEntity {
     @Column(name = "thumbnail_url", nullable = true, length = 500)
     private String thumbnailUrl;
 
+    // 기간을 모르는 예전 작업도 이력에 남길 수 있어야 해서 선택 입력이다.
+    @Column(name = "start_date", nullable = true)
+    private LocalDate startDate;
+
+    @Column(name = "end_date", nullable = true)
+    private LocalDate endDate;
+
     @Column(name = "deleted_at", nullable = true)
     private LocalDateTime deletedAt;
 
@@ -67,8 +77,12 @@ public class UserPortfolio extends BaseEntity {
         String description,
         String comment,
         String youtubeUrl,
-        String thumbnailUrl
+        String thumbnailUrl,
+        LocalDate startDate,
+        LocalDate endDate
     ) {
+        validatePeriod(startDate, endDate);
+
         this.user = user;
         this.title = title;
         this.type = type;
@@ -79,6 +93,8 @@ public class UserPortfolio extends BaseEntity {
         this.comment = comment;
         this.youtubeUrl = youtubeUrl;
         this.thumbnailUrl = thumbnailUrl;
+        this.startDate = startDate;
+        this.endDate = endDate;
     }
 
     public static UserPortfolio create(
@@ -91,7 +107,9 @@ public class UserPortfolio extends BaseEntity {
         String description,
         String comment,
         String youtubeUrl,
-        String thumbnailUrl
+        String thumbnailUrl,
+        LocalDate startDate,
+        LocalDate endDate
     ) {
         return new UserPortfolio(
             user,
@@ -103,7 +121,9 @@ public class UserPortfolio extends BaseEntity {
             description,
             comment,
             youtubeUrl,
-            thumbnailUrl
+            thumbnailUrl,
+            startDate,
+            endDate
         );
     }
 
@@ -134,7 +154,21 @@ public class UserPortfolio extends BaseEntity {
         this.thumbnailUrl = thumbnailUrl;
     }
 
+    public void changePeriod(LocalDate startDate, LocalDate endDate) {
+        validatePeriod(startDate, endDate);
+
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
     public void delete() {
         this.deletedAt = LocalDateTime.now();
+    }
+
+    // 한쪽만 있는 기간은 허용한다. 시작일만 아는 진행 중 작업이나 종료일만 기억나는 예전 작업이 있다.
+    private void validatePeriod(LocalDate startDate, LocalDate endDate) {
+        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+            throw new BaseException(UserErrorCode.INVALID_PORTFOLIO_PERIOD);
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.slatto.domain.user.enums.RoleName;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,6 +35,10 @@ public class PortfolioDetailResponse {
     private String youtubeUrl;
 
     private String thumbnailUrl;
+
+    private LocalDate startDate;
+
+    private LocalDate endDate;
 
     private LocalDateTime createdAt;
 
