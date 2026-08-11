@@ -8,6 +8,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResD
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
 import com.slatto.domain.feedback.service.FeedbackService;
+import com.slatto.global.config.OptionalAuthentication;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,7 @@ public class FeedbackController {
     private final FeedbackService feedbackService;
 
     @Operation(summary = "피드백 작성")
+    @OptionalAuthentication
     @PostMapping("/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<FeedbackCreateResDTO>> createFeedback(
             @PathVariable Long videoId,
@@ -42,6 +44,7 @@ public class FeedbackController {
     }
 
     @Operation(summary = "피드백 수정")
+    @OptionalAuthentication
     @PatchMapping("/feedbacks/{feedbackId}")
     public ResponseEntity<ApiResponse<FeedbackUpdateResDTO>> updateFeedback(
             @PathVariable Long feedbackId,
@@ -55,6 +58,7 @@ public class FeedbackController {
     }
 
     @Operation(summary = "피드백 삭제")
+    @OptionalAuthentication
     @DeleteMapping("/feedbacks/{feedbackId}")
     public ResponseEntity<ApiResponse<Void>> deleteFeedback(
             @PathVariable Long feedbackId,
@@ -68,6 +72,7 @@ public class FeedbackController {
     }
 
     @Operation(summary = "피드백 목록 조회")
+    @OptionalAuthentication
     @GetMapping("/videos/{videoId}/feedbacks")
     public ResponseEntity<ApiResponse<FeedbackListResDTO>> getFeedbackList(
             @PathVariable Long videoId,
@@ -82,7 +87,10 @@ public class FeedbackController {
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
 
-    @Operation(summary = "피드백 해결 상태 변경")
+    @Operation(
+        summary = "피드백 해결 상태 변경",
+        description = "활성 프로젝트 멤버만 변경할 수 있다. 다른 피드백 API 와 달리 게스트는 호출할 수 없다."
+    )
     @PatchMapping("/feedbacks/{feedbackId}/status")
     public ResponseEntity<ApiResponse<FeedbackStatusResDTO>> changeFeedbackStatus(
             @PathVariable Long feedbackId,

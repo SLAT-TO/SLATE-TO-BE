@@ -13,6 +13,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,6 +72,35 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(NoResourceFoundException.class)
 	public ResponseEntity<ApiResponse<Void>> handleNoResourceException(NoResourceFoundException exception) {
 		CommonErrorCode errorCode = CommonErrorCode.NOT_FOUND;
+
+		return ResponseEntity
+			.status(errorCode.getHttpStatus())
+			.body(ApiResponse.failure(errorCode));
+	}
+
+	// multipart 한도 초과는 요청 본문을 읽는 단계에서 터진다. 컨트롤러에 닿지 않으니
+	// 서비스의 파일 크기 검증(PROJECT_FILE_SIZE400 등)은 실행조차 되지 않는다.
+	// 여기서 잡지 않으면 handleUnexpectedException 이 받아 COMMON500 을 내보내고,
+	// 프론트는 "파일이 너무 큽니다" 대신 서버 오류를 표시하게 된다.
+	// 앞단 nginx 도 한도를 넘기면 413 을 주므로 상태 코드를 413 으로 맞춰 프론트가 한 갈래로 처리하게 한다.
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<ApiResponse<Void>> handlePayloadTooLargeException(
+		MaxUploadSizeExceededException exception
+	) {
+		CommonErrorCode errorCode = CommonErrorCode.PAYLOAD_TOO_LARGE;
+		log.warn("[Multipart] 업로드 한도를 초과한 요청입니다. maxUploadSize={}", exception.getMaxUploadSize());
+
+		return ResponseEntity
+			.status(errorCode.getHttpStatus())
+			.body(ApiResponse.failure(errorCode));
+	}
+
+	// 한도 초과 외의 multipart 해석 실패(본문이 잘림, boundary 불일치 등)는 클라이언트 요청 문제다.
+	// 서버 오류로 올리면 업로드 중 연결이 끊길 때마다 500 로그가 쌓인다.
+	@ExceptionHandler(MultipartException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMultipartException(MultipartException exception) {
+		CommonErrorCode errorCode = CommonErrorCode.BAD_REQUEST;
+		log.warn("[Multipart] 요청을 해석하지 못했습니다.", exception);
 
 		return ResponseEntity
 			.status(errorCode.getHttpStatus())

@@ -51,6 +51,63 @@ jobs:
           target: /home/ubuntu/deploy
           overwrite: true
 
+      - name: Copy Nginx Config to EC2
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USERNAME }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          source: infra/nginx/conf.d/upload-limits.conf
+          target: /home/ubuntu/deploy
+          overwrite: true
+
+      # nginx 설정이 서버에만 있으면 인스턴스를 새로 띄울 때 기본값으로 돌아간다.
+      # 리포의 파일을 매 배포마다 반영해서 서버 상태가 코드와 갈라지지 않게 한다.
+      - name: Apply Nginx Config
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USERNAME }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          script: |
+            set -eu
+
+            SOURCE="/home/ubuntu/deploy/infra/nginx/conf.d/upload-limits.conf"
+            TARGET="/etc/nginx/conf.d/upload-limits.conf"
+            # conf.d 안에 두면 include 대상이 될 수 있어 밖에 백업한다.
+            BACKUP="/tmp/upload-limits.conf.bak"
+
+            if sudo cmp -s "$SOURCE" "$TARGET"; then
+              echo "nginx 설정 변경 없음. reload 를 건너뜁니다."
+              exit 0
+            fi
+
+            # 검사에 실패했을 때 지워버리면, 실행 중인 nginx 는 멀쩡해도 다음 reload 때
+            # 한도 설정이 통째로 사라진다. 되돌릴 수 있게 원본을 먼저 남긴다.
+            if sudo test -e "$TARGET"; then
+              sudo cp "$TARGET" "$BACKUP"
+              HAD_TARGET=1
+            else
+              HAD_TARGET=0
+            fi
+
+            sudo cp "$SOURCE" "$TARGET"
+
+            # 문법 검사를 통과할 때만 reload 한다. 실패하면 실행 중인 nginx 는 그대로 둔다.
+            if ! sudo nginx -t; then
+              echo "nginx 설정 검사 실패. 이전 설정으로 되돌립니다."
+              if [ "$HAD_TARGET" -eq 1 ]; then
+                sudo mv "$BACKUP" "$TARGET"
+              else
+                sudo rm -f "$TARGET"
+              fi
+              exit 1
+            fi
+
+            sudo rm -f "$BACKUP"
+            sudo systemctl reload nginx
+            echo "nginx 설정 반영 완료"
+
       - name: Deploy Docker Container
         uses: appleboy/ssh-action@v1
         with:

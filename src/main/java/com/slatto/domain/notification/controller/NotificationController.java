@@ -23,7 +23,12 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    @Operation(summary = "알림 목록 조회")
+    @Operation(
+        summary = "알림 목록 조회",
+        description = """
+            최근 24시간 이내에 갱신된 알림만 반환한다.
+            읽지 않은 알림이 먼저 오고, 그 다음은 최근에 갱신된 순이다. cursor 기반 페이지네이션이며 size 는 기본 20이다."""
+    )
     @GetMapping
     public ApiResponse<NotificationListResponse> getNotifications(
         @AuthenticationPrincipal Long currentUserId,
@@ -39,7 +44,10 @@ public class NotificationController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "알림 단건 읽음 처리")
+    @Operation(
+        summary = "알림 단건 읽음 처리",
+        description = "본인에게 온 알림만 처리할 수 있다."
+    )
     @PatchMapping("/{notificationId}/read")
     public ApiResponse<Void> markNotificationAsRead(
         @AuthenticationPrincipal Long currentUserId,
@@ -50,7 +58,12 @@ public class NotificationController {
         return ApiResponse.success(CommonSuccessCode.OK, null);
     }
 
-    @Operation(summary = "알림 전체 읽음 처리")
+    @Operation(
+        summary = "알림 전체 읽음 처리",
+        description = """
+            읽지 않은 알림을 모두 읽음으로 바꾼다.
+            목록 조회와 달리 24시간 제한이 없어서, 목록에 보이지 않는 오래된 알림도 함께 처리된다."""
+    )
     @PatchMapping("/read-all")
     public ApiResponse<Void> markAllNotificationsAsRead(
         @AuthenticationPrincipal Long currentUserId

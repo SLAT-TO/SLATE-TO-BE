@@ -35,7 +35,12 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
-    @Operation(summary = "프로젝트 목록 조회")
+    @Operation(
+        summary = "프로젝트 목록 조회",
+        description = """
+            내가 참여 중인 프로젝트만 반환한다. 내가 고정한 프로젝트가 먼저 오고, 나머지는 최근에 만들어진 순이다.
+            cursor 기반 페이지네이션이며 size 는 기본 20, 최대 50이다."""
+    )
     @GetMapping
     public ApiResponse<ProjectListResponse> getProjects(
         @AuthenticationPrincipal Long currentUserId,
@@ -48,7 +53,12 @@ public class ProjectController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로젝트 생성")
+    @Operation(
+        summary = "프로젝트 생성",
+        description = """
+            만든 사람이 ADMIN 역할의 멤버로 함께 등록된다.
+            한 사람이 가질 수 있는 프로젝트는 5개까지이며, 삭제한 프로젝트는 개수에 포함되지 않는다."""
+    )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ProjectResponse> createProject(
@@ -60,7 +70,10 @@ public class ProjectController {
         return ApiResponse.success(CommonSuccessCode.CREATED, response);
     }
 
-    @Operation(summary = "프로젝트 상세 조회")
+    @Operation(
+        summary = "프로젝트 상세 조회",
+        description = "프로젝트 멤버만 조회할 수 있다."
+    )
     @GetMapping("/{projectId}")
     public ApiResponse<ProjectDetailResponse> getProject(
         @AuthenticationPrincipal Long currentUserId,
@@ -74,6 +87,9 @@ public class ProjectController {
     @Operation(
         summary = "프로젝트 수정",
         description = """
+            ADMIN 만 수정할 수 있다.
+            보내지 않은 필드는 null 로 덮어써지므로, 바꾸지 않을 값도 함께 보내야 한다.
+
             `status` 를 `COMPLETED` 로 바꾸면 참여 중인 멤버 전원의 포트폴리오에 이 프로젝트가 생성된다.
             프로젝트명·유형·개인외주 구분·설명·기간이 그대로 옮겨가고, 각자 맡은 역할이 함께 채워진다.
             생성된 뒤에는 본인이 프로필에서 수정·삭제할 수 있다.
@@ -99,7 +115,10 @@ public class ProjectController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로젝트 삭제")
+    @Operation(
+        summary = "프로젝트 삭제",
+        description = "ADMIN 만 삭제할 수 있다. 실제로 지우지 않고 삭제 표시만 남긴다."
+    )
     @DeleteMapping("/{projectId}")
     public ApiResponse<Void> deleteProject(
         @AuthenticationPrincipal Long currentUserId,
@@ -110,7 +129,12 @@ public class ProjectController {
         return ApiResponse.success(CommonSuccessCode.OK, null);
     }
 
-    @Operation(summary = "프로젝트 고정")
+    @Operation(
+        summary = "프로젝트 고정",
+        description = """
+            고정은 호출한 사람에게만 적용되며 다른 멤버의 목록 순서에는 영향을 주지 않는다.
+            이미 고정한 프로젝트에 다시 호출해도 실패하지 않는다."""
+    )
     @PostMapping("/{projectId}/pin")
     public ApiResponse<ProjectPinResponse> pinProject(
         @AuthenticationPrincipal Long currentUserId,
@@ -121,7 +145,10 @@ public class ProjectController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로젝트 고정 해제")
+    @Operation(
+        summary = "프로젝트 고정 해제",
+        description = "고정하지 않은 프로젝트에 호출해도 실패하지 않는다."
+    )
     @DeleteMapping("/{projectId}/pin")
     public ApiResponse<ProjectPinResponse> unpinProject(
         @AuthenticationPrincipal Long currentUserId,

@@ -52,7 +52,7 @@ public class ScheduleDailyResponse {
         @Schema(description = "프로젝트 일정 대상자 목록. 개인 일정이면 빈 배열입니다.")
         private List<Participant> participants;
 
-        @Schema(description = "일정 대상자 요약 문구", example = "김수민 외 1명")
+        @Schema(description = "일정 대상자 요약 문구", example = "그린 외 1명")
         private String participantSummary;
 
         @Schema(description = "공용 메모", example = "레퍼런스 무드보드 잡기, 1차 검토하기", nullable = true)
@@ -73,7 +73,7 @@ public class ScheduleDailyResponse {
         @Schema(description = "사용자 ID", example = "1")
         private Long userId;
 
-        @Schema(description = "닉네임", example = "김수민")
+        @Schema(description = "닉네임", example = "그린")
         private String nickname;
 
         @Schema(description = "프로필 이미지 URL", example = "https://example.com/profile.png", nullable = true)

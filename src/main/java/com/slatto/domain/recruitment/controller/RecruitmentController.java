@@ -124,7 +124,12 @@ public class RecruitmentController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "구인구직 공고 상세 조회")
+    @Operation(
+        summary = "구인구직 공고 상세 조회",
+        description = """
+            조회할 때마다 조회수가 1 올라가며, 응답의 viewCount 는 이번 조회가 반영된 값이다.
+            본인이 쓴 공고는 조회수가 오르지 않는다."""
+    )
     @GetMapping("/{recruitmentId}")
     public ApiResponse<RecruitmentDetailResponse> getRecruitment(
         @AuthenticationPrincipal Long currentUserId,
@@ -163,7 +168,10 @@ public class RecruitmentController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "구인구직 공고 삭제")
+    @Operation(
+        summary = "구인구직 공고 삭제",
+        description = "작성자 본인만 삭제할 수 있다. 삭제 표시만 남긴다."
+    )
     @DeleteMapping("/{recruitmentId}")
     public ApiResponse<Void> deleteRecruitment(
         @AuthenticationPrincipal Long currentUserId,

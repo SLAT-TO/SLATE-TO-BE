@@ -184,7 +184,7 @@ public class VideoResponse {
     @Schema(description = "영상 참조 파일 업로더 정보")
     public record VideoReferenceFileUploaderResDTO(
             @Schema(example = "1") Long id,
-            @Schema(example = "김수민") String nickname
+            @Schema(example = "그린") String nickname
     ) {
         public static VideoReferenceFileUploaderResDTO from(ProjectFile projectFile) {
             return new VideoReferenceFileUploaderResDTO(

@@ -12,6 +12,7 @@ import com.slatto.domain.sharelink.service.ShareLinkService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ public class ShareLinkController {
     }
 
     @Operation(summary = "공유 링크 진입 검증", description = "게스트가 링크로 접근했을 때 유효성을 확인합니다. 인증이 필요 없습니다.")
+    @SecurityRequirements
     @GetMapping("/share-links/{token}")
     public ApiResponse<ShareLinkEntryResDTO> getShareLinkByToken(
             @PathVariable String token
@@ -53,6 +55,7 @@ public class ShareLinkController {
 
     @Operation(summary = "게스트 등록", description = "링크로 진입한 게스트가 이름을 등록하고 guestId를 발급받습니다. 인증이 필요 없습니다.")
     @ResponseStatus(HttpStatus.CREATED)
+    @SecurityRequirements
     @PostMapping("/share-links/{token}/guests")
     public ApiResponse<GuestCreateResDTO> registerGuest(
             @PathVariable String token,

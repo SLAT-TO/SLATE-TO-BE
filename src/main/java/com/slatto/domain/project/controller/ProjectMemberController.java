@@ -27,7 +27,10 @@ public class ProjectMemberController {
 
     private final ProjectMemberService projectMemberService;
 
-    @Operation(summary = "프로젝트 멤버 목록 조회")
+    @Operation(
+        summary = "프로젝트 멤버 목록 조회",
+        description = "페이지네이션 없이 전체를 반환한다. 프로젝트를 나간 멤버는 제외된다."
+    )
     @GetMapping
     public ApiResponse<ProjectMemberListResponse> getProjectMembers(
         @AuthenticationPrincipal Long currentUserId,
@@ -41,7 +44,10 @@ public class ProjectMemberController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로젝트 나가기")
+    @Operation(
+        summary = "프로젝트 나가기",
+        description = "ADMIN 은 나갈 수 없다. 나가면 멤버 목록에서 빠지지만 작성한 글과 파일은 남는다."
+    )
     @DeleteMapping("/me")
     public ApiResponse<Void> leaveProject(
         @AuthenticationPrincipal Long currentUserId,
@@ -52,7 +58,10 @@ public class ProjectMemberController {
         return ApiResponse.success(CommonSuccessCode.OK, null);
     }
 
-    @Operation(summary = "프로젝트 멤버 상세 조회")
+    @Operation(
+        summary = "프로젝트 멤버 상세 조회",
+        description = "경로의 memberId 는 사용자 ID 가 아니라 프로젝트 멤버 ID 다."
+    )
     @GetMapping("/{memberId}")
     public ApiResponse<ProjectMemberDetailResponse> getProjectMember(
         @AuthenticationPrincipal Long currentUserId,
@@ -68,7 +77,12 @@ public class ProjectMemberController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로젝트 멤버 역할 수정")
+    @Operation(
+        summary = "프로젝트 멤버 역할 수정",
+        description = """
+            ADMIN 이거나 본인의 역할일 때만 수정할 수 있다.
+            보낸 역할 목록으로 전체를 교체하므로, 유지할 역할도 함께 보내야 한다."""
+    )
     @PatchMapping("/{memberId}")
     public ApiResponse<ProjectMemberDetailResponse> updateProjectMemberRoles(
         @AuthenticationPrincipal Long currentUserId,
@@ -86,7 +100,12 @@ public class ProjectMemberController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "프로젝트 멤버 삭제")
+    @Operation(
+        summary = "프로젝트 멤버 삭제",
+        description = """
+            ADMIN 만 다른 멤버를 내보낼 수 있다.
+            자기 자신은 이 API 로 내보낼 수 없고 나가기를 써야 한다."""
+    )
     @DeleteMapping("/{memberId}")
     public ApiResponse<Void> removeProjectMember(
         @AuthenticationPrincipal Long currentUserId,
