@@ -75,7 +75,8 @@ public class PortfolioService {
     }
 
     // 프로젝트가 완료로 전환될 때 참여자 전원의 포트폴리오를 한 번에 만든다.
-    // 프로젝트에는 대표 영상 개념이 없어 영상 링크와 썸네일은 비운다. 각자 프로필에서 채운다.
+    // 프로젝트에는 대표 영상 개념이 없어 영상 링크는 비우고, 썸네일만 최신 영상에서 가져온다.
+    // 링크는 각자 프로필에서 채우고, 채우는 순간 그 링크에서 뽑은 썸네일로 교체된다.
     // 유형이 ETC 여도 프로젝트에는 기타 유형명이 없어 비워두고, 필요하면 본인이 수정한다.
     @Transactional
     public void createProjectPortfolios(ProjectPortfolioCreateCommand command) {
@@ -92,7 +93,7 @@ public class PortfolioService {
                 command.getDescription(),
                 null,
                 null,
-                null,
+                command.getThumbnailUrl(),
                 command.getStartDate(),
                 command.getEndDate()
             ));
@@ -273,8 +274,15 @@ public class PortfolioService {
         userPortfolioRoleRepository.saveAll(roles);
     }
 
+    // 이력의 링크는 유튜브로 제한하지 않는다. 화면 안내도 "Youtube 또는 외부 링크"다.
+    // 유튜브가 아니면 썸네일만 비우고 링크는 그대로 저장한다. 파서가 던지는 400 을 그대로
+    // 흘려보내면 비메오·네이버TV 를 넣은 사용자가 이유를 알 수 없는 저장 실패만 보게 된다.
     private String extractThumbnailUrl(String youtubeUrl) {
-        return THUMBNAIL_URL_FORMAT.formatted(youtubeUrlParser.extractVideoId(youtubeUrl));
+        try {
+            return THUMBNAIL_URL_FORMAT.formatted(youtubeUrlParser.extractVideoId(youtubeUrl));
+        } catch (BaseException exception) {
+            return null;
+        }
     }
 
     private String resolveCustomTypeName(CategoryName type, String customTypeName) {
