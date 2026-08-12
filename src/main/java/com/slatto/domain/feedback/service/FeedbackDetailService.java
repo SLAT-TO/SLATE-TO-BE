@@ -31,6 +31,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.slatto.global.util.TokenHasher;
+import com.slatto.domain.feedback.exception.FeedbackErrorCode;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -133,7 +135,7 @@ public class FeedbackDetailService {
         boolean isMember = projectMemberRepository
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
     }
 
@@ -225,7 +227,7 @@ public class FeedbackDetailService {
 
         // 4. 본인 확인
         if (!reply.isWriter(userId, guestId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(FeedbackErrorCode.FEEDBACK_REPLY_WRITER_ONLY);
         }
 
         // 5. 수정
@@ -257,7 +259,7 @@ public class FeedbackDetailService {
 
         // 4. 본인 확인
         if (!reply.isWriter(userId, guestId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(FeedbackErrorCode.FEEDBACK_REPLY_WRITER_ONLY);
         }
 
         // 5. soft delete
@@ -279,7 +281,7 @@ public class FeedbackDetailService {
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         // 3. 상태 변경

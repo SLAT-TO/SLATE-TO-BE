@@ -8,6 +8,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackListResD
 import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
 import com.slatto.domain.feedback.service.FeedbackService;
+import com.slatto.domain.feedback.support.GuestHeaderValidator;
 import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.config.OptionalAuthentication;
 import com.slatto.global.response.ApiResponse;
@@ -41,7 +42,7 @@ public class FeedbackController {
             summary = "피드백 작성",
             description = """
                     회원은 토큰으로, 게스트는 `X-Guest-Id` 와 `X-Guest-Token` 헤더로 식별한다.
-                    **둘을 함께 보내거나 둘 다 보내지 않으면 400** 이다. 회원은 게스트 헤더를 넣지 않는다.
+                    **둘 중 하나만 보내면 400** 이다. 회원은 게스트 헤더를 넣지 않는다.
 
                     회원은 이 영상이 속한 프로젝트의 활성 멤버여야 하고, 게스트는 자기 공유 링크의 영상에만 남길 수 있다.
 
@@ -64,6 +65,7 @@ public class FeedbackController {
             @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @Valid @RequestBody FeedbackCreateReqDTO request
     ) {
+        GuestHeaderValidator.validatePair(guestId, guestToken);
         FeedbackCreateResDTO result = feedbackService.createFeedback(videoId, userId, guestId, guestToken, request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -75,6 +77,8 @@ public class FeedbackController {
             description = """
                     **작성자 본인만 수정할 수 있다.** 남의 피드백에 요청하면 `FEEDBACK403` 이다.
                     같은 프로젝트 멤버여도, 같은 공유 링크의 다른 게스트여도 마찬가지다.
+
+                    게스트 헤더는 `X-Guest-Id` 와 `X-Guest-Token` 을 짝으로 보낸다. 하나만 보내면 400 이다.
 
                     전달한 항목만 부분 수정된다. `content`, `startTime`, `endTime` 모두 생략할 수 있다.
                     시간 검증은 수정을 반영한 뒤의 최종 값으로 한다. 한쪽만 보내도 기존 값과 묶여 `startTime` ≤ `endTime` 이어야 한다.
@@ -94,6 +98,7 @@ public class FeedbackController {
             @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @Valid @RequestBody FeedbackUpdateReqDTO request
     ) {
+        GuestHeaderValidator.validatePair(guestId, guestToken);
         FeedbackUpdateResDTO result = feedbackService.updateFeedback(feedbackId, userId, guestId, guestToken, request);
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
@@ -104,7 +109,7 @@ public class FeedbackController {
             description = """
                     **작성자 본인만 삭제할 수 있다.** 남의 피드백에 요청하면 `FEEDBACK403` 이다.
 
-                    게스트는 `X-Guest-Id` 와 `X-Guest-Token` 을 헤더로 함께 보낸다.
+                    게스트는 `X-Guest-Id` 와 `X-Guest-Token` 을 짝으로 보낸다. 하나만 보내면 400 이다.
                     회원은 둘 다 생략하고 토큰만 보낸다.
 
                     실제로 행을 지우지 않고 삭제 시각만 남긴다. 목록과 답글 조회에서 함께 빠진다.
@@ -122,6 +127,7 @@ public class FeedbackController {
             @Parameter(description = "게스트로 삭제할 때만 보냅니다. 게스트 등록 응답의 sessionToken 값이며, X-Guest-Id 와 짝이 맞아야 합니다. 로그인 사용자는 생략합니다.")
             @RequestHeader(value = "X-Guest-Token", required = false) String guestToken
     ) {
+        GuestHeaderValidator.validatePair(guestId, guestToken);
         feedbackService.deleteFeedback(feedbackId, userId, guestId, guestToken);
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, null));
@@ -131,7 +137,7 @@ public class FeedbackController {
             summary = "피드백 목록 조회",
             description = """
                     **익명 조회는 막혀 있다.** 회원 토큰이나 게스트 자격(`X-Guest-Id` + `X-Guest-Token`) 중 하나는 있어야 하고,
-                    둘 다 없으면 `SHARELINK403` 이다. 인증이 선택이라는 것은 게스트도 볼 수 있다는 뜻이지 누구나 볼 수 있다는 뜻이 아니다.
+                    둘 다 없으면 `SHARELINK403` 이다. 게스트 헤더를 하나만 보내면 400 이다.
 
                     재생 지점이 있는 피드백이 앞에 오고 그 안에서 `startTime` 오름차순, 같은 지점이면 등록순이다.
                     재생 지점이 없는 피드백은 모두 뒤로 밀린 뒤 등록순으로 붙는다.
@@ -155,6 +161,7 @@ public class FeedbackController {
             @Parameter(description = "조회 개수. 생략 시 10, 최대 50입니다.", example = "10")
             @RequestParam(required = false) Integer size
     ) {
+        GuestHeaderValidator.validatePair(guestId, guestToken);
         FeedbackListResDTO result = feedbackService.getFeedbackList(videoId, userId, guestId, guestToken, cursor, size);
         return ResponseEntity
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
