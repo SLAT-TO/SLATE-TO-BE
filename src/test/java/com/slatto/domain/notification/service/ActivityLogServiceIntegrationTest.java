@@ -7,6 +7,7 @@ import com.slatto.domain.notification.enums.ActorType;
 import com.slatto.domain.notification.repository.ActivityLogRepository;
 import com.slatto.domain.project.entity.Project;
 import com.slatto.domain.project.enums.LengthType;
+import com.slatto.domain.project.enums.ProjectStatus;
 import com.slatto.domain.project.repository.ProjectRepository;
 import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.user.entity.Users;
@@ -91,7 +92,11 @@ class ActivityLogServiceIntegrationTest {
         Project project = saveProject(user);
 
         activityLogService.createProjectUpdatedLog(project.getId(), user.getId());
-        activityLogService.createProjectStatusChangedLog(project.getId(), user.getId(), "준비중", "편집중");
+        // 화면 표기와 어긋나면 최근활동에만 다른 단계 이름이 찍히므로, 문구는 enum 라벨에서 가져온다.
+        activityLogService.createProjectStatusChangedLog(
+            project.getId(), user.getId(),
+            ProjectStatus.PREPARING.getLabel(), ProjectStatus.EDITING.getLabel()
+        );
 
         List<ActivityLog> activityLogs = activityLogRepository.findAll();
         assertThat(activityLogs)
@@ -102,7 +107,7 @@ class ActivityLogServiceIntegrationTest {
             );
         assertThat(activityLogs)
             .extracting(ActivityLog::getContent)
-            .contains("그린님이 프로젝트 정보를 수정했어요", "그린님이 프로젝트 단계를 '준비중'에서 '편집중'으로 변경했어요");
+            .contains("그린님이 프로젝트 정보를 수정했어요", "그린님이 프로젝트 단계를 '기획 중'에서 '편집 중'으로 변경했어요");
     }
 
     @Test
