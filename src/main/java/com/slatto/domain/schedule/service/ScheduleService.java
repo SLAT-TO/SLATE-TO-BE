@@ -311,9 +311,6 @@ public class ScheduleService {
 
         Project project = projectAccessValidator.getProjectOrThrow(request.getProjectId());
         projectAccessValidator.validateProjectAccess(request.getProjectId(), currentUserId);
-        if (!hasParticipants(request.getParticipantIds())) {
-            throw new BaseException(CommonErrorCode.BAD_REQUEST);
-        }
 
         return project;
     }

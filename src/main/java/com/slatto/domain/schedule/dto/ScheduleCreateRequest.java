@@ -44,6 +44,6 @@ public class ScheduleCreateRequest {
     @Schema(description = "공용 메모", example = "레퍼런스 무드보드 잡기, 1차 검토하기", nullable = true)
     private String publicMemo;
 
-    @Schema(description = "프로젝트 일정 대상자 사용자 ID 목록. PROJECT 일정이면 필수, PERSONAL 일정이면 전달하지 않습니다.", example = "[1, 2]")
+    @Schema(description = "프로젝트 일정 대상자 사용자 ID 목록. PROJECT 일정에서 선택 항목이며, PERSONAL 일정이면 전달하지 않습니다.", example = "[1, 2]")
     private List<Long> participantIds;
 }
