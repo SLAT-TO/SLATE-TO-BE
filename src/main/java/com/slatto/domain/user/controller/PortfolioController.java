@@ -60,7 +60,15 @@ public class PortfolioController {
         return ApiResponse.success(CommonSuccessCode.OK, response);
     }
 
-    @Operation(summary = "포트폴리오 생성", description = "프로젝트 이력을 새로 등록한다. 영상 링크에서 썸네일을 자동 추출해 저장한다.")
+    @Operation(
+        summary = "포트폴리오 생성",
+        description = """
+            프로젝트 이력을 새로 등록한다. 영상 링크에서 썸네일을 자동 추출해 저장한다.
+
+            `kind`(개인/외주 구분)는 선택 입력이라 고르지 않아도 등록된다.
+            `PERSONAL` 을 고르면 의뢰자를 입력해도 저장하지 않는다.
+            """
+    )
     @PostMapping("/me/portfolios")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<PortfolioCreateResponse> createPortfolio(

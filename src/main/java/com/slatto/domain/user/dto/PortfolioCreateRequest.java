@@ -28,7 +28,7 @@ public class PortfolioCreateRequest {
     @Size(max = 100, message = "기타 유형명은 100자 이하로 입력해야 합니다.")
     private String customTypeName;
 
-    @NotNull(message = "개인/외주 구분은 필수입니다.")
+    // 선택 입력이다. 고르지 않아도 이력을 남길 수 있어야 한다.
     private Kind kind;
 
     @Size(max = 255, message = "클라이언트명은 255자 이하로 입력해야 합니다.")

@@ -183,8 +183,8 @@ class ProjectCompletionPortfolioTest {
     }
 
     @Test
-    @DisplayName("개인/외주 구분이 없으면 완료로 바꿀 수 없다")
-    void completeProject_withoutKind_throws() {
+    @DisplayName("개인/외주 구분이 없는 프로젝트도 완료되고 포트폴리오는 구분 없이 생성된다")
+    void completeProject_withoutKind_createsPortfolioWithNullKind() {
         Project noKindProject = projectRepository.save(Project.create(
             owner,
             "종류 없는 프로젝트",
@@ -198,13 +198,16 @@ class ProjectCompletionPortfolioTest {
         projectMemberRepository.save(ProjectMember.createAdmin(noKindProject, owner));
         entityManager.flush();
 
-        assertThatThrownBy(() ->
-            projectService.updateProject(noKindProject.getId(), owner.getId(), completeRequestWithoutKind())
-        ).isInstanceOf(BaseException.class);
+        projectService.updateProject(noKindProject.getId(), owner.getId(), completeRequestWithoutKind());
 
-        assertThat(userPortfolioRepository.findAll()).isEmpty();
         assertThat(projectRepository.findById(noKindProject.getId()).orElseThrow().getStatus())
-            .isNotEqualTo(ProjectStatus.COMPLETED);
+            .isEqualTo(ProjectStatus.COMPLETED);
+        assertThat(userPortfolioRepository.findAll())
+            .singleElement()
+            .satisfies(portfolio -> {
+                assertThat(portfolio.getTitle()).isEqualTo("종류 없는 프로젝트");
+                assertThat(portfolio.getKind()).isNull();
+            });
     }
 
     private List<RoleName> roleNamesOf(Users user) {

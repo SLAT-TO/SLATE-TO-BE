@@ -281,8 +281,10 @@ public class PortfolioService {
         return type == CategoryName.ETC ? customTypeName : null;
     }
 
+    // 개인 작업으로 명시한 경우에만 의뢰자를 비운다.
+    // kind 가 선택 입력이라, 구분을 고르지 않고 의뢰자만 입력하는 것도 허용한다.
     private String resolveClientName(Kind kind, String clientName) {
-        return kind == Kind.EXTERNAL ? clientName : null;
+        return kind == Kind.PERSONAL ? null : clientName;
     }
 
     private UserPortfolio getOwnedPortfolioOrThrow(Long userId, Long portfolioId) {

@@ -32,7 +32,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -197,7 +196,7 @@ public class ProjectService {
             request.getKind()
         );
 
-        // 같은 요청에서 바뀐 제목·종류로 검증해야 하므로 updateInfo 다음에 처리한다.
+        // 같은 요청에서 바뀐 값이 포트폴리오로 옮겨가야 하므로 updateInfo 다음에 처리한다.
         if (request.getStatus() == ProjectStatus.COMPLETED && previousStatus != ProjectStatus.COMPLETED) {
             completeProject(project);
         } else if (request.getStatus() != null) {
@@ -221,10 +220,6 @@ public class ProjectService {
     // 완료 전환과 포트폴리오 생성을 한 트랜잭션에서 처리한다.
     // 포트폴리오 생성이 실패하면 완료 전환도 함께 롤백되어야 한다.
     private void completeProject(Project project) {
-        if (!StringUtils.hasText(project.getTitle()) || project.getKind() == null) {
-            throw new BaseException(ProjectErrorCode.PROJECT_COMPLETION_INFO_REQUIRED);
-        }
-
         if (projectRepository.markCompleted(project.getId()) == 0) {
             throw new BaseException(ProjectErrorCode.PROJECT_ALREADY_COMPLETED);
         }
