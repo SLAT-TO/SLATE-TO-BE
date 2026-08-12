@@ -10,7 +10,6 @@ import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqD
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
 import com.slatto.domain.feedback.repository.FeedbackDetailRepository;
 import com.slatto.domain.notification.service.ActivityLogService;
-import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.slatto.domain.feedback.entity.Feedback;
-import com.slatto.domain.feedback.exception.FeedbackErrorCode;
 import com.slatto.domain.feedback.repository.FeedbackRepository;
 import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.sharelink.entity.ShareLink;
@@ -38,6 +36,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.slatto.domain.feedback.exception.FeedbackErrorCode;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -58,7 +58,7 @@ public class FeedbackService {
     private static final int MAX_PAGE_SIZE = 50;
 
     @Transactional
-    public FeedbackCreateResDTO createFeedback(Long videoId, Long userId, String guestToken, FeedbackCreateReqDTO req) {
+    public FeedbackCreateResDTO createFeedback(Long videoId, Long userId, Long guestId, String guestToken, FeedbackCreateReqDTO req) {
 
         // 1. 영상 조회
         Video video = entityManagerProvider.getObject().createQuery("""
@@ -69,8 +69,8 @@ public class FeedbackService {
                 .findFirst()
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        // 2. 작성자 검증 — 회원(JWT userId)/게스트(body guestId) 중 정확히 하나만
-        validateWriter(userId, req.guestId());
+        // 2. 작성자 검증 — 회원(JWT userId)/게스트(헤더 guestId) 중 정확히 하나만
+        validateWriter(userId, guestId);
 
         // 3. 작성자 조회
         Users user = null;
@@ -83,7 +83,7 @@ public class FeedbackService {
             validateMemberAccess(userId, video.getProject().getId());
         } else {
             // 게스트: 토큰 + 소유 검증 후 Guest 확보
-            guest = validateGuestAccess(req.guestId(), videoId, guestToken);
+            guest = validateGuestAccess(guestId, videoId, guestToken);
         }
 
         // 4. 저장
@@ -135,7 +135,7 @@ public class FeedbackService {
     }
 
     @Transactional
-    public FeedbackUpdateResDTO updateFeedback(Long feedbackId, Long userId, String guestToken, FeedbackUpdateReqDTO req) {
+    public FeedbackUpdateResDTO updateFeedback(Long feedbackId, Long userId, Long guestId, String guestToken, FeedbackUpdateReqDTO req) {
 
         // 1. 피드백 조회 (삭제된 건 제외)
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -143,17 +143,17 @@ public class FeedbackService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 2. 작성자 검증
-        validateWriter(userId, req.guestId());
+        validateWriter(userId, guestId);
 
         // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유
         if (userId != null) {
             validateMemberAccess(userId, feedback.getVideo().getProject().getId());
         } else {
-            validateGuestAccess(req.guestId(), feedback.getVideo().getId(), guestToken);
+            validateGuestAccess(guestId, feedback.getVideo().getId(), guestToken);
         }
 
         // 4. 본인 확인
-        if (!feedback.isWriter(userId, req.guestId())) {
+        if (!feedback.isWriter(userId, guestId)) {
             throw new BaseException(FeedbackErrorCode.FEEDBACK_WRITER_ONLY);
         }
 
@@ -185,13 +185,11 @@ public class FeedbackService {
     }
 
     // 게스트가 해당 영상에 접근할 자격이 있는지 검증하고, 검증된 Guest를 반환
-    // 세션 토큰으로 본인 확인 + Guest → ShareLink → Video 소유 확인
     private Guest validateGuestAccess(Long guestId, Long videoId, String guestToken) {
         Guest guest = guestRepository.findById(guestId)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 0. 세션 토큰으로 본인 확인 — 없거나 불일치면 사칭으로 간주해 차단
-        // 들어온 원문 토큰을 해시해서 저장된 해시와 비교. null이면 즉시 차단.
         if (guestToken == null || !guest.getSessionToken().equals(tokenHasher.hash(guestToken))) {
             throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
         }
@@ -222,7 +220,7 @@ public class FeedbackService {
         // 2. 작성자 검증
         validateWriter(userId, guestId);
 
-        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유
+        // 3. 접근 검증
         if (userId != null) {
             validateMemberAccess(userId, feedback.getVideo().getProject().getId());
         } else {
@@ -252,8 +250,7 @@ public class FeedbackService {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
 
-        // 2. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유
-        //    회원도 게스트도 아니면(둘 다 null) 익명 조회 차단
+        // 2. 접근 검증 — 회원/게스트 아니면 익명 차단
         if (userId != null) {
             Long projectId = entityManagerProvider.getObject().createQuery("""
                             select v.project.id from Video v where v.id = :videoId
