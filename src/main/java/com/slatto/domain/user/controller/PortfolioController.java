@@ -10,6 +10,7 @@ import com.slatto.domain.user.service.PortfolioService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,9 @@ public class PortfolioController {
     @GetMapping("/{userId}/portfolios")
     public ApiResponse<PortfolioListResponse> getPortfolios(
         @PathVariable Long userId,
+        @Parameter(description = "이전 응답의 nextCursor. 첫 페이지에서는 생략합니다.", example = "5")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 10, 최대 50입니다.", example = "10")
         @RequestParam(defaultValue = "10") int size
     ) {
         PortfolioListResponse response = portfolioService.getPortfolios(userId, cursor, size);

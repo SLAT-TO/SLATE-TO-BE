@@ -11,6 +11,7 @@ import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -54,8 +55,11 @@ public class ProjectFileController {
     public ApiResponse<ProjectFileListResponse> getProjectFiles(
         @AuthenticationPrincipal Long currentUserId,
         @PathVariable Long projectId,
+        @Parameter(description = "파일명 검색어. 생략하면 전체를 조회합니다.", example = "콘티")
         @RequestParam(required = false) String keyword,
+        @Parameter(description = "이전 응답의 nextCursor. 첫 페이지에서는 생략합니다.", example = "18")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 20, 최대 50입니다.", example = "20")
         @RequestParam(defaultValue = "20") int size
     ) {
         ProjectFileListResponse response = projectFileService.getProjectFiles(

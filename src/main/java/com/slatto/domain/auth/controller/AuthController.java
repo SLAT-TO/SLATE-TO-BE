@@ -18,6 +18,7 @@ import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -63,6 +64,7 @@ public class AuthController {
 	@ResponseStatus(HttpStatus.FOUND)
 	@GetMapping("/login/google")
 	public ResponseEntity<Void> loginWithGoogle(
+		@Parameter(description = "로그인을 마친 뒤 돌아갈 프론트엔드 경로. 생략하면 기본 경로로 보냅니다.", example = "/projects")
 		@RequestParam(name = "redirectTo", required = false) String redirectTo
 	) {
 		AuthService.GoogleLoginEntry entry = authService.createGoogleLoginEntry(redirectTo);
@@ -107,6 +109,7 @@ public class AuthController {
 	@SecurityRequirements
 	@PostMapping("/refresh")
 	public ApiResponse<AccessTokenResponse> reissueAccessToken(
+		@Parameter(description = "리프레시 토큰 쿠키. 로그인 시 서버가 HttpOnly 로 심어주므로 브라우저가 자동으로 보냅니다. 직접 넣을 값이 아닙니다.")
 		@CookieValue(name = "${app.cookie.refresh-token-name}", required = false) String refreshToken
 	) {
 		return ApiResponse.success(CommonSuccessCode.OK, authService.reissueAccessToken(refreshToken));
@@ -251,6 +254,7 @@ public class AuthController {
 	@Operation(summary = "로그아웃", description = "서버에 저장된 리프레시 토큰을 무효화하고 쿠키를 삭제한다.")
 	@PostMapping("/logout")
 	public ResponseEntity<ApiResponse<Void>> logout(
+		@Parameter(description = "리프레시 토큰 쿠키. 브라우저가 자동으로 보냅니다. 직접 넣을 값이 아닙니다.")
 		@CookieValue(name = "${app.cookie.refresh-token-name}", required = false) String refreshToken
 	) {
 		authService.logout(refreshToken);

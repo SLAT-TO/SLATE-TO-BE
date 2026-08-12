@@ -12,6 +12,7 @@ import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,8 +46,11 @@ public class ProjectController {
     @GetMapping
     public ApiResponse<ProjectListResponse> getProjects(
         @AuthenticationPrincipal Long currentUserId,
+        @Parameter(description = "진행 단계로 거릅니다. PREPARING, EDITING, REVIEWING, COMPLETED 중 하나이며 생략하면 전체를 조회합니다.", example = "EDITING")
         @RequestParam(required = false) ProjectStatus status,
+        @Parameter(description = "이전 응답의 nextCursor. 첫 페이지에서는 생략합니다.", example = "12")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 20, 최대 50입니다.", example = "20")
         @RequestParam(defaultValue = "20") int size
     ) {
         ProjectListResponse response = projectService.getProjects(currentUserId, status, cursor, size);

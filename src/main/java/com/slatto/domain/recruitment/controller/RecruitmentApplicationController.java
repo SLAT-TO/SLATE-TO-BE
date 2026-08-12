@@ -11,6 +11,7 @@ import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -70,8 +71,11 @@ public class RecruitmentApplicationController {
     public ApiResponse<RecruitmentApplicantListResponse> getApplicants(
         @AuthenticationPrincipal Long currentUserId,
         @PathVariable Long recruitmentId,
+        @Parameter(description = "지원 상태로 거릅니다. PENDING, ACCEPTED, REJECTED 중 하나이며 생략하면 전체를 조회합니다.", example = "PENDING")
         @RequestParam(required = false) RecruitmentApplicationStatus status,
+        @Parameter(description = "이전 응답의 nextCursor. 지원 ID 기준입니다. 첫 페이지에서는 생략합니다.", example = "22")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 10, 최대 50입니다.", example = "10")
         @RequestParam(defaultValue = "10") int size
     ) {
         RecruitmentApplicantListResponse response = recruitmentApplicationService.getApplicants(

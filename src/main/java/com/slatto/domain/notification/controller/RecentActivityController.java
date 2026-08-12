@@ -6,6 +6,7 @@ import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,7 +36,9 @@ public class RecentActivityController {
     public ApiResponse<ActivityLogListResponse> getRecentActivities(
         @AuthenticationPrincipal Long currentUserId,
         @PathVariable Long projectId,
+        @Parameter(description = "이전 응답의 nextCursor 를 그대로 넣습니다. {발생일시}_{활동ID} 형식입니다. 첫 페이지에서는 생략합니다.", example = "2026-08-11T14:30:00_57")
         @RequestParam(required = false) String cursor,
+        @Parameter(description = "조회 개수. 생략 시 20, 최대 50입니다.", example = "20")
         @RequestParam(defaultValue = "20") int size
     ) {
         ActivityLogListResponse response = recentActivityService.getRecentActivities(
