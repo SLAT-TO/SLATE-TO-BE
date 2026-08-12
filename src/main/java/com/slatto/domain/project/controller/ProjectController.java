@@ -111,7 +111,7 @@ public class ProjectController {
             `title` 은 생성·수정 요청 모두 필수라 실제로는 `kind` 만 이 조건에 걸린다.
             """
     )
-    @ApiErrorCodes({"PROJECT403", "PROJECT_ADMIN403", "PROJECT404", "PROJECT_COMPLETED409"})
+    @ApiErrorCodes({"PROJECT_COMPLETION400", "PROJECT403", "PROJECT_ADMIN403", "PROJECT404", "PROJECT_COMPLETED409"})
     @PatchMapping("/{projectId}")
     public ApiResponse<ProjectResponse> updateProject(
         @AuthenticationPrincipal Long currentUserId,

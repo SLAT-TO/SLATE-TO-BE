@@ -172,7 +172,7 @@ public class RecruitmentController {
             공고를 되살리려면 `deadline` 도 함께 보내야 한다.
             """
     )
-    @ApiErrorCodes("RECRUITMENT403")
+    @ApiErrorCodes({"RECRUITMENT_CLOSED_EDIT400", "RECRUITMENT403"})
     @PatchMapping("/{recruitmentId}")
     public ApiResponse<RecruitmentDetailResponse> updateRecruitment(
         @AuthenticationPrincipal Long currentUserId,

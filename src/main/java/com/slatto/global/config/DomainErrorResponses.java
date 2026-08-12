@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 /**
  * {@link ApiErrorCodes} 에 적힌 도메인 에러 응답을 문서에 붙인다.
  *
- * <p>403, 409, 410, 429 는 도메인 규칙에서만 나오기 때문에 조건으로 추론할 수 없다.
- * 공통 에러처럼 자동으로 판단하지 않고, 엔드포인트가 직접 밝힌 것만 싣는다.
+ * <p>도메인 에러는 규칙에서만 나오기 때문에 공통 에러처럼 조건으로 추론할 수 없다.
+ * 엔드포인트가 직접 밝힌 것만 싣는다.
  *
  * <p>{@code OperationCustomizer} 로 따로 등록하지 않고 {@link SwaggerErrorResponseCustomizer} 가 마지막에 부른다.
  * 공통 응답이 먼저 깔린 뒤에 얹혀야 같은 상태 코드에서 공통 예시를 밀어내지 않는데,

@@ -123,6 +123,7 @@ public class UserController {
             구글로만 가입해 비밀번호가 없는 계정은 `password` 를 보내지 않아도 된다.
             """
     )
+    @ApiErrorCodes("USER_WITHDRAW_PASSWORD401")
     @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<Void>> withdraw(
         @AuthenticationPrincipal Long userId,

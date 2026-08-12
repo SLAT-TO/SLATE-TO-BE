@@ -45,7 +45,7 @@ public class RecruitmentApplicationController {
             첨부를 의도한 지원이 첨부 없이 접수되면 지원자는 성공 응답을 받고도 서류가 빠진 상태가 되기 때문이다.
             """
     )
-    @ApiErrorCodes("APPLICATION409")
+    @ApiErrorCodes({"APPLICATION_FILE_LINK400", "APPLICATION409"})
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RecruitmentApplicationResponse> applyToRecruitment(

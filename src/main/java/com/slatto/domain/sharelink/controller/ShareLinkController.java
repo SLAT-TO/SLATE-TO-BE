@@ -38,7 +38,7 @@ public class ShareLinkController {
 
     @Operation(summary = "공유 링크 생성", description = "영상당 1개만 생성 가능하며, 이미 있으면 409를 반환합니다.")
     @ResponseStatus(HttpStatus.CREATED)
-    @ApiErrorCodes({"PROJECT403", "SHARELINK409"})
+    @ApiErrorCodes({"SHARELINK400", "PROJECT403", "SHARELINK409"})
     @PostMapping("/videos/{videoId}/share-links")
     public ApiResponse<ShareLinkCreateResDTO> createShareLink(
             @PathVariable Long videoId,
