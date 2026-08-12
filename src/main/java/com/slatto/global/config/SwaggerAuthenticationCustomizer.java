@@ -22,7 +22,9 @@ import java.util.List;
 public class SwaggerAuthenticationCustomizer implements OperationCustomizer {
 
 	private static final String BEARER_AUTH = "bearerAuth";
-	private static final String OPTIONAL_AUTH_NOTE =
+
+	// 엔드포인트가 직접 적은 설명과 구분해야 하는 쪽이 있어서 감추지 않는다.
+	static final String OPTIONAL_AUTH_NOTE =
 		"인증은 선택입니다. 토큰을 보내면 로그인 사용자로, 보내지 않으면 게스트로 처리됩니다.";
 
 	@Override

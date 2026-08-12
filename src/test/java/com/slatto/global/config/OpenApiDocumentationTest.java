@@ -83,13 +83,18 @@ class OpenApiDocumentationTest {
 
 	// summary 만 있으면 이름만 아는 상태다. 호출하는 쪽이 알아야 할 제약은 코드를 열어봐야 나온다.
 	// summary 를 그대로 옮겨 적은 설명은 그 공백을 메우지 않으므로 없는 것으로 친다.
+	//
+	// 인증이 선택인 엔드포인트에는 안내 문구가 자동으로 붙는다. 그 문구까지 설명으로 세면
+	// 설명을 한 줄도 적지 않은 엔드포인트가 통과한다. 걷어내고 남은 것만 본다.
 	@Test
 	@DisplayName("문서에 노출된 모든 엔드포인트는 summary 를 되풀이하지 않는 설명을 가진다")
 	void everyExposedOperationHasMeaningfulDescription() {
 		List<String> missing = new ArrayList<>();
 
 		forEachOperation((path, httpMethod, operation) -> {
-			String description = operation.path("description").asText("").strip();
+			String description = operation.path("description").asText("")
+				.replace(SwaggerAuthenticationCustomizer.OPTIONAL_AUTH_NOTE, "")
+				.strip();
 			String summary = operation.path("summary").asText("").strip();
 
 			if (description.isBlank() || description.equals(summary)) {

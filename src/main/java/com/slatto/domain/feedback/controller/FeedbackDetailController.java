@@ -37,7 +37,20 @@ public class FeedbackDetailController {
 
     private final FeedbackDetailService feedbackDetailService;
 
-    @Operation(summary = "답글 작성")
+    @Operation(
+            summary = "답글 작성",
+            description = """
+                    회원은 토큰으로, 게스트는 본문 `guestId` 와 `X-Guest-Token` 으로 식별한다.
+                    **둘을 함께 보내거나 둘 다 보내지 않으면 400** 이다. 회원은 `guestId` 를 넣지 않는다.
+
+                    회원은 원 피드백이 달린 영상의 프로젝트 활성 멤버여야 하고, 게스트는 그 영상의 공유 링크로 들어온 게스트여야 한다.
+                    원 피드백이 삭제됐으면 404 다.
+
+                    답글은 한 단계까지만 달린다. 답글에 다시 답글을 달 수는 없다.
+
+                    작성되면 작성자를 뺀 프로젝트 멤버 전원에게 알림이 가고 최근 활동에 남는다.
+                    """
+    )
     @OptionalAuthentication
     @ResponseStatus(HttpStatus.CREATED)
     @ApiErrorCodes({"PROJECT403", "SHARELINK403", "SHARELINK410"})
@@ -56,7 +69,17 @@ public class FeedbackDetailController {
                 .body(ApiResponse.success(CommonSuccessCode.CREATED, result));
     }
 
-    @Operation(summary = "답글 목록 조회")
+    @Operation(
+            summary = "답글 목록 조회",
+            description = """
+                    **익명 조회는 막혀 있다.** 회원 토큰이나 게스트 자격(`guestId` + `X-Guest-Token`) 중 하나는 있어야 하고,
+                    둘 다 없으면 `SHARELINK403` 이다.
+
+                    등록순으로 내려간다. 커서는 직전 응답의 `nextCursor` 를 그대로 넣는다.
+
+                    원 피드백이 삭제됐으면 404 이고, 삭제된 답글은 목록에서 빠진다.
+                    """
+    )
     @OptionalAuthentication
     @ApiErrorCodes({"PROJECT403", "SHARELINK403", "SHARELINK410"})
     @GetMapping("/feedbacks/{feedbackId}/replies")
@@ -78,7 +101,17 @@ public class FeedbackDetailController {
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
 
-    @Operation(summary = "답글 수정")
+    @Operation(
+            summary = "답글 수정",
+            description = """
+                    **작성자 본인만 수정할 수 있다.** 남의 답글에 요청하면 `FEEDBACK_REPLY403` 이다.
+                    원 피드백을 쓴 사람이라도 남이 단 답글은 고칠 수 없다.
+
+                    피드백 수정과 달리 `content` 는 필수다. 답글에는 부분 수정할 다른 항목이 없다.
+
+                    이미 삭제된 답글은 404 다.
+                    """
+    )
     @OptionalAuthentication
     @ApiErrorCodes({"FEEDBACK_REPLY403", "PROJECT403", "SHARELINK403", "SHARELINK410"})
     @PatchMapping("/replies/{replyId}")
@@ -95,7 +128,17 @@ public class FeedbackDetailController {
                 .ok(ApiResponse.success(CommonSuccessCode.OK, result));
     }
 
-    @Operation(summary = "답글 삭제")
+    @Operation(
+            summary = "답글 삭제",
+            description = """
+                    **작성자 본인만 삭제할 수 있다.** 남의 답글에 요청하면 `FEEDBACK_REPLY403` 이다.
+
+                    게스트는 `guestId` 를 쿼리 파라미터로, `X-Guest-Token` 을 헤더로 함께 보낸다.
+                    회원은 둘 다 생략하고 토큰만 보낸다.
+
+                    실제로 행을 지우지 않고 삭제 시각만 남긴다. 이미 삭제된 답글은 404 다.
+                    """
+    )
     @OptionalAuthentication
     @ApiErrorCodes({"FEEDBACK_REPLY403", "PROJECT403", "SHARELINK403", "SHARELINK410"})
     @DeleteMapping("/replies/{replyId}")
