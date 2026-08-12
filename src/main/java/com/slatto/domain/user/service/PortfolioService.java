@@ -114,7 +114,7 @@ public class PortfolioService {
         Long portfolioId,
         PortfolioUpdateRequest request
     ) {
-        UserPortfolio portfolio = getOwnedPortfolioOrThrow(userId, portfolioId);
+        UserPortfolio portfolio = getPortfolioOrThrow(userId, portfolioId);
 
         portfolio.updateBasicInfo(request.getTitle(), request.getDescription(), request.getComment());
 
@@ -169,13 +169,15 @@ public class PortfolioService {
 
     @Transactional
     public void deletePortfolio(Long userId, Long portfolioId) {
-        UserPortfolio portfolio = getOwnedPortfolioOrThrow(userId, portfolioId);
+        UserPortfolio portfolio = getPortfolioOrThrow(userId, portfolioId);
 
         portfolio.delete();
     }
 
+    // 본인 것과 타인 것 모두 이 메서드로 조회한다. 포트폴리오는 공개 프로필에 이미 목록으로 나가는
+    // 정보라 단건 조회로 넓어지는 노출 범위가 없다. 소유자만 가능한 수정·삭제와 달리 owner 검증을 하지 않는다.
     public PortfolioDetailResponse getPortfolio(Long userId, Long portfolioId) {
-        UserPortfolio portfolio = getOwnedPortfolioOrThrow(userId, portfolioId);
+        UserPortfolio portfolio = getPortfolioOrThrow(userId, portfolioId);
 
         List<RoleName> roles = userPortfolioRoleRepository.findAllByPortfolioIdOrderByIdAsc(portfolioId)
             .stream()
@@ -295,7 +297,9 @@ public class PortfolioService {
         return kind == Kind.PERSONAL ? null : clientName;
     }
 
-    private UserPortfolio getOwnedPortfolioOrThrow(Long userId, Long portfolioId) {
+    // userId 와 portfolioId 가 모두 일치해야 찾는다. 남의 portfolioId 를 다른 userId 에 붙여 요청하면 404 다.
+    // 수정·삭제는 currentUserId 를 넘겨 소유 검증을 겸하고, 조회는 대상 유저 id 를 넘겨 타인 것도 연다.
+    private UserPortfolio getPortfolioOrThrow(Long userId, Long portfolioId) {
         return userPortfolioRepository.findByIdAndUserIdAndDeletedAtIsNull(portfolioId, userId)
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
     }

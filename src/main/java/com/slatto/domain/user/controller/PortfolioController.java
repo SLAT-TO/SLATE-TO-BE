@@ -61,6 +61,28 @@ public class PortfolioController {
     }
 
     @Operation(
+        summary = "유저 포트폴리오 단건 조회",
+        description = """
+            특정 유저의 프로젝트 이력 한 건을 조회한다. 프로필에서 이력 카드를 눌러 개요 화면으로
+            들어갈 때 쓴다. 응답은 `GET /users/me/portfolios/{portfolioId}` 와 같은 형태다.
+
+            목록 조회에 없는 `description`, `comment`, `youtubeUrl`, `kind`, `clientName` 이 함께 내려간다.
+
+            `userId` 와 `portfolioId` 가 모두 일치해야 조회된다. 남의 `portfolioId` 를 다른 `userId` 에
+            붙여 요청하면 404 다. 삭제된 이력과 탈퇴한 유저의 이력도 404 다.
+            """
+    )
+    @GetMapping("/{userId}/portfolios/{portfolioId}")
+    public ApiResponse<PortfolioDetailResponse> getUserPortfolio(
+        @PathVariable Long userId,
+        @PathVariable Long portfolioId
+    ) {
+        PortfolioDetailResponse response = portfolioService.getPortfolio(userId, portfolioId);
+
+        return ApiResponse.success(CommonSuccessCode.OK, response);
+    }
+
+    @Operation(
         summary = "포트폴리오 생성",
         description = """
             프로젝트 이력을 새로 등록한다. 영상 링크에서 썸네일을 자동 추출해 저장한다.
