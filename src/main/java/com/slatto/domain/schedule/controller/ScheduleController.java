@@ -97,7 +97,7 @@ public class ScheduleController {
 
     @Operation(
         summary = "일정 생성",
-        description = "개인 일정 또는 프로젝트 일정을 생성합니다. PERSONAL 일정은 projectId와 participantIds를 전달하지 않고, PROJECT 일정은 projectId와 participantIds가 필요합니다."
+        description = "개인 일정 또는 프로젝트 일정을 생성합니다. PERSONAL 일정은 projectId와 participantIds를 전달하지 않고, PROJECT 일정은 projectId만 필수이며 participantIds는 선택입니다."
     )
     @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @PostMapping
