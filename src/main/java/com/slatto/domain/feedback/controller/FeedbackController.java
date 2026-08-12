@@ -13,6 +13,7 @@ import com.slatto.global.config.OptionalAuthentication;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Feedback", description = "피드백 API")
+@Tag(
+        name = "Feedback",
+        description = """
+                피드백 API. 로그인 사용자와 공유 링크로 들어온 게스트가 함께 쓴다.
+                게스트로 호출하려면 ShareLink API 에서 먼저 게스트 등록을 마치고,
+                받은 sessionToken 을 X-Guest-Token 헤더에, guestId 를 파라미터나 본문에 실어 보낸다.
+                두 값의 짝이 맞지 않으면 SHARELINK403 으로 막힌다."""
+)
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -37,6 +45,7 @@ public class FeedbackController {
     public ResponseEntity<ApiResponse<FeedbackCreateResDTO>> createFeedback(
             @PathVariable Long videoId,
             @AuthenticationPrincipal Long userId,
+            @Parameter(description = "게스트로 작성할 때만 보냅니다. 게스트 등록 응답의 sessionToken 값이며, 본문의 guestId 와 짝이 맞아야 합니다. 로그인 사용자는 생략합니다.")
             @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @Valid @RequestBody FeedbackCreateReqDTO request
     ) {
@@ -53,6 +62,7 @@ public class FeedbackController {
     public ResponseEntity<ApiResponse<FeedbackUpdateResDTO>> updateFeedback(
             @PathVariable Long feedbackId,
             @AuthenticationPrincipal Long userId,
+            @Parameter(description = "게스트로 수정할 때만 보냅니다. 게스트 등록 응답의 sessionToken 값이며, 본문의 guestId 와 짝이 맞아야 합니다. 로그인 사용자는 생략합니다.")
             @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
             @Valid @RequestBody FeedbackUpdateReqDTO request
     ) {
@@ -68,7 +78,9 @@ public class FeedbackController {
     public ResponseEntity<ApiResponse<Void>> deleteFeedback(
             @PathVariable Long feedbackId,
             @AuthenticationPrincipal Long userId,
+            @Parameter(description = "게스트로 삭제할 때만 보냅니다. 게스트 등록 응답의 guestId 값입니다. 로그인 사용자는 생략합니다.", example = "20")
             @RequestParam(required = false) Long guestId,
+            @Parameter(description = "게스트로 삭제할 때만 보냅니다. 게스트 등록 응답의 sessionToken 값이며, guestId 와 짝이 맞아야 합니다. 로그인 사용자는 생략합니다.")
             @RequestHeader(value = "X-Guest-Token", required = false) String guestToken
     ) {
         feedbackService.deleteFeedback(feedbackId, userId, guestId, guestToken);
@@ -83,9 +95,13 @@ public class FeedbackController {
     public ResponseEntity<ApiResponse<FeedbackListResDTO>> getFeedbackList(
             @PathVariable Long videoId,
             @AuthenticationPrincipal Long userId,
+            @Parameter(description = "게스트로 조회할 때만 보냅니다. 게스트 등록 응답의 guestId 값입니다. 로그인 사용자는 생략합니다.", example = "20")
             @RequestParam(required = false) Long guestId,
+            @Parameter(description = "게스트로 조회할 때만 보냅니다. 게스트 등록 응답의 sessionToken 값이며, guestId 와 짝이 맞아야 합니다. 로그인 사용자는 생략합니다.")
             @RequestHeader(value = "X-Guest-Token", required = false) String guestToken,
+            @Parameter(description = "이전 응답의 nextCursor 를 그대로 넣습니다. {재생지점초}_{피드백ID} 형식이고 재생 지점이 없는 피드백은 앞이 n 입니다. 첫 페이지에서는 생략합니다.", example = "12_57")
             @RequestParam(required = false) String cursor,
+            @Parameter(description = "조회 개수. 생략 시 10, 최대 50입니다.", example = "10")
             @RequestParam(required = false) Integer size
     ) {
         FeedbackListResDTO result = feedbackService.getFeedbackList(videoId, userId, guestId, guestToken, cursor, size);
