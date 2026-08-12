@@ -12,9 +12,11 @@ import com.slatto.domain.recruitment.service.RecruitmentService;
 import com.slatto.domain.user.enums.CategoryName;
 import com.slatto.domain.user.enums.RegionName;
 import com.slatto.domain.user.enums.RoleName;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -81,14 +83,30 @@ public class RecruitmentController {
     @GetMapping
     public ApiResponse<RecruitmentListResponse> getRecruitments(
         @AuthenticationPrincipal Long currentUserId,
+        @Parameter(description = "제목·내용 검색어. 생략하면 전체를 조회합니다.", example = "뮤직비디오")
         @RequestParam(required = false) String keyword,
+        @Parameter(description = "촬영 카테고리. 같은 키를 반복해 여러 개를 보낼 수 있고 값끼리는 OR 입니다. "
+            + "YOUTUBE_CONTENT, AD_BRAND, MUSIC_VIDEO, WEDDING_EVENT, DOCUMENTARY, FILM_DRAMA, CORPORATE_PROMO, ETC",
+            example = "MUSIC_VIDEO")
         @RequestParam(required = false) List<CategoryName> category,
+        @Parameter(description = "영상 길이 유형. 현재 LONG_FORM 만 있습니다.", example = "LONG_FORM")
         @RequestParam(required = false) LengthType lengthType,
+        @Parameter(description = "모집 파트. 같은 키를 반복해 여러 개를 보낼 수 있고 값끼리는 OR 입니다. "
+            + "DIRECTOR, PD, CINEMATOGRAPHER, EDITOR, ART, SOUND, WRITER, LIGHTING, ACTOR, ETC",
+            example = "EDITOR")
         @RequestParam(required = false) List<RoleName> recruitPart,
+        @Parameter(description = "촬영 지역. 같은 키를 반복해 여러 개를 보낼 수 있고 값끼리는 OR 입니다. "
+            + "SEOUL, GYEONGGI, GANGWON, CHUNGCHEONGNAM, CHUNGCHEONGBUK, JEOLLABUK, JEOLLANAM, "
+            + "GYEONGSANGBUK, GYEONGSANGNAM, JEJU, NATIONWIDE",
+            example = "SEOUL")
         @RequestParam(required = false) List<RegionName> location,
+        @Parameter(description = "공고 상태로 거릅니다. RECRUITING 또는 CLOSED 이며 생략하면 전체를 조회합니다.", example = "RECRUITING")
         @RequestParam(required = false) RecruitmentStatus status,
+        @Parameter(description = "정렬 기준. LATEST(최신순), DEADLINE(마감임박순), POPULAR(인기순) 이며 생략 시 LATEST 입니다.", example = "LATEST")
         @RequestParam(defaultValue = "LATEST") RecruitmentSortType sort,
+        @Parameter(description = "이전 응답의 nextCursor. 공고 ID 기준입니다. 정렬·필터를 바꾸면 버리고 첫 페이지부터 다시 조회합니다.", example = "31")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 10, 최대 50입니다.", example = "10")
         @RequestParam(defaultValue = "10") int size
     ) {
         RecruitmentListResponse response = recruitmentService.getRecruitments(
@@ -116,6 +134,7 @@ public class RecruitmentController {
     @GetMapping("/recommended")
     public ApiResponse<RecruitmentRecommendationResponse> getRecommendedRecruitments(
         @AuthenticationPrincipal Long currentUserId,
+        @Parameter(description = "추천 개수. 생략 시 4, 최대 20입니다.", example = "4")
         @RequestParam(defaultValue = "4") int size
     ) {
         RecruitmentRecommendationResponse response =
@@ -153,6 +172,7 @@ public class RecruitmentController {
             공고를 되살리려면 `deadline` 도 함께 보내야 한다.
             """
     )
+    @ApiErrorCodes({"RECRUITMENT_CLOSED_EDIT400", "RECRUITMENT403"})
     @PatchMapping("/{recruitmentId}")
     public ApiResponse<RecruitmentDetailResponse> updateRecruitment(
         @AuthenticationPrincipal Long currentUserId,
@@ -172,6 +192,7 @@ public class RecruitmentController {
         summary = "구인구직 공고 삭제",
         description = "작성자 본인만 삭제할 수 있다. 삭제 표시만 남긴다."
     )
+    @ApiErrorCodes("RECRUITMENT403")
     @DeleteMapping("/{recruitmentId}")
     public ApiResponse<Void> deleteRecruitment(
         @AuthenticationPrincipal Long currentUserId,

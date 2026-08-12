@@ -5,6 +5,7 @@ import com.slatto.domain.notification.service.NotificationService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,7 +33,9 @@ public class NotificationController {
     @GetMapping
     public ApiResponse<NotificationListResponse> getNotifications(
         @AuthenticationPrincipal Long currentUserId,
+        @Parameter(description = "이전 응답의 nextCursor. 첫 페이지에서는 생략합니다.", example = "42")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 20, 최대 50입니다.", example = "20")
         @RequestParam(defaultValue = "20") int size
     ) {
         NotificationListResponse response = notificationService.getNotifications(

@@ -10,6 +10,7 @@ import com.slatto.domain.video.dto.response.VideoResponse.VideoDetailResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoUpdateResDTO;
 import com.slatto.domain.video.service.VideoService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,6 +44,7 @@ public class VideoController {
 
     private final VideoService videoService;
 
+    @ApiErrorCodes("PROJECT403")
     @GetMapping("/{videoId}")
     @Operation(
             summary = "영상 상세 조회",
@@ -62,6 +64,7 @@ public class VideoController {
         );
     }
 
+    @ApiErrorCodes("PROJECT403")
     @PatchMapping("/{videoId}/bookmark")
     @Operation(
             summary = "영상 북마크 상태 변경",
@@ -82,6 +85,7 @@ public class VideoController {
         );
     }
 
+    @ApiErrorCodes("PROJECT403")
     @PatchMapping("/{videoId}")
     @Operation(summary = "영상 수정",
             description = "프로젝트 멤버가 영상의 제목과 메모를 수정합니다. " +
@@ -100,6 +104,7 @@ public class VideoController {
         );
     }
 
+    @ApiErrorCodes("PROJECT403")
     @DeleteMapping("/{videoId}")
     @Operation(summary = "영상 삭제", description = "프로젝트 멤버가 프로젝트에 등록된 영상을 삭제합니다.")
     public ApiResponse<VideoDeleteResDTO> deleteVideo(
@@ -115,6 +120,7 @@ public class VideoController {
         );
     }
 
+    @ApiErrorCodes({"PROJECT403", "VIDEO409"})
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
@@ -134,6 +140,7 @@ public class VideoController {
         );
     }
 
+    @ApiErrorCodes("PROJECT403")
     @GetMapping
     @Operation(
             summary = "영상 목록 조회",

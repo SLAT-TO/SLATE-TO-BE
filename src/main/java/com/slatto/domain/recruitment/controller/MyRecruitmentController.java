@@ -11,6 +11,7 @@ import com.slatto.domain.recruitment.service.RecruitmentService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,8 +37,11 @@ public class MyRecruitmentController {
     @GetMapping("/recruitments")
     public ApiResponse<MyRecruitmentListResponse> getMyRecruitments(
         @AuthenticationPrincipal Long currentUserId,
+        @Parameter(description = "공고 상태로 거릅니다. RECRUITING 또는 CLOSED 이며 생략하면 전체를 조회합니다.", example = "RECRUITING")
         @RequestParam(required = false) RecruitmentStatus status,
+        @Parameter(description = "이전 응답의 nextCursor. 첫 페이지에서는 생략합니다.", example = "31")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 10, 최대 50입니다.", example = "10")
         @RequestParam(defaultValue = "10") int size
     ) {
         MyRecruitmentListResponse response = recruitmentService.getMyRecruitments(
@@ -57,7 +61,9 @@ public class MyRecruitmentController {
     @GetMapping("/recruitment-bookmarks")
     public ApiResponse<RecruitmentListResponse> getMyBookmarks(
         @AuthenticationPrincipal Long currentUserId,
+        @Parameter(description = "이전 응답의 nextCursor. 공고 ID 가 아니라 관심 등록 ID 입니다. 첫 페이지에서는 생략합니다.", example = "14")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 10, 최대 50입니다.", example = "10")
         @RequestParam(defaultValue = "10") int size
     ) {
         RecruitmentListResponse response = recruitmentBookmarkService.getMyBookmarks(
@@ -77,8 +83,11 @@ public class MyRecruitmentController {
     @GetMapping("/applications")
     public ApiResponse<MyApplicationListResponse> getMyApplications(
         @AuthenticationPrincipal Long currentUserId,
+        @Parameter(description = "지원 상태로 거릅니다. PENDING, ACCEPTED, REJECTED 중 하나이며 생략하면 전체를 조회합니다.", example = "PENDING")
         @RequestParam(required = false) RecruitmentApplicationStatus status,
+        @Parameter(description = "이전 응답의 nextCursor. 공고 ID 가 아니라 지원 ID 입니다. 첫 페이지에서는 생략합니다.", example = "22")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 10, 최대 50입니다.", example = "10")
         @RequestParam(defaultValue = "10") int size
     ) {
         MyApplicationListResponse response = recruitmentApplicationService.getMyApplications(

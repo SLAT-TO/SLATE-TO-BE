@@ -10,6 +10,7 @@ import com.slatto.domain.video.dto.response.VideoResponse.VideoReferenceFileItem
 import com.slatto.domain.video.dto.response.VideoResponse.VideoReferenceFileListResDTO;
 import com.slatto.domain.video.entity.Video;
 import com.slatto.domain.video.entity.VideoReferenceFile;
+import com.slatto.domain.video.exception.VideoErrorCode;
 import com.slatto.domain.video.repository.VideoReferenceFileRepository;
 import com.slatto.domain.video.repository.VideoRepository;
 import com.slatto.global.exception.BaseException;
@@ -84,7 +85,7 @@ public class VideoReferenceFileService {
             .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         if (isAlreadyLinked(projectId, videoId, projectFile.getId())) {
-            throw new BaseException(CommonErrorCode.CONFLICT);
+            throw new BaseException(VideoErrorCode.VIDEO_REFERENCE_FILE_ALREADY_LINKED);
         }
 
         VideoReferenceFile referenceFile = VideoReferenceFile.create(video, projectFile, currentMember.getUser());
@@ -93,7 +94,7 @@ public class VideoReferenceFileService {
             VideoReferenceFile savedReferenceFile = videoReferenceFileRepository.save(referenceFile);
             return VideoReferenceFileCreateResDTO.from(savedReferenceFile);
         } catch (DataIntegrityViolationException exception) {
-            throw new BaseException(CommonErrorCode.CONFLICT);
+            throw new BaseException(VideoErrorCode.VIDEO_REFERENCE_FILE_ALREADY_LINKED);
         }
     }
 

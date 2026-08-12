@@ -7,9 +7,11 @@ import com.slatto.domain.recruitment.dto.RecruitmentApplicationResponse;
 import com.slatto.domain.recruitment.dto.RecruitmentApplicationStatusUpdateRequest;
 import com.slatto.domain.recruitment.enums.RecruitmentApplicationStatus;
 import com.slatto.domain.recruitment.service.RecruitmentApplicationService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,7 @@ public class RecruitmentApplicationController {
             첨부를 의도한 지원이 첨부 없이 접수되면 지원자는 성공 응답을 받고도 서류가 빠진 상태가 되기 때문이다.
             """
     )
+    @ApiErrorCodes({"APPLICATION_FILE_LINK400", "APPLICATION409"})
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RecruitmentApplicationResponse> applyToRecruitment(
@@ -63,12 +66,16 @@ public class RecruitmentApplicationController {
         summary = "구인구직 공고 지원자 목록 조회",
         description = "공고 작성자만 조회할 수 있다. nextCursor 는 지원 ID 기준이다."
     )
+    @ApiErrorCodes("RECRUITMENT403")
     @GetMapping
     public ApiResponse<RecruitmentApplicantListResponse> getApplicants(
         @AuthenticationPrincipal Long currentUserId,
         @PathVariable Long recruitmentId,
+        @Parameter(description = "지원 상태로 거릅니다. PENDING, ACCEPTED, REJECTED 중 하나이며 생략하면 전체를 조회합니다.", example = "PENDING")
         @RequestParam(required = false) RecruitmentApplicationStatus status,
+        @Parameter(description = "이전 응답의 nextCursor. 지원 ID 기준입니다. 첫 페이지에서는 생략합니다.", example = "22")
         @RequestParam(required = false) Long cursor,
+        @Parameter(description = "조회 개수. 생략 시 10, 최대 50입니다.", example = "10")
         @RequestParam(defaultValue = "10") int size
     ) {
         RecruitmentApplicantListResponse response = recruitmentApplicationService.getApplicants(
@@ -108,6 +115,7 @@ public class RecruitmentApplicationController {
             본 항목을 열 수 없게 되기 때문이다.
             """
     )
+    @ApiErrorCodes("APPLICATION403")
     @GetMapping("/{applicationId}")
     public ApiResponse<RecruitmentApplicationDetailResponse> getApplicationDetail(
         @AuthenticationPrincipal Long currentUserId,
@@ -127,6 +135,7 @@ public class RecruitmentApplicationController {
         summary = "구인구직 공고 지원 상태 변경",
         description = "공고 작성자만 변경할 수 있다. PENDING 상태의 지원만 ACCEPTED 또는 REJECTED 로 바꿀 수 있다."
     )
+    @ApiErrorCodes("RECRUITMENT403")
     @PatchMapping("/{applicationId}")
     public ApiResponse<Void> changeApplicationStatus(
         @AuthenticationPrincipal Long currentUserId,

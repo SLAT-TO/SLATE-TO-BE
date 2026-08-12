@@ -10,6 +10,7 @@ import com.slatto.domain.feedback.dto.request.FeedbackRequest.FeedbackStatusReqD
 import com.slatto.domain.feedback.dto.response.FeedbackResponse.FeedbackStatusResDTO;
 import com.slatto.domain.feedback.repository.FeedbackDetailRepository;
 import com.slatto.domain.notification.service.ActivityLogService;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.slatto.domain.feedback.entity.Feedback;
+import com.slatto.domain.feedback.exception.FeedbackErrorCode;
 import com.slatto.domain.feedback.repository.FeedbackRepository;
 import com.slatto.domain.sharelink.entity.Guest;
 import com.slatto.domain.sharelink.entity.ShareLink;
@@ -152,7 +154,7 @@ public class FeedbackService {
 
         // 4. 본인 확인
         if (!feedback.isWriter(userId, req.guestId())) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(FeedbackErrorCode.FEEDBACK_WRITER_ONLY);
         }
 
         // 5. 수정
@@ -178,7 +180,7 @@ public class FeedbackService {
         boolean isMember = projectMemberRepository
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
     }
 
@@ -229,7 +231,7 @@ public class FeedbackService {
 
         // 4. 본인 확인
         if (!feedback.isWriter(userId, guestId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(FeedbackErrorCode.FEEDBACK_WRITER_ONLY);
         }
 
         // 5. soft delete
@@ -342,7 +344,7 @@ public class FeedbackService {
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         // 3. 상태 변경

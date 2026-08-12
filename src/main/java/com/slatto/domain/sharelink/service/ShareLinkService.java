@@ -1,5 +1,6 @@
 package com.slatto.domain.sharelink.service;
 
+import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.sharelink.converter.ShareLinkConverter;
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.ShareLinkCreateReqDTO;
@@ -56,7 +57,7 @@ public class ShareLinkService {
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         // 3. 만료 일시가 과거면 거부
@@ -134,7 +135,7 @@ public class ShareLinkService {
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         // 3. 링크 조회 (없으면 404)
@@ -158,7 +159,7 @@ public class ShareLinkService {
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         // 3. 상태 토글 (더티 체킹)

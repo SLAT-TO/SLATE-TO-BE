@@ -3,6 +3,7 @@ package com.slatto.domain.video.controller;
 import com.slatto.domain.video.dto.request.VideoRequest.YoutubeValidateReqDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.YoutubeValidateResDTO;
 import com.slatto.domain.video.service.VideoService;
+import com.slatto.global.config.ApiErrorCodes;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +24,7 @@ public class YoutubeController {
 
     private final VideoService videoService;
 
+    @ApiErrorCodes({"PROJECT403", "VIDEO409"})
     @PostMapping("/validate")
     @Operation(
             summary = "YouTube URL 검증",

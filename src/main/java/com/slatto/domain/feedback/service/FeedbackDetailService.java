@@ -6,6 +6,7 @@ import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreat
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
+import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyStatusReqDTO;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
 import com.slatto.domain.feedback.entity.Feedback;
+import com.slatto.domain.feedback.exception.FeedbackErrorCode;
 import com.slatto.domain.feedback.entity.FeedbackDetail;
 import com.slatto.domain.feedback.repository.FeedbackDetailRepository;
 import com.slatto.domain.feedback.repository.FeedbackRepository;
@@ -135,7 +137,7 @@ public class FeedbackDetailService {
         boolean isMember = projectMemberRepository
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
     }
 
@@ -229,7 +231,7 @@ public class FeedbackDetailService {
 
         // 4. 본인 확인
         if (!reply.isWriter(userId, req.guestId())) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(FeedbackErrorCode.FEEDBACK_REPLY_WRITER_ONLY);
         }
 
         // 5. 수정
@@ -261,7 +263,7 @@ public class FeedbackDetailService {
 
         // 4. 본인 확인
         if (!reply.isWriter(userId, guestId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(FeedbackErrorCode.FEEDBACK_REPLY_WRITER_ONLY);
         }
 
         // 5. soft delete
@@ -283,7 +285,7 @@ public class FeedbackDetailService {
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
 
         // 3. 상태 변경

@@ -316,7 +316,7 @@ public class RecruitmentApplicationService {
 
     private void validateWriter(Recruitment recruitment, Long currentUserId) {
         if (!recruitment.isWriter(currentUserId)) {
-            throw new BaseException(CommonErrorCode.FORBIDDEN);
+            throw new BaseException(RecruitmentErrorCode.RECRUITMENT_WRITER_ONLY);
         }
     }
 
@@ -333,7 +333,7 @@ public class RecruitmentApplicationService {
             return;
         }
 
-        throw new BaseException(CommonErrorCode.FORBIDDEN);
+        throw new BaseException(RecruitmentErrorCode.APPLICATION_ACCESS_DENIED);
     }
 
     // order by id asc + putIfAbsent 가 단건 조회의 "id ASC 첫 행" 규칙과 같은 값을 만든다.
