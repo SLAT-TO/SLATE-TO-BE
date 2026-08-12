@@ -244,6 +244,73 @@ class FeedbackActivityLogConnectionTest {
         verify(feedbackDetailRepository, never()).save(any());
     }
 
+    @Test
+    void 로그인_상태로_공유_링크에서_피드백을_남기면_게스트로_기록된다() {
+        // 로그인한 브라우저는 게스트 화면에서도 Authorization 을 자동으로 붙인다.
+        // 두 신원이 함께 와도 게스트로 처리해야 하고, 회원 조회·멤버 검증은 타지 않아야 한다.
+        Video video = video(11L, "1차 편집본", 101L);
+        Guest guest = mock(Guest.class);
+        ShareLink shareLink = mock(ShareLink.class);
+        Feedback feedback = mock(Feedback.class);
+
+        stubVideoLookup(video);
+        given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
+        given(guest.getSessionToken()).willReturn(tokenHasher.hash(GUEST_TOKEN));
+        given(guest.getShareLink()).willReturn(shareLink);
+        given(shareLink.isUsable()).willReturn(true);
+        given(shareLink.getVideo()).willReturn(video);
+        given(feedbackConverter.toFeedback(eq(video), eq(null), eq(guest), any())).willReturn(feedback);
+        given(feedbackRepository.save(feedback)).willReturn(feedback);
+
+        feedbackService.createFeedback(11L, 1L, 2L, GUEST_TOKEN,
+                new FeedbackCreateReqDTO("로그인한 채로 남긴 게스트 피드백", 20L, 25L));
+
+        verify(activityLogService).createGuestVideoFeedbackCommentedLog(101L, guest, 11L, "1차 편집본");
+        verify(userRepository, never()).findByIdAndDeletedAtIsNull(any());
+        verify(projectMemberRepository, never()).existsByProjectIdAndUserIdAndLeftAtIsNull(any(), any());
+    }
+
+    @Test
+    void 로그인_상태로_공유_링크에서_답글을_남기면_게스트로_기록된다() {
+        // 답글 경로도 같은 규칙을 따른다.
+        Video video = video(11L, "1차 편집본", 101L);
+        Feedback feedback = mock(Feedback.class);
+        Guest guest = mock(Guest.class);
+        ShareLink shareLink = mock(ShareLink.class);
+        FeedbackDetail reply = mock(FeedbackDetail.class);
+
+        given(feedbackRepository.findById(31L)).willReturn(Optional.of(feedback));
+        given(feedback.getDeletedAt()).willReturn(null);
+        given(feedback.getVideo()).willReturn(video);
+        given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
+        given(guest.getSessionToken()).willReturn(tokenHasher.hash(GUEST_TOKEN));
+        given(guest.getShareLink()).willReturn(shareLink);
+        given(shareLink.isUsable()).willReturn(true);
+        given(shareLink.getVideo()).willReturn(video);
+        given(feedbackDetailConverter.toFeedbackDetail(eq(feedback), eq(null), eq(guest), any())).willReturn(reply);
+        given(feedbackDetailRepository.save(reply)).willReturn(reply);
+
+        feedbackDetailService.createReply(31L, 1L, 2L, GUEST_TOKEN,
+                new ReplyCreateReqDTO("로그인한 채로 남긴 게스트 답글"));
+
+        verify(activityLogService).createGuestVideoFeedbackCommentedLog(101L, guest, 11L, "1차 편집본");
+        verify(userRepository, never()).findByIdAndDeletedAtIsNull(any());
+    }
+
+    @Test
+    void 회원도_게스트도_아니면_피드백_등록이_차단된다() {
+        // 익명 차단은 그대로 유지된다.
+        Video video = video(11L, "1차 편집본", 101L);
+        stubVideoLookup(video);
+
+        assertThatThrownBy(() ->
+                feedbackService.createFeedback(11L, null, null, null,
+                        new FeedbackCreateReqDTO("익명 시도", 20L, 25L))
+        ).isInstanceOf(BaseException.class);
+
+        verify(feedbackRepository, never()).save(any());
+    }
+
     private void stubVideoLookup(Video video) {
         given(entityManagerProvider.getObject()).willReturn(entityManager);
         given(entityManager.createQuery(any(String.class), eq(Video.class))).willReturn(videoQuery);
