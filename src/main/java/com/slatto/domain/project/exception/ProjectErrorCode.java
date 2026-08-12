@@ -25,7 +25,7 @@ public enum ProjectErrorCode implements BaseCode {
     PROJECT_MEMBER_ALREADY_EXISTS(HttpStatus.CONFLICT, "PROJECT_MEMBER409", "이미 프로젝트에 참여 중인 멤버입니다."),
     PROJECT_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "PROJECT409", "무료 계정은 최대 5개의 프로젝트를 생성할 수 있습니다."),
     PROJECT_ALREADY_COMPLETED(HttpStatus.CONFLICT, "PROJECT_COMPLETED409", "완료된 프로젝트는 진행 단계를 변경할 수 없습니다."),
-    PROJECT_COMPLETION_INFO_REQUIRED(HttpStatus.BAD_REQUEST, "PROJECT_COMPLETION400", "프로젝트 제목과 개인/외주 구분을 입력해야 완료할 수 있습니다.");
+    PROJECT_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "PROJECT_TITLE400", "프로젝트 제목을 입력해야 완료할 수 있습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
