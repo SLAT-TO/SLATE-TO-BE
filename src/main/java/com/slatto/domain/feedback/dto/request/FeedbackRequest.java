@@ -9,9 +9,6 @@ public class FeedbackRequest {
 
     @Schema(description = "피드백 작성 요청")
     public record FeedbackCreateReqDTO(
-            @Schema(example = "5", nullable = true, description = "게스트 작성 시에만 사용. 회원은 JWT로 식별")
-            Long guestId,
-
             @Schema(example = "이 부분 색감 보정 부탁드려요")
             @NotBlank(message = "내용은 필수입니다.")
             String content,
@@ -27,9 +24,6 @@ public class FeedbackRequest {
 
     @Schema(description = "피드백 수정 요청")
     public record FeedbackUpdateReqDTO(
-            @Schema(example = "5", nullable = true, description = "게스트 작성 시에만 사용. 회원은 JWT로 식별")
-            Long guestId,
-
             @Schema(example = "수정된 내용입니다", nullable = true)
             String content,
 

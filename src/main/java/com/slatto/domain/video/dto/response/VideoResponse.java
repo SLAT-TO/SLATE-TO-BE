@@ -52,6 +52,40 @@ public class VideoResponse {
         }
     }
 
+    @Schema(description = "게스트 영상 상세 조회 응답")
+    public record GuestVideoDetailResDTO(
+            @Schema(description = "영상 ID", example = "1") Long videoId,
+            @Schema(description = "영상 제목", example = "버전명") String title,
+            @Schema(description = "YouTube 영상 URL", example = "https://www.youtube.com/watch?v=abc123")
+            String youtubeUrl,
+            @Schema(description = "YouTube 영상 ID", example = "abc123") String youtubeVideoId,
+            @Schema(description = "영상 썸네일 URL", example = "https://img.youtube.com/vi/abc123/maxresdefault.jpg")
+            String thumbnailUrl,
+            @Schema(description = "영상 진행 상태", example = "IN_PROGRESS") String progressStatus,
+            @Schema(description = "프로젝트 소개", example = "프로젝트 소개글") String description,
+            @Schema(description = "영상 메모", example = "영상에 관련된 메모", nullable = true) String memo,
+            @Schema(description = "프로젝트 태그", example = "[\"뮤직비디오\", \"단편\", \"외주\", \"연출\"]")
+            List<String> projectTags,
+            @Schema(description = "생성일", example = "2026-05-20T00:00:00") LocalDateTime createdAt,
+            @Schema(description = "수정일", example = "2026-05-25T00:00:00") LocalDateTime updatedAt
+    ) {
+        public static GuestVideoDetailResDTO from(VideoDetailResDTO detail) {
+            return new GuestVideoDetailResDTO(
+                    detail.videoId(),
+                    detail.title(),
+                    detail.youtubeUrl(),
+                    detail.youtubeVideoId(),
+                    detail.thumbnailUrl(),
+                    detail.progressStatus(),
+                    detail.description(),
+                    detail.memo(),
+                    detail.projectTags(),
+                    detail.createdAt(),
+                    detail.updatedAt()
+            );
+        }
+    }
+
     @Schema(description = "영상 북마크 상태 변경 응답")
     public record VideoBookmarkUpdateResDTO(
             @Schema(description = "영상 ID", example = "1") Long videoId,

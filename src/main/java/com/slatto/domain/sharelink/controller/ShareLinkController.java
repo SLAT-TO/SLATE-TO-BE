@@ -7,6 +7,7 @@ import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.GuestCreateReqDT
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkToggleResDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.GuestVideoDetailResDTO;
 import com.slatto.global.config.ApiErrorCodes;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.slatto.domain.sharelink.service.ShareLinkService;
@@ -89,6 +90,24 @@ public class ShareLinkController {
         return ApiResponse.success(
                 CommonSuccessCode.CREATED,
                 shareLinkService.registerGuest(token, req)
+        );
+    }
+
+    @Operation(
+            summary = "게스트 영상 상세 조회",
+            description = "공유 링크를 통해 등록된 게스트가 영상과 프로젝트 정보를 읽기 전용으로 조회합니다."
+    )
+    @SecurityRequirements
+    @ApiErrorCodes({"SHARELINK404", "SHARELINK410", "SHARELINK403", "COMMON404"})
+    @GetMapping("/share-links/{shareToken}/video")
+    public ApiResponse<GuestVideoDetailResDTO> getGuestVideo(
+            @PathVariable String shareToken,
+            @RequestHeader("X-Guest-Id") Long guestId,
+            @RequestHeader("X-Guest-Token") String guestToken
+    ) {
+        return ApiResponse.success(
+                CommonSuccessCode.OK,
+                shareLinkService.getGuestVideo(shareToken, guestId, guestToken)
         );
     }
 
