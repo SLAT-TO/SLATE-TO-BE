@@ -56,6 +56,7 @@ public class SecurityConfig {
 				).permitAll()
 					// 게스트 등록
 					.requestMatchers(HttpMethod.POST, "/api/v1/share-links/*/guests").permitAll()
+					.requestMatchers(HttpMethod.GET, "/api/v1/share-links/*/video").permitAll()
 
 					// 게스트 피드백/답글 참여 (조회 포함 — 게스트 소유 검증은 서비스단에서 처리)
 					.requestMatchers(HttpMethod.POST, "/api/v1/videos/*/feedbacks").permitAll()
