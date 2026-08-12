@@ -16,6 +16,8 @@ import com.slatto.domain.sharelink.entity.ShareLink;
 import com.slatto.domain.sharelink.exception.ShareLinkErrorCode;
 import com.slatto.domain.sharelink.repository.ShareLinkRepository;
 import com.slatto.domain.video.entity.Video;
+import com.slatto.domain.video.dto.response.VideoResponse.GuestVideoDetailResDTO;
+import com.slatto.domain.video.service.VideoService;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
 import com.slatto.global.util.TokenHasher;
@@ -38,6 +40,7 @@ public class ShareLinkService {
     private final ObjectProvider<EntityManager> entityManagerProvider;
     private final GuestRepository guestRepository;
     private final TokenHasher tokenHasher;
+    private final VideoService videoService;
 
     @Transactional
     public ShareLinkCreateResDTO createShareLink(Long videoId, Long userId, ShareLinkCreateReqDTO req) {
@@ -114,6 +117,29 @@ public class ShareLinkService {
 
         // 5. 응답에 원문 토큰 포함 (이후 요청 시 X-Guest-Token 헤더로 재전송)
         return shareLinkConverter.toGuestCreateResponse(saved, rawSessionToken);
+    }
+
+    @Transactional(readOnly = true)
+    public GuestVideoDetailResDTO getGuestVideo(String shareToken, Long guestId, String guestToken) {
+        ShareLink shareLink = shareLinkRepository.findByToken(shareToken)
+                .orElseThrow(() -> new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND));
+
+        if (!shareLink.isUsable()) {
+            throw new BaseException(ShareLinkErrorCode.SHARE_LINK_UNAVAILABLE);
+        }
+
+        Guest guest = guestRepository.findById(guestId)
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+
+        if (guestToken == null || !guest.getSessionToken().equals(tokenHasher.hash(guestToken))) {
+            throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
+        }
+
+        if (!guest.getShareLink().getId().equals(shareLink.getId())) {
+            throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
+        }
+
+        return videoService.getGuestVideoDetail(shareLink.getVideo());
     }
 
     @Transactional(readOnly = true)

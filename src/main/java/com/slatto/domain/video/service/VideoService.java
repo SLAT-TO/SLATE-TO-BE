@@ -17,6 +17,7 @@ import com.slatto.domain.video.dto.request.VideoRequest.YoutubeValidateReqDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoCreateResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoDeleteResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoDetailResDTO;
+import com.slatto.domain.video.dto.response.VideoResponse.GuestVideoDetailResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoItemResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.VideoUpdateResDTO;
@@ -73,13 +74,22 @@ public class VideoService {
         Video video = videoRepository.findByIdAndProjectId(videoId, projectId)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
         boolean bookmarked = videoBookmarkRepository.findByVideoIdAndUserId(videoId, memberId).isPresent();
-        List<String> projectTags = resolveProjectTags(
-                video.getProject(),
-                projectAccessRepository.findProjectRoleNames(projectId)
-        );
+        VideoDetailResDTO response = createVideoDetailResponse(video, bookmarked);
 
         notificationService.markVideoFeedbackNotificationsAsRead(memberId, videoId);
 
+        return response;
+    }
+
+    public GuestVideoDetailResDTO getGuestVideoDetail(Video video) {
+        return GuestVideoDetailResDTO.from(createVideoDetailResponse(video, false));
+    }
+
+    private VideoDetailResDTO createVideoDetailResponse(Video video, boolean bookmarked) {
+        List<String> projectTags = resolveProjectTags(
+                video.getProject(),
+                projectAccessRepository.findProjectRoleNames(video.getProject().getId())
+        );
         return VideoDetailResDTO.from(video, bookmarked, projectTags);
     }
 
