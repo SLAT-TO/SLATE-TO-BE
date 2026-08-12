@@ -210,8 +210,8 @@ public class ProjectService {
             activityLogService.createProjectStatusChangedLog(
                 projectId,
                 currentUserId,
-                getProjectStatusLabel(previousStatus),
-                getProjectStatusLabel(request.getStatus())
+                previousStatus.getLabel(),
+                request.getStatus().getLabel()
             );
         }
 
@@ -304,15 +304,6 @@ public class ProjectService {
         if (projectCount >= FREE_PROJECT_LIMIT) {
             throw new BaseException(ProjectErrorCode.PROJECT_LIMIT_EXCEEDED);
         }
-    }
-
-    private String getProjectStatusLabel(ProjectStatus status) {
-        return switch (status) {
-            case PREPARING -> "준비중";
-            case EDITING -> "편집중";
-            case REVIEWING -> "검토중";
-            case COMPLETED -> "완료";
-        };
     }
 
     private void saveProjectRoles(ProjectMember projectMember, List<RoleName> roleNames) {
