@@ -207,7 +207,34 @@ class ProjectCompletionPortfolioTest {
             .satisfies(portfolio -> {
                 assertThat(portfolio.getTitle()).isEqualTo("종류 없는 프로젝트");
                 assertThat(portfolio.getKind()).isNull();
+                // 구분을 고르지 않았을 때 의뢰자가 함께 버려지지 않아야 한다.
+                assertThat(portfolio.getClientName()).isEqualTo("스튜디오 Y");
             });
+    }
+
+    @Test
+    @DisplayName("제목이 없으면 완료로 바꿀 수 없다")
+    void completeProject_withoutTitle_throws() {
+        Project noTitleProject = projectRepository.save(Project.create(
+            owner,
+            null,
+            CategoryName.FILM_DRAMA,
+            LengthType.SHORT_FORM,
+            "설명",
+            LocalDate.now().plusDays(10),
+            null,
+            null
+        ));
+        projectMemberRepository.save(ProjectMember.createAdmin(noTitleProject, owner));
+        entityManager.flush();
+
+        assertThatThrownBy(() ->
+            projectService.updateProject(noTitleProject.getId(), owner.getId(), completeRequestWithoutTitle())
+        ).isInstanceOf(BaseException.class);
+
+        assertThat(userPortfolioRepository.findAll()).isEmpty();
+        assertThat(projectRepository.findById(noTitleProject.getId()).orElseThrow().getStatus())
+            .isNotEqualTo(ProjectStatus.COMPLETED);
     }
 
     private List<RoleName> roleNamesOf(Users user) {
@@ -234,6 +261,13 @@ class ProjectCompletionPortfolioTest {
     private ProjectUpdateRequest completeRequestWithoutKind() {
         return request("""
             {"title":"종류 없는 프로젝트","type":"FILM_DRAMA","lengthType":"SHORT_FORM","description":"설명",
+             "endDate":"%s","clientName":"스튜디오 Y","status":"COMPLETED"}
+            """.formatted(LocalDate.now().plusDays(10)));
+    }
+
+    private ProjectUpdateRequest completeRequestWithoutTitle() {
+        return request("""
+            {"type":"FILM_DRAMA","lengthType":"SHORT_FORM","description":"설명",
              "endDate":"%s","status":"COMPLETED"}
             """.formatted(LocalDate.now().plusDays(10)));
     }

@@ -106,9 +106,12 @@ public class ProjectController {
 
             `COMPLETED` 는 최종 상태다. 완료한 뒤에는 다른 단계로 되돌릴 수 없고
             시도하면 `PROJECT_COMPLETED409` 가 나간다. 이력이 두 번 생기는 것을 막기 위해서다.
+
+            제목이 비어 있으면 포트폴리오를 만들 수 없어 `PROJECT_TITLE400` 이 나간다.
+            제목은 생성·수정 요청 모두 필수라 이 API 만 쓰면 발생하지 않는다.
             """
     )
-    @ApiErrorCodes({"PROJECT403", "PROJECT_ADMIN403", "PROJECT404", "PROJECT_COMPLETED409"})
+    @ApiErrorCodes({"PROJECT_TITLE400", "PROJECT403", "PROJECT_ADMIN403", "PROJECT404", "PROJECT_COMPLETED409"})
     @PatchMapping("/{projectId}")
     public ApiResponse<ProjectResponse> updateProject(
         @AuthenticationPrincipal Long currentUserId,

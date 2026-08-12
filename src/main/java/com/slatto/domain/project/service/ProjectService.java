@@ -32,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -220,6 +221,14 @@ public class ProjectService {
     // 완료 전환과 포트폴리오 생성을 한 트랜잭션에서 처리한다.
     // 포트폴리오 생성이 실패하면 완료 전환도 함께 롤백되어야 한다.
     private void completeProject(Project project) {
+        // 포트폴리오의 title 은 NOT NULL 이라 제목이 비면 저장이 DB 제약으로 끊긴다.
+        // 생성·수정 요청 모두 @NotBlank 라 API 로는 비어질 수 없지만, 그 밖의 경로로 들어온
+        // 값까지 500 으로 나가지 않도록 여기서 막는다.
+        // kind 는 선택 입력이므로 비어 있어도 완료할 수 있다.
+        if (!StringUtils.hasText(project.getTitle())) {
+            throw new BaseException(ProjectErrorCode.PROJECT_TITLE_REQUIRED);
+        }
+
         if (projectRepository.markCompleted(project.getId()) == 0) {
             throw new BaseException(ProjectErrorCode.PROJECT_ALREADY_COMPLETED);
         }
