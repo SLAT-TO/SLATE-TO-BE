@@ -25,6 +25,7 @@ import com.slatto.domain.user.repository.UserPortfolioRepository;
 import com.slatto.domain.user.repository.UserPortfolioRoleRepository;
 import com.slatto.domain.user.repository.UserRepository;
 import com.slatto.domain.user.service.PortfolioService;
+import com.slatto.domain.video.entity.Video;
 import com.slatto.domain.video.repository.VideoRepository;
 import com.slatto.domain.video.util.YoutubeUrlParser;
 import com.slatto.global.exception.BaseException;
@@ -213,6 +214,51 @@ class ProjectCompletionPortfolioTest {
     }
 
     @Test
+    @DisplayName("영상이 있으면 최신 영상 썸네일이 참여자 전원의 포트폴리오에 담긴다")
+    void completeProject_fillsThumbnailFromLatestVideo() {
+        // 이력 카드가 쓰는 값이라 비어 있으면 화면에 회색 자리표시자만 남는다.
+        Users editor = saveUser("editor@slatto.com", "에디터", "social-editor");
+        projectMemberRepository.save(ProjectMember.createMember(project, editor));
+        saveVideo("old-video-id", "https://img.youtube.com/vi/old-video-id/hqdefault.jpg");
+        saveVideo("new-video-id", "https://img.youtube.com/vi/new-video-id/hqdefault.jpg");
+        entityManager.flush();
+
+        projectService.updateProject(project.getId(), owner.getId(), completeRequest());
+
+        assertThat(userPortfolioRepository.findAll())
+            .hasSize(2)
+            .allSatisfy(portfolio -> {
+                assertThat(portfolio.getThumbnailUrl())
+                    .isEqualTo("https://img.youtube.com/vi/new-video-id/hqdefault.jpg");
+                // 대표 영상 개념이 없으므로 링크 자체는 여전히 본인이 채운다.
+                assertThat(portfolio.getYoutubeUrl()).isNull();
+            });
+    }
+
+    @Test
+    @DisplayName("영상이 없는 프로젝트도 완료되고 썸네일만 비어 있다")
+    void completeProject_withoutVideo_leavesThumbnailNull() {
+        projectService.updateProject(project.getId(), owner.getId(), completeRequest());
+
+        assertThat(userPortfolioRepository.findAll())
+            .singleElement()
+            .satisfies(portfolio -> assertThat(portfolio.getThumbnailUrl()).isNull());
+    }
+
+    @Test
+    @DisplayName("썸네일이 없는 영상만 있으면 썸네일은 비운다")
+    void completeProject_withThumbnaillessVideo_leavesThumbnailNull() {
+        saveVideo("no-thumbnail-id", null);
+        entityManager.flush();
+
+        projectService.updateProject(project.getId(), owner.getId(), completeRequest());
+
+        assertThat(userPortfolioRepository.findAll())
+            .singleElement()
+            .satisfies(portfolio -> assertThat(portfolio.getThumbnailUrl()).isNull());
+    }
+
+    @Test
     @DisplayName("제목이 없으면 완료로 바꿀 수 없다")
     void completeProject_withoutTitle_throws() {
         Project noTitleProject = projectRepository.save(Project.create(
@@ -243,6 +289,18 @@ class ProjectCompletionPortfolioTest {
             .filter(role -> role.getUser().getId().equals(user.getId()))
             .map(UserPortfolioRole::getRoleName)
             .toList();
+    }
+
+    private void saveVideo(String youtubeVideoId, String thumbnailUrl) {
+        entityManager.persist(Video.create(
+            project,
+            "https://www.youtube.com/watch?v=" + youtubeVideoId,
+            youtubeVideoId,
+            "촬영본 " + youtubeVideoId,
+            thumbnailUrl,
+            120,
+            null
+        ));
     }
 
     private Users saveUser(String email, String nickname, String socialId) {

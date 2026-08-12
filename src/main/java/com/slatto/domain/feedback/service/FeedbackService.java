@@ -70,7 +70,7 @@ public class FeedbackService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 2. 작성자 검증 — 회원(JWT userId)/게스트(헤더 guestId) 중 정확히 하나만
-        validateWriter(userId, guestId);
+        userId = resolveWriterUserId(userId, guestId);
 
         // 3. 작성자 조회
         Users user = null;
@@ -143,7 +143,7 @@ public class FeedbackService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 2. 작성자 검증
-        validateWriter(userId, guestId);
+        userId = resolveWriterUserId(userId, guestId);
 
         // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유
         if (userId != null) {
@@ -166,13 +166,19 @@ public class FeedbackService {
         return feedbackConverter.toUpdateResponse(feedback);
     }
 
-    // 작성자 정보 검증 — userId와 guestId 중 정확히 하나만 있어야 함
-    private void validateWriter(Long userId, Long guestId) {
-        boolean hasUser = (userId != null);
-        boolean hasGuest = (guestId != null);
-        if (hasUser == hasGuest) {
+    // 로그인한 사람이 공유 링크로 들어오면 브라우저가 Authorization 을 자동으로 붙여
+    // 회원·게스트 신원이 함께 도착한다. 게스트 헤더는 게스트 화면에서만 붙으므로
+    // 그때는 게스트 의사로 보고 회원 신원을 버린다.
+    private Long resolveActorUserId(Long userId, Long guestId) {
+        return guestId != null ? null : userId;
+    }
+
+    // 작성자는 회원·게스트 중 하나로 확정돼야 한다.
+    private Long resolveWriterUserId(Long userId, Long guestId) {
+        if (userId == null && guestId == null) {
             throw new BaseException(CommonErrorCode.BAD_REQUEST);
         }
+        return resolveActorUserId(userId, guestId);
     }
 
     // 회원이 해당 프로젝트의 활성 멤버인지 검증
@@ -218,7 +224,7 @@ public class FeedbackService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 2. 작성자 검증
-        validateWriter(userId, guestId);
+        userId = resolveWriterUserId(userId, guestId);
 
         // 3. 접근 검증
         if (userId != null) {
@@ -249,6 +255,8 @@ public class FeedbackService {
         if (!videoExists) {
             throw new BaseException(CommonErrorCode.NOT_FOUND);
         }
+
+        userId = resolveActorUserId(userId, guestId);
 
         // 2. 접근 검증 — 회원/게스트 아니면 익명 차단
         if (userId != null) {

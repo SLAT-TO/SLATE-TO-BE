@@ -27,6 +27,9 @@ public class ProjectPortfolioCreateCommand {
 
     private String description;
 
+    // 프로젝트의 최신 영상 썸네일이다. 영상 없이도 완료할 수 있으므로 비어 있을 수 있다.
+    private String thumbnailUrl;
+
     private LocalDate startDate;
 
     private LocalDate endDate;

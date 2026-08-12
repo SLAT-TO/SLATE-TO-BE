@@ -265,10 +265,19 @@ public class ProjectService {
             .kind(project.getKind())
             .clientName(project.getClientName())
             .description(project.getDescription())
+            .thumbnailUrl(findLatestThumbnailUrl(project.getId()))
             .startDate(project.getStartDate())
             .endDate(project.getEndDate())
             .participants(participants)
             .build();
+    }
+
+    // 이력 카드의 썸네일이다. 프로젝트 목록이 쓰는 것과 같은 '최신 영상' 기준을 그대로 따른다.
+    // 영상이 없거나 썸네일을 못 받아온 프로젝트도 완료할 수 있으므로 null 이면 그대로 둔다.
+    private String findLatestThumbnailUrl(Long projectId) {
+        return videoRepository
+            .findLatestThumbnailUrlsByProjectIds(List.of(projectId))
+            .get(projectId);
     }
 
     private Map<Long, List<RoleName>> findRoleNamesByMemberIds(List<Long> memberIds) {
