@@ -6,7 +6,6 @@ import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyCreat
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyListResDTO;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyUpdateReqDTO;
 import com.slatto.domain.feedback.dto.response.FeedbackDetailResponse.ReplyUpdateResDTO;
-import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.notification.service.ActivityLogService;
 import com.slatto.domain.feedback.dto.request.FeedbackDetailRequest.ReplyStatusReqDTO;
@@ -15,7 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
 import com.slatto.domain.feedback.entity.Feedback;
-import com.slatto.domain.feedback.exception.FeedbackErrorCode;
 import com.slatto.domain.feedback.entity.FeedbackDetail;
 import com.slatto.domain.feedback.repository.FeedbackDetailRepository;
 import com.slatto.domain.feedback.repository.FeedbackRepository;
@@ -52,7 +50,7 @@ public class FeedbackDetailService {
     private static final int MAX_PAGE_SIZE = 50;
 
     @Transactional
-    public ReplyCreateResDTO createReply(Long feedbackId, Long userId, String guestToken, ReplyCreateReqDTO req) {
+    public ReplyCreateResDTO createReply(Long feedbackId, Long userId, Long guestId, String guestToken, ReplyCreateReqDTO req) {
 
         // 1. 원 피드백 조회 (삭제된 건 제외)
         Feedback feedback = feedbackRepository.findById(feedbackId)
@@ -60,7 +58,7 @@ public class FeedbackDetailService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 2. 작성자 검증
-        validateWriter(userId, req.guestId());
+        validateWriter(userId, guestId);
 
         // 3. 작성자 조회
         Users user = null;
@@ -69,11 +67,9 @@ public class FeedbackDetailService {
         if (userId != null) {
             user = userRepository.findByIdAndDeletedAtIsNull(userId)
                     .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
-            // 회원이 원 피드백 영상의 프로젝트 멤버인지 검증
             validateMemberAccess(userId, feedback.getVideo().getProject().getId());
         } else {
-            // 게스트: 토큰 + 원 피드백 영상 소유 검증 후 Guest 확보
-            guest = validateGuestAccess(req.guestId(), feedback.getVideo().getId(), guestToken);
+            guest = validateGuestAccess(guestId, feedback.getVideo().getId(), guestToken);
         }
 
         // 4. 저장
@@ -137,12 +133,11 @@ public class FeedbackDetailService {
         boolean isMember = projectMemberRepository
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
         if (!isMember) {
-            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
     }
 
     // 게스트가 해당 영상에 접근할 자격이 있는지 검증하고, 검증된 Guest를 반환
-    // 세션 토큰으로 본인 확인 + Guest → ShareLink → Video 소유 확인
     private Guest validateGuestAccess(Long guestId, Long videoId, String guestToken) {
         Guest guest = guestRepository.findById(guestId)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
@@ -175,8 +170,7 @@ public class FeedbackDetailService {
                 .filter(f -> f.getDeletedAt() == null)
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
-        // 2. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유
-        //    회원도 게스트도 아니면(둘 다 null) 익명 조회 차단
+        // 2. 접근 검증 — 회원/게스트 아니면 익명 차단
         if (userId != null) {
             validateMemberAccess(userId, feedback.getVideo().getProject().getId());
         } else {
@@ -212,7 +206,7 @@ public class FeedbackDetailService {
     }
 
     @Transactional
-    public ReplyUpdateResDTO updateReply(Long replyId, Long userId, String guestToken, ReplyUpdateReqDTO req) {
+    public ReplyUpdateResDTO updateReply(Long replyId, Long userId, Long guestId, String guestToken, ReplyUpdateReqDTO req) {
 
         // 1. 답글 조회 (삭제된 건 제외)
         FeedbackDetail reply = feedbackDetailRepository.findById(replyId)
@@ -220,18 +214,18 @@ public class FeedbackDetailService {
                 .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
 
         // 2. 작성자 검증
-        validateWriter(userId, req.guestId());
+        validateWriter(userId, guestId);
 
-        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유 (답글 → 피드백 → 영상)
+        // 3. 접근 검증 (답글 → 피드백 → 영상)
         if (userId != null) {
             validateMemberAccess(userId, reply.getFeedback().getVideo().getProject().getId());
         } else {
-            validateGuestAccess(req.guestId(), reply.getFeedback().getVideo().getId(), guestToken);
+            validateGuestAccess(guestId, reply.getFeedback().getVideo().getId(), guestToken);
         }
 
         // 4. 본인 확인
-        if (!reply.isWriter(userId, req.guestId())) {
-            throw new BaseException(FeedbackErrorCode.FEEDBACK_REPLY_WRITER_ONLY);
+        if (!reply.isWriter(userId, guestId)) {
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
         // 5. 수정
@@ -254,7 +248,7 @@ public class FeedbackDetailService {
         // 2. 작성자 검증
         validateWriter(userId, guestId);
 
-        // 3. 접근 검증 — 회원은 프로젝트 멤버, 게스트는 토큰 + 공유링크 소유 (답글 → 피드백 → 영상)
+        // 3. 접근 검증 (답글 → 피드백 → 영상)
         if (userId != null) {
             validateMemberAccess(userId, reply.getFeedback().getVideo().getProject().getId());
         } else {
@@ -263,7 +257,7 @@ public class FeedbackDetailService {
 
         // 4. 본인 확인
         if (!reply.isWriter(userId, guestId)) {
-            throw new BaseException(FeedbackErrorCode.FEEDBACK_REPLY_WRITER_ONLY);
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
         // 5. soft delete
@@ -285,7 +279,7 @@ public class FeedbackDetailService {
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
-            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
+            throw new BaseException(CommonErrorCode.FORBIDDEN);
         }
 
         // 3. 상태 변경

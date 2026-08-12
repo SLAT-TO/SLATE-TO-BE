@@ -108,7 +108,7 @@ class FeedbackActivityLogConnectionTest {
         given(feedbackConverter.toFeedback(eq(video), eq(user), eq(null), any())).willReturn(feedback);
         given(feedbackRepository.save(feedback)).willReturn(feedback);
 
-        feedbackService.createFeedback(11L, 1L, null, new FeedbackCreateReqDTO(null, "색감을 조정해주세요", 20L, 25L));
+        feedbackService.createFeedback(11L, 1L, null, null, new FeedbackCreateReqDTO("색감을 조정해주세요", 20L, 25L));
 
         verify(activityLogService).createVideoFeedbackCommentedLog(101L, 1L, 11L, "1차 편집본");
     }
@@ -131,7 +131,7 @@ class FeedbackActivityLogConnectionTest {
         given(feedbackConverter.toFeedback(eq(video), eq(null), eq(guest), any())).willReturn(feedback);
         given(feedbackRepository.save(feedback)).willReturn(feedback);
 
-        feedbackService.createFeedback(11L, null, GUEST_TOKEN, new FeedbackCreateReqDTO(2L, "클라이언트 피드백입니다", 20L, 25L));
+        feedbackService.createFeedback(11L, null, 2L, GUEST_TOKEN, new FeedbackCreateReqDTO("클라이언트 피드백입니다", 20L, 25L));
 
         verify(activityLogService).createGuestVideoFeedbackCommentedLog(101L, guest, 11L, "1차 편집본");
     }
@@ -153,7 +153,7 @@ class FeedbackActivityLogConnectionTest {
         given(feedbackDetailConverter.toFeedbackDetail(eq(feedback), eq(user), eq(null), any())).willReturn(reply);
         given(feedbackDetailRepository.save(reply)).willReturn(reply);
 
-        feedbackDetailService.createReply(31L, 1L, null, new ReplyCreateReqDTO(null, "반영하겠습니다"));
+        feedbackDetailService.createReply(31L, 1L, null, null, new ReplyCreateReqDTO("반영하겠습니다"));
 
         verify(activityLogService).createVideoFeedbackCommentedLog(101L, 1L, 11L, "1차 편집본");
     }
@@ -179,7 +179,7 @@ class FeedbackActivityLogConnectionTest {
         given(feedbackDetailConverter.toFeedbackDetail(eq(feedback), eq(null), eq(guest), any())).willReturn(reply);
         given(feedbackDetailRepository.save(reply)).willReturn(reply);
 
-        feedbackDetailService.createReply(31L, null, GUEST_TOKEN, new ReplyCreateReqDTO(2L, "게스트 답글입니다"));
+        feedbackDetailService.createReply(31L, null, 2L, GUEST_TOKEN, new ReplyCreateReqDTO("게스트 답글입니다"));
 
         verify(activityLogService).createGuestVideoFeedbackCommentedLog(101L, guest, 11L, "1차 편집본");
     }
@@ -197,8 +197,8 @@ class FeedbackActivityLogConnectionTest {
 
         // 요청엔 엉뚱한 토큰 → 해시 비교 실패 → 차단
         assertThatThrownBy(() ->
-                feedbackService.createFeedback(11L, null, "wrong-token",
-                        new FeedbackCreateReqDTO(2L, "사칭 시도", 20L, 25L))
+                feedbackService.createFeedback(11L, null, 2L, "wrong-token",
+                        new FeedbackCreateReqDTO("사칭 시도", 20L, 25L))
         ).isInstanceOf(BaseException.class);
 
         verify(feedbackRepository, never()).save(any());
@@ -216,8 +216,8 @@ class FeedbackActivityLogConnectionTest {
         given(guestRepository.findById(2L)).willReturn(Optional.of(guest));
 
         assertThatThrownBy(() ->
-                feedbackService.createFeedback(11L, null, null,
-                        new FeedbackCreateReqDTO(2L, "토큰 없는 시도", 20L, 25L))
+                feedbackService.createFeedback(11L, null, 2L, null,
+                        new FeedbackCreateReqDTO("토큰 없는 시도", 20L, 25L))
         ).isInstanceOf(BaseException.class);
 
         verify(feedbackRepository, never()).save(any());
@@ -237,8 +237,8 @@ class FeedbackActivityLogConnectionTest {
         given(guest.getSessionToken()).willReturn(tokenHasher.hash(GUEST_TOKEN));
 
         assertThatThrownBy(() ->
-                feedbackDetailService.createReply(31L, null, "wrong-token",
-                        new ReplyCreateReqDTO(2L, "사칭 답글"))
+                feedbackDetailService.createReply(31L, null, 2L, "wrong-token",
+                        new ReplyCreateReqDTO("사칭 답글"))
         ).isInstanceOf(BaseException.class);
 
         verify(feedbackDetailRepository, never()).save(any());
