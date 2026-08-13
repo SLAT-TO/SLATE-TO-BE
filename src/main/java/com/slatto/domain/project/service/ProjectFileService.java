@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -44,6 +45,7 @@ public class ProjectFileService {
     private static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 50;
+    private static final int MAX_FILE_NAME_LENGTH = 255;
     private static final String STORAGE_KEY_FORMAT = "projects/%d/files/%s.%s";
     private static final Map<String, Set<String>> ALLOWED_EXTENSIONS_BY_CONTENT_TYPE = Map.of(
         "application/pdf", Set.of("pdf"),
@@ -52,6 +54,9 @@ public class ProjectFileService {
         "application/msword", Set.of("doc"),
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document", Set.of("docx")
     );
+    private static final Set<String> ALLOWED_EXTENSIONS = ALLOWED_EXTENSIONS_BY_CONTENT_TYPE.values().stream()
+        .flatMap(Set::stream)
+        .collect(Collectors.toUnmodifiableSet());
 
     private final ProjectFileRepository projectFileRepository;
     private final ProjectAccessValidator projectAccessValidator;
@@ -107,17 +112,23 @@ public class ProjectFileService {
         Project project = projectAccessValidator.getProjectOrThrow(projectId);
         ProjectMember currentMember = projectAccessValidator.getCurrentMemberOrThrow(projectId, currentUserId);
 
-        validateFile(file, request.getFileName());
+        validateFile(file);
 
+        // 확장자는 올라온 파일에서 정한다. 사용자가 적은 이름은 화면에 보일 이름일 뿐이라
+        // 확장자가 빠졌거나 실제 파일과 달라도 업로드를 막을 이유가 없다.
+        String extension = getExtension(file.getOriginalFilename());
         String contentType = file.getContentType();
-        String storageKey = createStorageKey(projectId, request.getFileName());
+        validateFileType(contentType, extension);
+
+        String fileName = applyExtension(request.getFileName(), extension);
+        String storageKey = createStorageKey(projectId, extension);
         storageService.upload(file, storageKey);
         registerStorageCleanupOnRollback(storageKey);
 
         ProjectFile projectFile = ProjectFile.create(
             project,
             currentMember.getUser(),
-            request.getFileName(),
+            fileName,
             contentType,
             file.getSize(),
             request.getDescription(),
@@ -245,8 +256,13 @@ public class ProjectFileService {
 
     private void updateProjectFileInfo(ProjectFile projectFile, ProjectFileUpdateRequest request) {
         if (request.getFileName() != null) {
-            validateFileName(request.getFileName(), projectFile.getContentType());
-            projectFile.updateFileName(request.getFileName());
+            if (!StringUtils.hasText(request.getFileName())) {
+                throw new BaseException(CommonErrorCode.BAD_REQUEST);
+            }
+
+            // 저장된 파일은 그대로 두고 이름만 바꾸는 것이므로 확장자도 기존 것을 유지한다.
+            String extension = getExtension(projectFile.getFileName());
+            projectFile.updateFileName(applyExtension(request.getFileName(), extension));
         }
 
         if (request.getDescription() != null) {
@@ -258,7 +274,7 @@ public class ProjectFileService {
         }
     }
 
-    private void validateFile(MultipartFile file, String fileName) {
+    private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BaseException(ProjectErrorCode.PROJECT_FILE_EMPTY);
         }
@@ -266,22 +282,36 @@ public class ProjectFileService {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new BaseException(ProjectErrorCode.PROJECT_FILE_SIZE_EXCEEDED);
         }
+    }
 
-        String contentType = file.getContentType();
-        String extension = getExtension(fileName);
+    private void validateFileType(String contentType, String extension) {
         if (!isAllowedFileType(contentType, extension)) {
             throw new BaseException(ProjectErrorCode.PROJECT_FILE_INVALID_TYPE);
         }
     }
 
-    private void validateFileName(String fileName, String contentType) {
-        if (!StringUtils.hasText(fileName)) {
-            throw new BaseException(CommonErrorCode.BAD_REQUEST);
+    /**
+     * 표시할 이름 뒤에 실제 파일의 확장자를 붙인다.
+     *
+     * <p>사용자가 이미 같은 확장자를 적었으면 그대로 두고, 다른 확장자를 적었으면
+     * 실제 파일 쪽을 따른다. 확장자가 아닌 점(예: "콘티 v1.2")은 이름의 일부로 남긴다.
+     */
+    private String applyExtension(String fileName, String extension) {
+        if (!StringUtils.hasText(extension)) {
+            return fileName;
         }
 
-        if (!isAllowedFileType(contentType, getExtension(fileName))) {
-            throw new BaseException(ProjectErrorCode.PROJECT_FILE_INVALID_TYPE);
+        String baseName = ALLOWED_EXTENSIONS.contains(getExtension(fileName))
+            ? StringUtils.stripFilenameExtension(fileName)
+            : fileName;
+
+        // 요청 이름은 255자까지 허용하므로 확장자를 붙이면 컬럼 길이를 넘을 수 있다.
+        int maxBaseLength = MAX_FILE_NAME_LENGTH - extension.length() - 1;
+        if (baseName.length() > maxBaseLength) {
+            baseName = baseName.substring(0, maxBaseLength);
         }
+
+        return baseName + "." + extension;
     }
 
     private boolean isAllowedFileType(String contentType, String extension) {
@@ -294,9 +324,7 @@ public class ProjectFileService {
             .contains(extension);
     }
 
-    private String createStorageKey(Long projectId, String fileName) {
-        String extension = getExtension(fileName);
-
+    private String createStorageKey(Long projectId, String extension) {
         return STORAGE_KEY_FORMAT.formatted(projectId, UUID.randomUUID(), extension);
     }
 

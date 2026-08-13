@@ -77,7 +77,10 @@ public class ProjectFileController {
         summary = "프로젝트 파일 업로드",
         description = """
             multipart/form-data 로 보낸다. 최대 100MB 이며 pdf, jpg, jpeg, png, doc, docx 만 허용한다.
-            확장자와 Content-Type 이 서로 맞지 않으면 거부한다. 업로드하면 다른 멤버에게 알림이 간다."""
+            올린 파일의 확장자와 Content-Type 이 서로 맞지 않으면 거부한다.
+
+            fileName 은 목록에 보일 이름이다. 확장자는 올린 파일에서 가져와 서버가 붙이므로
+            적지 않아도 되고, 다르게 적으면 실제 파일 쪽을 따른다. 업로드하면 다른 멤버에게 알림이 간다."""
     )
     @ApiErrorCodes({"PROJECT403", "PROJECT404"})
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -100,7 +103,10 @@ public class ProjectFileController {
 
     @Operation(
         summary = "프로젝트 파일 수정",
-        description = "업로더 본인 또는 ADMIN 만 수정할 수 있다. 보내지 않은 필드는 기존 값이 유지된다."
+        description = """
+            업로더 본인 또는 ADMIN 만 수정할 수 있다. 보내지 않은 필드는 기존 값이 유지된다.
+
+            fileName 을 바꿔도 확장자는 올릴 때의 것이 그대로 유지된다."""
     )
     @ApiErrorCodes({"PROJECT403", "PROJECT404", "PROJECT_FILE404"})
     @PatchMapping("/{fileId}")
