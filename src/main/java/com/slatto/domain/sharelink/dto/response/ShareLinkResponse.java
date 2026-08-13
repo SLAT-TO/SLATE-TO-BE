@@ -3,6 +3,7 @@ package com.slatto.domain.sharelink.dto.response;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class ShareLinkResponse {
 
@@ -47,7 +48,7 @@ public class ShareLinkResponse {
             @Schema(example = "5")
             Long shareLinkId,
 
-            @Schema(example = "홍길동")
+            @Schema(example = "유리")
             String name,
 
             @Schema(example = "3f2a1c9e-4b7d-4a1e-9c2a-8e1f2b3c4d5e",
@@ -76,7 +77,10 @@ public class ShareLinkResponse {
             LocalDateTime expiredAt,
 
             @Schema(example = "2026-07-24T14:00:00")
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+
+            @Schema(description = "이 링크로 참여한 게스트 수", example = "3")
+            long guestCount
     ) { }
 
     @Schema(description = "공유 링크 활성/비활성 토글 응답")
@@ -87,4 +91,26 @@ public class ShareLinkResponse {
             @Schema(example = "false", description = "토글 후의 활성 상태")
             Boolean isActive
     ) { }
+
+    @Schema(description = "게스트 요약 정보")
+    public record GuestSummaryResDTO(
+            @Schema(description = "게스트 ID", example = "19")
+            Long guestId,
+
+            @Schema(description = "게스트가 등록한 이름", example = "유리")
+            String name,
+
+            @Schema(description = "참여 일시", example = "2026-08-13T12:00:00")
+            LocalDateTime createdAt
+    ) { }
+
+    @Schema(description = "게스트 목록 응답")
+    public record GuestListResDTO(
+            @Schema(description = "게스트 수", example = "3")
+            long guestCount,
+
+            @Schema(description = "게스트 목록. 최근 참여한 순서입니다.")
+            List<GuestSummaryResDTO> guests
+    ) { }
+
 }

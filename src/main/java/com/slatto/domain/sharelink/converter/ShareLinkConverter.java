@@ -3,6 +3,8 @@ package com.slatto.domain.sharelink.converter;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestListResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestSummaryResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkToggleResDTO;
 import com.slatto.domain.sharelink.entity.Guest;
@@ -11,6 +13,7 @@ import com.slatto.domain.video.entity.Video;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Component
 public class ShareLinkConverter {
@@ -54,14 +57,16 @@ public class ShareLinkConverter {
         );
     }
 
-    public ShareLinkInfoResDTO toInfoResponse(ShareLink shareLink) {
+    // 게스트 수는 서비스가 카운트 쿼리로 세어 넘긴다.
+    public ShareLinkInfoResDTO toInfoResponse(ShareLink shareLink, long guestCount) {
         return new ShareLinkInfoResDTO(
                 shareLink.getId(),
                 shareLink.getVideo().getId(),
                 shareLink.getToken(),
                 shareLink.getIsActive(),
                 shareLink.getExpiredAt(),
-                shareLink.getCreatedAt()
+                shareLink.getCreatedAt(),
+                guestCount
         );
     }
 
@@ -70,5 +75,22 @@ public class ShareLinkConverter {
                 shareLink.getId(),
                 shareLink.getIsActive()
         );
+    }
+
+    // 세션 토큰은 내보내지 않는다. 목록에 필요한 셋만 담는다.
+    public GuestSummaryResDTO toGuestSummary(Guest guest) {
+        return new GuestSummaryResDTO(
+                guest.getId(),
+                guest.getName(),
+                guest.getCreatedAt()
+        );
+    }
+
+    public GuestListResDTO toGuestListResponse(List<Guest> guests) {
+        List<GuestSummaryResDTO> items = guests.stream()
+                .map(this::toGuestSummary)
+                .toList();
+
+        return new GuestListResDTO(items.size(), items);
     }
 }

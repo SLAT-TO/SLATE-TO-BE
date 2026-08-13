@@ -5,6 +5,7 @@ import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.sharelink.converter.ShareLinkConverter;
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.ShareLinkCreateReqDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestListResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
@@ -50,22 +51,10 @@ public class ShareLinkService {
     public ShareLinkCreateResDTO createShareLink(Long videoId, Long userId, ShareLinkCreateReqDTO req) {
 
         // 1. 영상 조회
-        Video video = entityManagerProvider.getObject().createQuery("""
-                        select v from Video v where v.id = :videoId
-                        """, Video.class)
-                .setParameter("videoId", videoId)
-                .getResultStream()
-                .findFirst()
-                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+        Video video = findVideoOrThrow(videoId);
 
         // 2. 프로젝트 멤버인지 확인 (영상 → 프로젝트)
-        Long projectId = video.getProject().getId();
-        boolean isMember = projectMemberRepository
-                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
-
-        if (!isMember) {
-            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
-        }
+        validateProjectMember(video.getProject().getId(), userId);
 
         // 3. 만료 일시가 과거면 거부
         if (req.expiredAt() != null && !req.expiredAt().isAfter(LocalDateTime.now())) {
@@ -183,29 +172,44 @@ public class ShareLinkService {
     public ShareLinkInfoResDTO getShareLinkByVideo(Long videoId, Long userId) {
 
         // 1. 영상 조회
-        Video video = entityManagerProvider.getObject().createQuery("""
-                        select v from Video v where v.id = :videoId
-                        """, Video.class)
-                .setParameter("videoId", videoId)
-                .getResultStream()
-                .findFirst()
-                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+        Video video = findVideoOrThrow(videoId);
 
         // 2. 프로젝트 멤버인지 확인
-        Long projectId = video.getProject().getId();
-
-        boolean isMember = projectMemberRepository
-                .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
-
-        if (!isMember) {
-            throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
-        }
+        validateProjectMember(video.getProject().getId(), userId);
 
         // 3. 링크 조회 (없으면 404)
         ShareLink shareLink = shareLinkRepository.findByVideoId(videoId)
                 .orElseThrow(() -> new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND));
 
-        return shareLinkConverter.toInfoResponse(shareLink);
+        // 4. 게스트 수 (목록을 열지 않고 화면에 수만 표시하는 용도)
+        long guestCount = guestRepository.countByShareLinkId(shareLink.getId());
+
+        return shareLinkConverter.toInfoResponse(shareLink, guestCount);
+    }
+
+    /**
+     * 공유 링크로 참여한 게스트 목록을 조회한다.
+     * 프로젝트 활성 멤버만 볼 수 있으며, 세션 토큰은 응답에 포함되지 않는다.
+     */
+    @Transactional(readOnly = true)
+    public GuestListResDTO getGuests(Long videoId, Long shareLinkId, Long userId) {
+
+        // 1. 링크 조회 (없으면 404)
+        ShareLink shareLink = shareLinkRepository.findById(shareLinkId)
+                .orElseThrow(() -> new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND));
+
+        // 2. 경로의 영상과 링크의 영상이 일치하는지 (다른 영상 ID로 남의 링크를 여는 것 차단)
+        if (!shareLink.getVideo().getId().equals(videoId)) {
+            throw new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND);
+        }
+
+        // 3. 프로젝트 멤버인지 확인 (링크 → 영상 → 프로젝트)
+        validateProjectMember(shareLink.getVideo().getProject().getId(), userId);
+
+        // 4. 게스트 목록 조회
+        return shareLinkConverter.toGuestListResponse(
+                guestRepository.findAllByShareLinkIdOrderByCreatedAtDesc(shareLinkId)
+        );
     }
 
     @Transactional
@@ -216,18 +220,32 @@ public class ShareLinkService {
                 .orElseThrow(() -> new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND));
 
         // 2. 프로젝트 멤버인지 확인 (링크 → 영상 → 프로젝트)
-        Long projectId = shareLink.getVideo().getProject().getId();
+        validateProjectMember(shareLink.getVideo().getProject().getId(), userId);
 
+        // 3. 상태 토글 (더티 체킹)
+        shareLink.toggleActive();
+
+        return shareLinkConverter.toToggleResponse(shareLink);
+    }
+
+    /** 영상을 조회한다. 없으면 404. */
+    private Video findVideoOrThrow(Long videoId) {
+        return entityManagerProvider.getObject().createQuery("""
+                        select v from Video v where v.id = :videoId
+                        """, Video.class)
+                .setParameter("videoId", videoId)
+                .getResultStream()
+                .findFirst()
+                .orElseThrow(() -> new BaseException(CommonErrorCode.NOT_FOUND));
+    }
+
+    /** 프로젝트의 활성 멤버가 맞는지 확인한다. 아니면 403. */
+    private void validateProjectMember(Long projectId, Long userId) {
         boolean isMember = projectMemberRepository
                 .existsByProjectIdAndUserIdAndLeftAtIsNull(projectId, userId);
 
         if (!isMember) {
             throw new BaseException(ProjectErrorCode.PROJECT_ACCESS_DENIED);
         }
-
-        // 3. 상태 토글 (더티 체킹)
-        shareLink.toggleActive();
-
-        return shareLinkConverter.toToggleResponse(shareLink);
     }
 }
