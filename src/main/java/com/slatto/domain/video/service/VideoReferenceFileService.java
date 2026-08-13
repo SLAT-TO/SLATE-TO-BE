@@ -47,6 +47,17 @@ public class VideoReferenceFileService {
         projectAccessValidator.validateProjectAccess(projectId, currentUserId);
         validateVideoBelongsToProject(projectId, videoId);
 
+        return readReferenceFiles(projectId, videoId, keyword, cursor, requestedSize);
+    }
+
+    /** 접근 권한 확인은 호출부의 책임이다. */
+    private VideoReferenceFileListResDTO readReferenceFiles(
+        Long projectId,
+        Long videoId,
+        String keyword,
+        Long cursor,
+        Integer requestedSize
+    ) {
         int pageSize = normalizePageSize(requestedSize);
         List<VideoReferenceFile> referenceFiles = videoReferenceFileRepository.findActiveReferenceFilesByCursor(
             projectId,
