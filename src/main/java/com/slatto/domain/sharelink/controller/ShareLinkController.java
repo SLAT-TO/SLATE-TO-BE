@@ -5,6 +5,7 @@ import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkCreat
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkEntryResDTO;
 import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.GuestCreateReqDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
+import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestListResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkToggleResDTO;
 import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
@@ -185,12 +186,14 @@ public class ShareLinkController {
                 .body(new InputStreamResource(response.getInputStream()));
     }
 
-    @Operation(summary = "공유 링크 조회 (소유자용)", description = "영상의 공유 링크를 조회합니다. 프로젝트 멤버만 가능합니다.")
+    @Operation(
+            summary = "공유 링크 조회 (소유자용)",
+            description = "영상의 공유 링크를 조회합니다. 프로젝트 멤버만 가능합니다. 응답의 guestCount 로 참여 게스트 수를 확인할 수 있습니다."
+    )
     @ApiErrorCodes({"PROJECT403", "SHARELINK404"})
     @GetMapping("/videos/{videoId}/share-links")
-    public ApiResponse<
-            ShareLinkInfoResDTO> getShareLinkByVideo(
-            @PathVariable Long videoId,
+    public ApiResponse<ShareLinkInfoResDTO> getShareLinkByVideo(
+            @PathVariable @Positive Long videoId,
             @AuthenticationPrincipal Long userId
     ) {
         return ApiResponse.success(
@@ -199,11 +202,31 @@ public class ShareLinkController {
         );
     }
 
+    @Operation(
+            summary = "게스트 목록 조회 (소유자용)",
+            description = """
+                    공유 링크로 참여한 게스트 목록을 조회합니다. 프로젝트 활성 멤버만 가능합니다.
+                    최근 참여한 순서로 내려가며, 세션 토큰 등 민감 정보는 응답에 포함되지 않습니다.
+                    경로의 videoId 와 링크의 영상이 다르면 SHARELINK404 입니다."""
+    )
+    @ApiErrorCodes({"PROJECT403", "SHARELINK404"})
+    @GetMapping("/videos/{videoId}/share-links/{shareLinkId}/guests")
+    public ApiResponse<GuestListResDTO> getGuests(
+            @PathVariable @Positive Long videoId,
+            @PathVariable @Positive Long shareLinkId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ApiResponse.success(
+                CommonSuccessCode.OK,
+                shareLinkService.getGuests(videoId, shareLinkId, userId)
+        );
+    }
+
     @Operation(summary = "공유 링크 활성/비활성 토글", description = "공유 링크의 활성 상태를 뒤집습니다. 프로젝트 멤버만 가능합니다.")
     @ApiErrorCodes({"PROJECT403", "SHARELINK404"})
     @PatchMapping("/share-links/{shareLinkId}")
     public ApiResponse<ShareLinkToggleResDTO> toggleShareLink(
-            @PathVariable Long shareLinkId,
+            @PathVariable @Positive Long shareLinkId,
             @AuthenticationPrincipal Long userId
     ) {
         return ApiResponse.success(

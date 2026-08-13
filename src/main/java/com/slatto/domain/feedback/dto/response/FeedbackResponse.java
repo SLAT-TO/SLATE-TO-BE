@@ -14,7 +14,7 @@ public class FeedbackResponse {
     public record ActorDTO(
             @Schema(example = "USER") String type,   // "USER" 또는 "GUEST"
             @Schema(example = "20") Long id,
-            @Schema(example = "차태훈") String name
+            @Schema(example = "유리") String name
     ) {
         // 회원이면 USER actor 만들기
         public static ActorDTO fromUser(Users user) {
