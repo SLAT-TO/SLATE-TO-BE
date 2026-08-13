@@ -4,7 +4,7 @@
 
 <div align="center">
 
-<img width="1920" height="1080" alt="SLATE-TO Backend Banner" src="https://github.com/user-attachments/assets/fbe510e1-01c9-4b1a-b400-38a5297a1efa" />
+<img width="1920" height="1080" alt="SLATE-TO Backend Banner" src="https://github.com/user-attachments/assets/27eb1499-d6ce-4620-ae62-bab75b4e6236" />
 
 <h3>영상 제작 협업을 위한 프로젝트 관리 및 피드백 플랫폼</h3>
 
@@ -106,7 +106,7 @@ SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간
 ### Database & Storage
 
 <p>
-  <img src="https://img.shields.io/badge/MYSQL_8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
+  <img src="https://img.shields.io/badge/MYSQL_8.4-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
   <img src="https://img.shields.io/badge/AWS_S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white" alt="AWS S3" />
   <img src="https://img.shields.io/badge/H2_TEST_DB-09476B?style=for-the-badge&logo=h2database&logoColor=white" alt="H2" />
   <img src="https://img.shields.io/badge/FLYWAY-CC0200?style=for-the-badge&logo=flyway&logoColor=white" alt="Flyway" />
@@ -135,25 +135,36 @@ SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간
 
 <img width="1381" height="1139" alt="slat_to_infra" src="https://github.com/user-attachments/assets/106b2f50-cd4d-45f4-a3f6-f9981d427967" />
 
+> **배포 실패 시 동작**
+>
+> 배포 후 헬스 체크가 실패하면 직전 이미지로 자동 롤백합니다. 다만 최초 배포처럼 직전 이미지 정보를 읽을 수 없으면 롤백하지 못하며, 롤백에 실패한 경우에도 배포는 실패로 기록되고 수동 복구가 필요합니다.
+> `concurrency` 설정으로 배포가 동시에 실행되지 않도록 차단합니다.
+> Nginx 설정 역시 `nginx -t` 검증에 실패하면 이전 설정으로 되돌립니다.
+
+## 데이터베이스
+
+스키마는 Flyway로 버전 관리하며, 마이그레이션 파일은 `src/main/resources/db/migration`에 있습니다.
+운영 환경 반영 전 CI에서 실제 MySQL 컨테이너로 마이그레이션을 검증합니다.
 
 ## 협업 방식
 
 ### 브랜치 전략
 
-| 브랜치 | 설명                                     |
-| --- |----------------------------------------|
-| `main` | 운영 환경에 배포되는 안정적인 버전입니다.                |
+| 브랜치 | 설명 |
+| --- | --- |
+| `main` | 운영 환경에 배포되는 안정적인 버전입니다. |
 | `feature/*` | 기능 개발용 브랜치입니다. 최신 `main`에서 분기하여 작업합니다. |
+| `fix/*` | 버그 수정용 브랜치입니다. |
+| `refactor/*` | 기능 변경 없는 코드 개선용 브랜치입니다. |
+| `docs/*` | 문서 수정용 브랜치입니다. |
+| `chore/*` | 빌드, 설정, 기타 작업용 브랜치입니다. |
+
+기능 개발은 `feature`를 사용하고, 나머지 접두사는 아래 커밋 컨벤션의 `type`과 같은 이름을 사용합니다.
 
 ### 브랜치 규칙 및 네이밍
 
-- 모든 기능 개발은 `feature` 브랜치에서 시작합니다.
+- 모든 작업은 `main`에서 분기한 작업 브랜치에서 시작합니다.
 - Pull Request를 생성하고 리뷰를 거친 후 `main`에 병합합니다.
-- 프로젝트 초기에는 `develop` 브랜치를 별도로 운영했으나, 개발이 안정화됨에 따라 브랜치 관리 및 배포 프로세스를 단순화하기 위해 `develop` 브랜치를 제거하고 `main` 중심의 브랜치 전략으로 변경했습니다.
-
-> **Dev 환경 운영 변경**
->
-> 초기에는 개발 환경과 운영 환경을 분리하여 Dev/Prod 서버를 운영했으나, 인프라 비용 절감을 위해 Dev 서버 운영을 종료하고 현재는 Prod 서버만 운영하고 있습니다.
 
 ```bash
 git switch main
@@ -168,6 +179,39 @@ feature/{이슈번호}-{기능명}
 ```
 
 예시: `feature/1-login`
+
+---
+
+### 브랜치 전략 변경 이력
+
+프로젝트 초기에는 Dev/Prod 서버를 분리하고 `develop`을 통합 브랜치로 두는 Git Flow 방식으로 시작했으나, 아래 이유로 `main` 중심의 단일 브랜치 전략으로 전환했습니다.
+
+**1. 배포 대상이 하나입니다.**
+Git Flow의 `develop`은 여러 릴리스를 모아 한 번에 내보내는 것을 전제로 합니다. 단일 운영 서버에 변경 사항을 지속적으로 반영하는 구조에서는 모아둘 릴리스 단위가 없어, `develop`이 `main`으로 가기 전 대기 지점 이상의 역할을 하지 못했습니다.
+
+**2. 통합 브랜치를 검증할 환경이 없어졌습니다.**
+인프라 비용 절감을 위해 Dev 서버 운영을 종료하면서, `develop`에 병합해도 동작을 확인할 수 있는 배포 환경이 사라졌습니다. "운영 반영 전에 통합 상태를 검증한다"는 통합 브랜치의 목적 자체가 성립하지 않게 되었습니다.
+
+**3. 병합 지점이 둘로 나뉘어 리뷰가 분산되었습니다.**
+같은 변경에 대해 `feature → develop` PR과 `develop → main` PR이 각각 생성되었고, 후자는 이미 리뷰를 마친 커밋의 모음이라 형식적인 승인이 되기 쉬웠습니다. 병합 지점을 하나로 모아 리뷰가 실제로 이루어지는 위치를 명확히 했습니다.
+
+**4. 검증 조건을 한 곳에 집중할 수 있습니다.**
+브랜치 보호와 CI 필수 통과 조건을 `main` 한 곳에 적용해, 운영에 반영되는 모든 코드가 예외 없이 동일한 검증을 거치도록 했습니다. 브랜치가 둘일 때는 긴급 수정을 양쪽에 각각 반영해야 하고, 한쪽을 누락하면 다음 배포에서 수정이 되돌아가는 위험도 있었습니다.
+
+현재는 Prod 서버만 운영하며, 배포 전 검증은 Dev 서버 대신 CI에서 수행합니다. CI는 실제 MySQL 컨테이너로 Flyway 마이그레이션을 검증하고 전체 테스트와 Docker 이미지 빌드까지 확인하며, 이 검증을 통과해야만 운영 배포가 진행됩니다.
+
+---
+
+### 브랜치 보호 규칙
+
+`main`은 GitHub Ruleset(`Protect main`)으로 보호되며, 예외 대상(bypass)은 없습니다.
+
+- `main`에 직접 push할 수 없으며, 모든 변경은 Pull Request를 거칩니다.
+- 승인 1건 이상이 있어야 병합할 수 있습니다.
+- CI(`Migration, Build and Docker Image Check`) 통과가 병합 조건입니다.
+- force push와 브랜치 삭제를 차단합니다.
+
+---
 
 ### 커밋 컨벤션
 
@@ -188,6 +232,8 @@ feature/{이슈번호}-{기능명}
 | `chore`    | 빌드, 설정, 기타 작업    |
 | `deploy`   | 배포 및 인프라 관련 작업 |
 
+---
+
 ### Pull Request
 
 - PR은 `main` 브랜치를 기준으로 생성합니다.
@@ -203,11 +249,11 @@ feature/{이슈번호}-{기능명}
 src/main/java/com/slatto
 ├── domain
 │   ├── auth, user, project, video, feedback
-│   ├── schedule, notification, recruitment, sharelink, inquiry
+│   ├── schedule, notification, recruitment, sharelink, inquiry, common
 │   └── controller, service, repository, entity, dto 중심으로 구성
 ├── global
 │   ├── config, security, exception, response
-│   ├── storage, health
+│   ├── storage, health, util
 │   └── 공통 설정과 횡단 관심사 관리
 └── SlattoApplication.java
 ```
