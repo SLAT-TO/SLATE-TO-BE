@@ -62,15 +62,28 @@ public class SwaggerMultipartEncodingCustomizer implements OperationCustomizer {
 		});
 	}
 
-	// 파일 파트(format: binary)와 단순 값은 그대로 두고, 객체로 실려 가는 파트만 대상으로 한다.
+	// 파일 파트와 단순 값은 그대로 두고, 객체로 실려 가는 파트만 대상으로 한다.
 	private boolean isJsonPart(Schema<?> propertySchema) {
-		if (propertySchema == null || BINARY_FORMAT.equals(propertySchema.getFormat())) {
+		if (propertySchema == null || isBinary(propertySchema)) {
 			return false;
 		}
 
 		return propertySchema.get$ref() != null
 			|| OBJECT_TYPE.equals(propertySchema.getType())
 			|| ARRAY_TYPE.equals(propertySchema.getType());
+	}
+
+	// 파일을 여러 개 받는 파트는 배열 자신이 아니라 items 에 format: binary 가 붙는다.
+	// 배열이라는 이유로 JSON 취급하면 파일을 JSON 으로 실어 보내게 되어,
+	// 이 클래스가 막으려던 것과 같은 실패를 반대 방향으로 만든다.
+	private boolean isBinary(Schema<?> schema) {
+		if (BINARY_FORMAT.equals(schema.getFormat())) {
+			return true;
+		}
+
+		Schema<?> items = schema.getItems();
+
+		return ARRAY_TYPE.equals(schema.getType()) && items != null && isBinary(items);
 	}
 
 }
