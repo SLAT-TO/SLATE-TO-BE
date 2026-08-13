@@ -7,6 +7,8 @@ import com.slatto.domain.sharelink.dto.request.ShareLinkRequest.GuestCreateReqDT
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.GuestCreateResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkInfoResDTO;
 import com.slatto.domain.sharelink.dto.response.ShareLinkResponse.ShareLinkToggleResDTO;
+import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
+import com.slatto.domain.video.dto.response.VideoResponse.GuestReferenceFileListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.GuestVideoDetailResDTO;
 import com.slatto.global.config.ApiErrorCodes;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,13 +16,25 @@ import com.slatto.domain.sharelink.service.ShareLinkService;
 import com.slatto.global.response.ApiResponse;
 import com.slatto.global.response.code.CommonSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+
+@Validated
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -109,6 +123,66 @@ public class ShareLinkController {
                 CommonSuccessCode.OK,
                 shareLinkService.getGuestVideo(shareToken, guestId, guestToken)
         );
+    }
+
+    @Operation(
+            summary = "게스트 참고 파일 목록 조회",
+            description = """
+                    게스트가 공유된 영상에 연결된 참고 파일을 읽기 전용으로 조회합니다.
+                    keyword 로 파일명을 검색할 수 있고, 다음 페이지는 이전 응답의 nextCursor 를 전달합니다.
+                    외부인이므로 업로더 정보는 내려가지 않습니다."""
+    )
+    @SecurityRequirements
+    @ApiErrorCodes({"SHARELINK404", "SHARELINK410", "SHARELINK403", "COMMON404"})
+    @GetMapping("/share-links/{shareToken}/files")
+    public ApiResponse<GuestReferenceFileListResDTO> getGuestReferenceFiles(
+            @PathVariable String shareToken,
+            @RequestHeader("X-Guest-Id") Long guestId,
+            @RequestHeader("X-Guest-Token") String guestToken,
+            @Parameter(description = "파일명 검색어", example = "reference")
+            @RequestParam(required = false) String keyword,
+            @Parameter(description = "이전 응답의 nextCursor. 첫 페이지에서는 생략합니다.", example = "9")
+            @RequestParam(required = false) @Positive Long cursor,
+            @Parameter(description = "조회 개수. 생략 시 20, 최대 100입니다.", example = "20")
+            @RequestParam(required = false) @Min(1) @Max(100) Integer size
+    ) {
+        return ApiResponse.success(
+                CommonSuccessCode.OK,
+                shareLinkService.getGuestReferenceFiles(shareToken, guestId, guestToken, keyword, cursor, size)
+        );
+    }
+
+    @Operation(
+            summary = "게스트 참고 파일 다운로드",
+            description = """
+                    공통 응답 래퍼가 아니라 파일 본문을 그대로 반환합니다. Content-Disposition 이 attachment 로 내려갑니다.
+                    목록 응답의 referenceFileId 로 요청하며, 공유된 영상에 연결되지 않은 파일은 COMMON404 입니다."""
+    )
+    @SecurityRequirements
+    @ApiErrorCodes({"SHARELINK404", "SHARELINK410", "SHARELINK403", "COMMON404"})
+    @GetMapping("/share-links/{shareToken}/files/{referenceFileId}/download")
+    public ResponseEntity<InputStreamResource> downloadGuestReferenceFile(
+            @PathVariable String shareToken,
+            @PathVariable @Positive Long referenceFileId,
+            @RequestHeader("X-Guest-Id") Long guestId,
+            @RequestHeader("X-Guest-Token") String guestToken
+    ) {
+        ProjectFileDownloadResponse response = shareLinkService.downloadGuestReferenceFile(
+                shareToken,
+                guestId,
+                guestToken,
+                referenceFileId
+        );
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(response.getContentType()))
+                .contentLength(response.getFileSize())
+                .headers(headers -> headers.setContentDisposition(
+                        ContentDisposition.attachment()
+                                .filename(response.getFileName(), StandardCharsets.UTF_8)
+                                .build()
+                ))
+                .body(new InputStreamResource(response.getInputStream()));
     }
 
     @Operation(summary = "공유 링크 조회 (소유자용)", description = "영상의 공유 링크를 조회합니다. 프로젝트 멤버만 가능합니다.")

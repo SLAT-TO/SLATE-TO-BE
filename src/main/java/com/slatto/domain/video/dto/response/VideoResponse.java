@@ -215,6 +215,49 @@ public class VideoResponse {
         }
     }
 
+    @Schema(description = "게스트 참고 파일 목록 조회 응답")
+    public record GuestReferenceFileListResDTO(
+            @Schema(description = "참고 파일 목록")
+            List<GuestReferenceFileItemResDTO> items,
+            @Schema(description = "다음 페이지 조회 커서", example = "9", nullable = true)
+            Long nextCursor,
+            @Schema(description = "다음 목록 존재 여부", example = "true")
+            boolean hasNext
+    ) {
+        public static GuestReferenceFileListResDTO from(VideoReferenceFileListResDTO source) {
+            return new GuestReferenceFileListResDTO(
+                    source.items().stream().map(GuestReferenceFileItemResDTO::from).toList(),
+                    source.nextCursor(),
+                    source.hasNext()
+            );
+        }
+    }
+
+    /**
+     * 게스트는 외부인이므로 업로더 정보와 projectFileId 를 내려주지 않는다.
+     * 다운로드도 referenceFileId 로 받아 공유된 영상에 연결된 파일로만 범위를 좁힌다.
+     */
+    @Schema(description = "게스트 참고 파일 목록 항목")
+    public record GuestReferenceFileItemResDTO(
+            @Schema(example = "1") Long referenceFileId,
+            @Schema(example = "reference.pdf") String fileName,
+            @Schema(example = "application/pdf") String contentType,
+            @Schema(example = "1048576") Long fileSize,
+            @Schema(example = "false") Boolean isFinal,
+            LocalDateTime createdAt
+    ) {
+        public static GuestReferenceFileItemResDTO from(VideoReferenceFileItemResDTO item) {
+            return new GuestReferenceFileItemResDTO(
+                    item.referenceFileId(),
+                    item.fileName(),
+                    item.contentType(),
+                    item.fileSize(),
+                    item.isFinal(),
+                    item.createdAt()
+            );
+        }
+    }
+
     @Schema(description = "영상 참조 파일 업로더 정보")
     public record VideoReferenceFileUploaderResDTO(
             @Schema(example = "1") Long id,
