@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -151,6 +152,42 @@ class OpenApiDocumentationTest {
 		});
 
 		assertThat(wrong).isEmpty();
+	}
+
+	// multipart 파트를 객체로 받으면 Swagger UI 가 encoding 을 보고 Content-Type 을 정한다.
+	// 비어 있으면 평문으로 실어 보내고 서버는 변환할 컨버터를 찾지 못한다.
+	// 문서에는 멀쩡히 보이는데 Swagger 에서만 실패하므로 생성 결과에서 확인한다.
+	@Test
+	@DisplayName("multipart 의 객체 파트는 application/json encoding 을 가진다")
+	void multipartObjectPartsDeclareJsonEncoding() {
+		List<String> missing = new ArrayList<>();
+
+		forEachOperation((path, httpMethod, operation) -> {
+			JsonNode content = operation.path("requestBody").path("content");
+
+			content.fieldNames().forEachRemaining(mediaTypeName -> {
+				if (!mediaTypeName.startsWith(MediaType.MULTIPART_FORM_DATA_VALUE)) {
+					return;
+				}
+
+				JsonNode mediaType = content.path(mediaTypeName);
+				JsonNode properties = mediaType.path("schema").path("properties");
+
+				properties.fieldNames().forEachRemaining(partName -> {
+					JsonNode part = properties.path(partName);
+					boolean isObjectPart = part.has("$ref") || "object".equals(part.path("type").asText());
+					String contentType = mediaType.path("encoding").path(partName).path("contentType").asText("");
+
+					if (isObjectPart && !MediaType.APPLICATION_JSON_VALUE.equals(contentType)) {
+						missing.add(httpMethod.toUpperCase() + " " + path + " → " + partName);
+					}
+				});
+			});
+		});
+
+		assertThat(missing)
+			.as("encoding 이 비어 Swagger UI 에서 415 가 나는 multipart 파트")
+			.isEmpty();
 	}
 
 	// 아래 검증은 모두 @ApiErrorCodes 를 훑는다. 애노테이션이 한 곳도 없으면 훑을 것이 없어 전부 통과한다.
