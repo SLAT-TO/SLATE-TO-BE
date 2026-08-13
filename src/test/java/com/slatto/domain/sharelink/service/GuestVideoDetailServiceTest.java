@@ -9,6 +9,7 @@ import com.slatto.domain.sharelink.repository.GuestRepository;
 import com.slatto.domain.sharelink.repository.ShareLinkRepository;
 import com.slatto.domain.video.dto.response.VideoResponse.GuestVideoDetailResDTO;
 import com.slatto.domain.video.entity.Video;
+import com.slatto.domain.video.service.VideoReferenceFileService;
 import com.slatto.domain.video.service.VideoService;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
@@ -43,6 +44,7 @@ class GuestVideoDetailServiceTest {
     @Mock private ObjectProvider<EntityManager> entityManagerProvider;
     @Mock private GuestRepository guestRepository;
     @Mock private VideoService videoService;
+    @Mock private VideoReferenceFileService videoReferenceFileService;
     @Mock private ShareLink shareLink;
     @Mock private ShareLink anotherShareLink;
     @Mock private Guest guest;
@@ -60,7 +62,8 @@ class GuestVideoDetailServiceTest {
                 entityManagerProvider,
                 guestRepository,
                 tokenHasher,
-                videoService
+                videoService,
+                videoReferenceFileService
         );
     }
 

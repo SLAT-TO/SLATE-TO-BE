@@ -1,5 +1,6 @@
 package com.slatto.domain.sharelink.service;
 
+import com.slatto.domain.project.dto.ProjectFileDownloadResponse;
 import com.slatto.domain.project.exception.ProjectErrorCode;
 import com.slatto.domain.project.repository.ProjectMemberRepository;
 import com.slatto.domain.sharelink.converter.ShareLinkConverter;
@@ -16,7 +17,9 @@ import com.slatto.domain.sharelink.entity.ShareLink;
 import com.slatto.domain.sharelink.exception.ShareLinkErrorCode;
 import com.slatto.domain.sharelink.repository.ShareLinkRepository;
 import com.slatto.domain.video.entity.Video;
+import com.slatto.domain.video.dto.response.VideoResponse.GuestReferenceFileListResDTO;
 import com.slatto.domain.video.dto.response.VideoResponse.GuestVideoDetailResDTO;
+import com.slatto.domain.video.service.VideoReferenceFileService;
 import com.slatto.domain.video.service.VideoService;
 import com.slatto.global.exception.BaseException;
 import com.slatto.global.response.code.CommonErrorCode;
@@ -41,6 +44,7 @@ public class ShareLinkService {
     private final GuestRepository guestRepository;
     private final TokenHasher tokenHasher;
     private final VideoService videoService;
+    private final VideoReferenceFileService videoReferenceFileService;
 
     @Transactional
     public ShareLinkCreateResDTO createShareLink(Long videoId, Long userId, ShareLinkCreateReqDTO req) {
@@ -121,6 +125,39 @@ public class ShareLinkService {
 
     @Transactional(readOnly = true)
     public GuestVideoDetailResDTO getGuestVideo(String shareToken, Long guestId, String guestToken) {
+        ShareLink shareLink = getShareLinkForGuest(shareToken, guestId, guestToken);
+
+        return videoService.getGuestVideoDetail(shareLink.getVideo());
+    }
+
+    @Transactional(readOnly = true)
+    public GuestReferenceFileListResDTO getGuestReferenceFiles(
+            String shareToken,
+            Long guestId,
+            String guestToken,
+            String keyword,
+            Long cursor,
+            Integer size
+    ) {
+        ShareLink shareLink = getShareLinkForGuest(shareToken, guestId, guestToken);
+
+        return videoReferenceFileService.getGuestReferenceFiles(shareLink.getVideo(), keyword, cursor, size);
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectFileDownloadResponse downloadGuestReferenceFile(
+            String shareToken,
+            Long guestId,
+            String guestToken,
+            Long referenceFileId
+    ) {
+        ShareLink shareLink = getShareLinkForGuest(shareToken, guestId, guestToken);
+
+        return videoReferenceFileService.downloadGuestReferenceFile(shareLink.getVideo(), referenceFileId);
+    }
+
+    /** 살아 있는 링크인지, 그 링크로 등록된 게스트가 맞는지 확인하고 링크를 돌려준다. */
+    private ShareLink getShareLinkForGuest(String shareToken, Long guestId, String guestToken) {
         ShareLink shareLink = shareLinkRepository.findByToken(shareToken)
                 .orElseThrow(() -> new BaseException(ShareLinkErrorCode.SHARE_LINK_NOT_FOUND));
 
@@ -139,7 +176,7 @@ public class ShareLinkService {
             throw new BaseException(ShareLinkErrorCode.GUEST_ACCESS_DENIED);
         }
 
-        return videoService.getGuestVideoDetail(shareLink.getVideo());
+        return shareLink;
     }
 
     @Transactional(readOnly = true)
