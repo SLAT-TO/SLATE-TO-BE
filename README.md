@@ -4,7 +4,8 @@
 
 <div align="center">
 
-<img width="1920" height="1080" alt="SLATE-TO Backend Banner" src="https://github.com/user-attachments/assets/fbe510e1-01c9-4b1a-b400-38a5297a1efa" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/27eb1499-d6ce-4620-ae62-bab75b4e6236" />
+
 
 <h3>영상 제작 협업을 위한 프로젝트 관리 및 피드백 플랫폼</h3>
 
@@ -146,8 +147,6 @@ SLATE-TO는 영상 제작자와 클라이언트가 하나의 프로젝트 공간
 스키마는 Flyway로 버전 관리하며, 마이그레이션 파일은 `src/main/resources/db/migration`에 있습니다.
 운영 환경 반영 전 CI에서 실제 MySQL 컨테이너로 마이그레이션을 검증합니다.
 
-ERD: [노션 링크]
-
 ## 협업 방식
 
 ### 브랜치 전략
@@ -182,6 +181,8 @@ feature/{이슈번호}-{기능명}
 
 예시: `feature/1-login`
 
+---
+
 ### 브랜치 전략 변경 이력
 
 프로젝트 초기에는 Dev/Prod 서버를 분리하고 `develop`을 통합 브랜치로 두는 Git Flow 방식으로 시작했으나, 아래 이유로 `main` 중심의 단일 브랜치 전략으로 전환했습니다.
@@ -200,6 +201,8 @@ Git Flow의 `develop`은 여러 릴리스를 모아 한 번에 내보내는 것�
 
 현재는 Prod 서버만 운영하며, 배포 전 검증은 Dev 서버 대신 CI에서 수행합니다. CI는 실제 MySQL 컨테이너로 Flyway 마이그레이션을 검증하고 전체 테스트와 Docker 이미지 빌드까지 확인하며, 이 검증을 통과해야만 운영 배포가 진행됩니다.
 
+---
+
 ### 브랜치 보호 규칙
 
 `main`은 GitHub Ruleset(`Protect main`)으로 보호되며, 예외 대상(bypass)은 없습니다.
@@ -208,6 +211,8 @@ Git Flow의 `develop`은 여러 릴리스를 모아 한 번에 내보내는 것�
 - 승인 1건 이상이 있어야 병합할 수 있습니다.
 - CI(`Migration, Build and Docker Image Check`) 통과가 병합 조건입니다.
 - force push와 브랜치 삭제를 차단합니다.
+
+---
 
 ### 커밋 컨벤션
 
@@ -227,6 +232,8 @@ Git Flow의 `develop`은 여러 릴리스를 모아 한 번에 내보내는 것�
 | `test`     | 테스트 코드 추가/수정    |
 | `chore`    | 빌드, 설정, 기타 작업    |
 | `deploy`   | 배포 및 인프라 관련 작업 |
+
+---
 
 ### Pull Request
 
