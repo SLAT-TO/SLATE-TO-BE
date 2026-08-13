@@ -6,6 +6,7 @@ import com.slatto.global.response.code.CommonErrorCode;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -54,6 +55,21 @@ public class GlobalExceptionHandler {
 	})
 	public ResponseEntity<ApiResponse<Void>> handleBadRequestException(Exception exception) {
 		CommonErrorCode errorCode = CommonErrorCode.BAD_REQUEST;
+
+		return ResponseEntity
+			.status(errorCode.getHttpStatus())
+			.body(ApiResponse.failure(errorCode));
+	}
+
+	// 본문이나 multipart 파트의 Content-Type 이 컨트롤러가 받을 수 있는 형식이 아닐 때다.
+	// 클라이언트가 보낸 형식의 문제인데, 여기서 잡지 않으면 handleUnexpectedException 이
+	// 받아 COMMON500 을 내보내 서버 장애처럼 보인다.
+	@ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+	public ResponseEntity<ApiResponse<Void>> handleUnsupportedMediaTypeException(
+		HttpMediaTypeNotSupportedException exception
+	) {
+		CommonErrorCode errorCode = CommonErrorCode.UNSUPPORTED_MEDIA_TYPE;
+		log.warn("[MediaType] 지원하지 않는 요청 형식입니다. contentType={}", exception.getContentType());
 
 		return ResponseEntity
 			.status(errorCode.getHttpStatus())
